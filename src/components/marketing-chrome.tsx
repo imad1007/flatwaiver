@@ -1,49 +1,127 @@
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { APP } from "@/lib/config";
+import { Button } from "@/components/ui/button";
+
+const NAV_LINKS = [
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Compare", href: "/#compare" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
+];
 
 export function MarketingHeader() {
   return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          {APP.name}
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <ShieldCheck className="size-4" />
+          </span>
+          <span className="text-lg font-bold tracking-tight">{APP.name}</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/login" className="text-muted-foreground hover:text-foreground">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Start free trial
-          </Link>
+
+        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="transition-colors hover:text-foreground"
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
+
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" render={<Link href="/login" />}>
+            Log in
+          </Button>
+          <Button size="sm" render={<Link href="/signup" />}>
+            Start free trial
+          </Button>
+        </div>
       </div>
     </header>
   );
 }
 
+const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[] }[] = [
+  {
+    heading: "Product",
+    links: [
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Compare pricing", href: "/#compare" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "FAQ", href: "/#faq" },
+    ],
+  },
+  {
+    heading: "Get started",
+    links: [
+      { label: "Start free trial", href: "/signup" },
+      { label: "Log in", href: "/login" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Terms of service", href: "/terms" },
+    ],
+  },
+];
+
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border py-8">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 text-sm text-muted-foreground">
-        <span>
-          © {new Date().getFullYear()} {APP.name}
-        </span>
-        <nav className="flex items-center gap-4">
-          <Link href="/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <span aria-hidden>·</span>
-          <Link href="/terms" className="hover:text-foreground">
-            Terms
-          </Link>
-          <span aria-hidden>·</span>
+    <footer className="border-t border-border bg-muted/40">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Brand column */}
+          <div className="lg:col-span-2">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <ShieldCheck className="size-4" />
+              </span>
+              <span className="text-lg font-bold tracking-tight">{APP.name}</span>
+            </Link>
+            <p className="mt-3 max-w-xs text-sm text-muted-foreground">
+              Unlimited digital waivers for ${APP.priceMonthlyUsd}/month, flat.
+              Court-ready records, no per-signature fees, ever.
+            </p>
+            <p className="mt-4 text-xs text-muted-foreground/70">
+              Electronic signatures recognized under the ESIGN Act and UETA. Not
+              legal advice — have a lawyer review your waiver text.
+            </p>
+          </div>
+
+          {FOOTER_COLUMNS.map((col) => (
+            <div key={col.heading}>
+              <h3 className="text-sm font-semibold">{col.heading}</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {col.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground/70">
+          <span>
+            © {new Date().getFullYear()} {APP.name}. All rights reserved.
+          </span>
           <a href={`mailto:${APP.supportEmail}`} className="hover:text-foreground">
             {APP.supportEmail}
           </a>
-        </nav>
+        </div>
       </div>
     </footer>
   );
