@@ -1,0 +1,212 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+
+const PAGE_SIZE = 50;
+
+interface SearchParams {
+  q?: string;
+  from?: string;
+  to?: string;
+  template?: string;
+  page?: string;
+}
+
+export default async function SignaturesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const q = params.q?.trim() ?? "";
+  const from = params.from ?? "";
+  const to = params.to ?? "";
+  const templateFilter = params.template ?? "";
+  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+
+  const supabase = await createClient();
+
+  const { data: templates } = await supabase
+    .from("waiver_templates")
+    .select("id, name")
+    .order("name");
+
+  let query = supabase
+    .from("signed_waivers")
+    .select("id, signer_name, signer_email, is_minor, signed_at, signing_channel, template_id", {
+      count: "exact",
+    })
+    .order("signed_at", { ascending: false })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+  if (q) query = query.ilike("signer_name", `%${q}%`);
+  if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
+  if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
+  if (templateFilter) query = query.eq("template_id", templateFilter);
+
+  const { data: rows, count } = await query;
+  const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+
+  const exportQuery = new URLSearchParams();
+  if (q) exportQuery.set("q", q);
+  if (from) exportQuery.set("from", from);
+  if (to) exportQuery.set("to", to);
+  if (templateFilter) exportQuery.set("template", templateFilter);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Signatures</h1>
+        <a
+          href={`/api/signatures/export?${exportQuery.toString()}`}
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:border-neutral-900"
+        >
+          Export CSV
+        </a>
+      </div>
+
+      {/* Filters */}
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-neutral-500">
+            Signer name
+          </span>
+          <input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Search names…"
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-neutral-500">From</span>
+          <input
+            type="date"
+            name="from"
+            defaultValue={from}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-neutral-500">To</span>
+          <input
+            type="date"
+            name="to"
+            defaultValue={to}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-neutral-500">Waiver</span>
+          <select
+            name="template"
+            defaultValue={templateFilter}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          >
+            <option value="">All waivers</option>
+            {(templates ?? []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700"
+        >
+          Filter
+        </button>
+        {(q || from || to || templateFilter) && (
+          <Link href="/signatures" className="text-sm text-neutral-500 underline">
+            Clear
+          </Link>
+        )}
+      </form>
+
+      {/* Results */}
+      <p className="mt-4 text-sm text-neutral-500">
+        {count ?? 0} signature{(count ?? 0) === 1 ? "" : "s"}
+      </p>
+
+      <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-500">
+            <tr>
+              <th className="px-4 py-3 font-medium">Signer</th>
+              <th className="px-4 py-3 font-medium">Email</th>
+              <th className="px-4 py-3 font-medium">Waiver</th>
+              <th className="px-4 py-3 font-medium">Minor</th>
+              <th className="px-4 py-3 font-medium">Channel</th>
+              <th className="px-4 py-3 font-medium">Signed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(rows ?? []).length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-neutral-400">
+                  No signatures match these filters.
+                </td>
+              </tr>
+            ) : (
+              (rows ?? []).map((s) => (
+                <tr key={s.id} className="border-b border-neutral-100 last:border-0">
+                  <td className="px-4 py-3">
+                    <Link href={`/signatures/${s.id}`} className="font-medium hover:underline">
+                      {s.signer_name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-neutral-600">{s.signer_email ?? "—"}</td>
+                  <td className="px-4 py-3 text-neutral-600">
+                    {templateNames.get(s.template_id) ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-500">{s.is_minor ? "Yes" : ""}</td>
+                  <td className="px-4 py-3 text-neutral-500">{s.signing_channel}</td>
+                  <td className="px-4 py-3 text-neutral-500">
+                    {new Date(s.signed_at).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center gap-3 text-sm">
+          {page > 1 && (
+            <Link
+              href={buildPageHref(params, page - 1)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 hover:border-neutral-900"
+            >
+              ← Previous
+            </Link>
+          )}
+          <span className="text-neutral-500">
+            Page {page} of {totalPages}
+          </span>
+          {page < totalPages && (
+            <Link
+              href={buildPageHref(params, page + 1)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 hover:border-neutral-900"
+            >
+              Next →
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildPageHref(params: SearchParams, page: number): string {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  if (params.template) qs.set("template", params.template);
+  qs.set("page", String(page));
+  return `/signatures?${qs.toString()}`;
+}
