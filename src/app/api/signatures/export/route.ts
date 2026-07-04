@@ -20,6 +20,7 @@ const HEADER = [
   "user_agent",
   "signing_channel",
   "consent_given",
+  "flagged",
   "pdf_sha256",
 ];
 
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
   const from = url.searchParams.get("from") ?? "";
   const to = url.searchParams.get("to") ?? "";
   const template = url.searchParams.get("template") ?? "";
+  const flaggedOnly = url.searchParams.get("flagged") === "1";
 
   const { data: templates } = await supabase
     .from("waiver_templates")
@@ -64,7 +66,7 @@ export async function GET(request: Request) {
         let query = supabase
           .from("signed_waivers")
           .select(
-            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, pdf_sha256"
+            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256"
           )
           .order("signed_at", { ascending: false })
           .range(offset, offset + BATCH_SIZE - 1);
@@ -73,6 +75,7 @@ export async function GET(request: Request) {
         if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
         if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
         if (template) query = query.eq("template_id", template);
+        if (flaggedOnly) query = query.eq("flagged", true);
 
         const { data: rows, error } = await query;
         if (error || !rows || rows.length === 0) break;
@@ -93,6 +96,7 @@ export async function GET(request: Request) {
             r.user_agent ?? "",
             r.signing_channel,
             r.consent_given ? "true" : "false",
+            r.flagged ? "true" : "false",
             r.pdf_sha256,
           ]
             .map(csvEscape)

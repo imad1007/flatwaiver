@@ -37,10 +37,22 @@ export default async function KioskPage({
     );
   }
 
+  const brandStyle = waiver.branding.color
+    ? ({ "--primary": waiver.branding.color, "--ring": waiver.branding.color } as React.CSSProperties)
+    : undefined;
+
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8" style={brandStyle}>
       <WakeLock />
       <header className="mb-6 text-center">
+        {waiver.branding.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={waiver.branding.logoUrl}
+            alt={`${waiver.orgName} logo`}
+            className="mx-auto mb-3 h-14 object-contain"
+          />
+        )}
         <p className="text-base font-medium text-muted-foreground">{waiver.orgName}</p>
         <h1 className="text-3xl font-bold">{waiver.name}</h1>
       </header>

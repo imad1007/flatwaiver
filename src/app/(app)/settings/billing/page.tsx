@@ -18,9 +18,7 @@ export default async function BillingPage({
   const trialDaysLeft = sub?.trial_ends_at ? daysLeftUntil(sub.trial_ends_at) : 0;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold">Billing</h1>
-
+    <div>
       {checkout === "success" && (
         <div className="mt-4 rounded-md border border-success/30 bg-success/10 p-4 text-sm text-success">
           Thanks — your subscription is active. (It may take a few seconds to
@@ -33,7 +31,7 @@ export default async function BillingPage({
         </div>
       )}
 
-      <section className="mt-6 rounded-xl border border-border p-6">
+      <section className="rounded-xl border border-border bg-card p-6 shadow-card">
         <h2 className="font-bold">Plan</h2>
         <p className="mt-2 text-3xl font-bold">
           ${APP.priceMonthlyUsd}
@@ -105,7 +103,7 @@ export default async function BillingPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-xl border border-border p-6 text-sm text-muted-foreground">
+      <section className="mt-6 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-card">
         <h2 className="font-bold text-foreground">Your documents are never held hostage</h2>
         <p className="mt-2">
           Whatever happens with billing, you can always view, search, download,

@@ -35,9 +35,21 @@ export default async function PublicSigningPage({
     );
   }
 
+  const brandStyle = waiver.branding.color
+    ? ({ "--primary": waiver.branding.color, "--ring": waiver.branding.color } as React.CSSProperties)
+    : undefined;
+
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8" style={brandStyle}>
       <header className="mb-6">
+        {waiver.branding.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={waiver.branding.logoUrl}
+            alt={`${waiver.orgName} logo`}
+            className="mb-3 h-12 object-contain"
+          />
+        )}
         <p className="text-sm font-medium text-muted-foreground">{waiver.orgName}</p>
         <h1 className="text-2xl font-bold">{waiver.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">

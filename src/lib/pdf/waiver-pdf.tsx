@@ -15,6 +15,9 @@ import type { SigningChannel, WaiverBlock, WaiverField } from "@/lib/types";
 
 export interface SignedPdfInput {
   orgName: string;
+  /** Org branding: optional logo (data URL) + hex accent color. */
+  logoDataUrl: string | null;
+  brandColor: string | null;
   waiverName: string;
   versionNumber: number;
   contentSha256: string;
@@ -111,8 +114,23 @@ function WaiverPdf({
     >
       {/* Waiver text + signature */}
       <Page size="LETTER" style={styles.page}>
+        {input.logoDataUrl && (
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image
+            src={input.logoDataUrl}
+            style={{ width: 120, height: 36, objectFit: "contain", objectPosition: "left", marginBottom: 6 }}
+          />
+        )}
         <Text style={styles.orgName}>{input.orgName}</Text>
-        <Text style={styles.title}>{input.waiverName}</Text>
+        <Text
+          style={
+            input.brandColor
+              ? { ...styles.title, color: input.brandColor }
+              : styles.title
+          }
+        >
+          {input.waiverName}
+        </Text>
 
         {input.blocks.map((block, i) => {
           if (block.type === "heading") {

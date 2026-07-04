@@ -8,6 +8,7 @@ import {
   FilePlus2,
   FileSignature,
   LayoutDashboard,
+  Palette,
   Search,
 } from "lucide-react";
 import {
@@ -84,6 +85,10 @@ export function CommandPalette({
           <CommandItem onSelect={() => go("/signatures")}>
             <FileSignature className="size-4" />
             Signatures
+          </CommandItem>
+          <CommandItem onSelect={() => go("/settings/branding")}>
+            <Palette className="size-4" />
+            Branding
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/billing")}>
             <CreditCard className="size-4" />

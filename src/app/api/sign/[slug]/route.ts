@@ -6,7 +6,7 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import { renderSignedPdf } from "@/lib/pdf/waiver-pdf";
 import { sendOwnerNotificationEmail, sendSignerCopyEmail } from "@/lib/email";
 import { APP } from "@/lib/config";
-import type { WaiverField } from "@/lib/types";
+import { evaluateFlags, type WaiverField } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -144,12 +144,34 @@ export async function POST(
     ? nonEmptyString(payload.fieldValues[dobField.key])
     : null;
 
+  // Org logo for the PDF header (best-effort — never blocks signing)
+  let logoDataUrl: string | null = null;
+  if (waiver.branding.logoPath) {
+    try {
+      const { data: logoBlob } = await admin.storage
+        .from("uploads")
+        .download(waiver.branding.logoPath);
+      if (logoBlob) {
+        const mime = logoBlob.type || "image/png";
+        // @react-pdf supports PNG/JPEG; skip webp logos in the PDF
+        if (mime === "image/png" || mime === "image/jpeg") {
+          const buf = Buffer.from(await logoBlob.arrayBuffer());
+          logoDataUrl = `data:${mime};base64,${buf.toString("base64")}`;
+        }
+      }
+    } catch {
+      logoDataUrl = null;
+    }
+  }
+
   // 6. Render final PDF with Evidence page (double-render hash scheme)
   let pdf: Buffer;
   let pdfSha256: string;
   try {
     ({ pdf, pdfSha256 } = await renderSignedPdf({
       orgName: waiver.orgName,
+      logoDataUrl,
+      brandColor: waiver.branding.color,
       waiverName: waiver.name,
       versionNumber: version.version_number,
       contentSha256: version.content_sha256,
@@ -199,6 +221,7 @@ export async function POST(
     pdf_sha256: pdfSha256,
     consent_given: true,
     consent_text_snapshot: version.consent_text,
+    flagged: evaluateFlags(version.fields, payload.fieldValues),
     signed_at: signedAtIso,
     ip: clientIp,
     user_agent: userAgent,
@@ -285,9 +308,14 @@ function validateFieldValues(
         )
           return `"${field.label}" must be a valid email.`;
         break;
+      case "date":
       case "date_of_birth":
         if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
           return `"${field.label}" must be a valid date.`;
+        break;
+      case "select":
+        if (typeof value !== "string" || !(field.options ?? []).includes(value))
+          return `"${field.label}" has an invalid choice.`;
         break;
       case "initials":
         if (typeof value !== "string" || value.length > 5)

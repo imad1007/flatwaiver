@@ -7,6 +7,7 @@ import {
   type SignatureCanvasHandle,
 } from "@/components/signature-canvas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { BlockView, FieldInput, signerInputClass } from "@/components/waiver-render";
 import type { SigningChannel, WaiverBlock, WaiverField } from "@/lib/types";
 
 export interface SigningFormProps {
@@ -118,7 +119,7 @@ export function SigningForm(props: SigningFormProps) {
   if (kioskDone) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-        <div className="text-6xl">✓</div>
+        <div className="text-6xl text-success">✓</div>
         <h2 className="mt-4 text-3xl font-bold">You&apos;re all set!</h2>
         <p className="mt-2 text-lg text-muted-foreground">
           Your waiver has been signed and recorded.
@@ -157,13 +158,13 @@ export function SigningForm(props: SigningFormProps) {
 
       {/* Minor / guardian flow */}
       {props.minorMode === "allowed" && (
-        <div className="rounded-xl border border-border p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <label className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={isMinor}
               onChange={(e) => setIsMinor(e.target.checked)}
-              className="h-5 w-5"
+              className="size-5 accent-primary"
             />
             <span className="font-medium">The participant is under 18</span>
           </label>
@@ -179,7 +180,7 @@ export function SigningForm(props: SigningFormProps) {
                   required
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
-                  className={inputClass}
+                  className={signerInputClass}
                 />
               </label>
               <label className="block">
@@ -192,7 +193,7 @@ export function SigningForm(props: SigningFormProps) {
                   placeholder="e.g. Parent"
                   value={guardianRelationship}
                   onChange={(e) => setGuardianRelationship(e.target.value)}
-                  className={inputClass}
+                  className={signerInputClass}
                 />
               </label>
               <SignatureCanvas
@@ -205,14 +206,14 @@ export function SigningForm(props: SigningFormProps) {
       )}
 
       {/* Consent */}
-      <div className="rounded-xl border border-border p-5">
+      <div className="rounded-xl border border-border bg-card p-5">
         <label className="flex items-start gap-3">
           <input
             type="checkbox"
             required
             checked={consentGiven}
             onChange={(e) => setConsentGiven(e.target.checked)}
-            className="mt-1 h-5 w-5"
+            className="mt-1 size-5 accent-primary"
           />
           <span className="text-sm leading-relaxed">{props.consentText}</span>
         </label>
@@ -230,7 +231,7 @@ export function SigningForm(props: SigningFormProps) {
             value={signerName}
             onChange={(e) => setSignerName(e.target.value)}
             autoComplete="name"
-            className={inputClass}
+            className={signerInputClass}
           />
         </label>
         <SignatureCanvas ref={signatureRef} label="Your signature" />
@@ -239,86 +240,18 @@ export function SigningForm(props: SigningFormProps) {
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </p>
       )}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Sign waiver"}
       </button>
     </form>
-  );
-}
-
-const inputClass =
-  "w-full rounded-md border border-input px-3 py-3 text-base focus:border-ring focus:outline-none";
-
-function BlockView({ block }: { block: WaiverBlock }) {
-  if (block.type === "heading") {
-    return <h2 className="text-lg font-bold">{block.text}</h2>;
-  }
-  if (block.type === "paragraph") {
-    return <p className="whitespace-pre-wrap text-sm text-foreground">{block.text}</p>;
-  }
-  return (
-    <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
-      {block.items.map((item, i) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
-  );
-}
-
-function FieldInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: WaiverField;
-  value: string | boolean | undefined;
-  onChange: (v: string | boolean) => void;
-}) {
-  if (field.type === "checkbox") {
-    return (
-      <label className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          required={field.required}
-          checked={value === true}
-          onChange={(e) => onChange(e.target.checked)}
-          className="mt-1 h-5 w-5"
-        />
-        <span className="text-sm">{field.label}</span>
-      </label>
-    );
-  }
-
-  const inputType =
-    field.type === "email"
-      ? "email"
-      : field.type === "phone"
-        ? "tel"
-        : field.type === "date_of_birth"
-          ? "date"
-          : "text";
-
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-foreground/90">
-        {field.label}
-        {field.required && <span className="text-red-500"> *</span>}
-      </span>
-      <input
-        type={inputType}
-        required={field.required}
-        maxLength={field.type === "initials" ? 5 : undefined}
-        value={typeof value === "string" ? value : ""}
-        onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
-      />
-    </label>
   );
 }

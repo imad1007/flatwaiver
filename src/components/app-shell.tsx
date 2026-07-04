@@ -12,6 +12,7 @@ import {
   Menu,
   Plus,
   Search,
+  Settings,
   ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +35,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/waivers", label: "Waivers", icon: ClipboardList },
   { href: "/signatures", label: "Signatures", icon: FileSignature },
-  { href: "/settings/billing", label: "Billing", icon: CreditCard },
+  { href: "/settings/branding", label: "Settings", icon: Settings },
 ];
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -44,6 +45,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   share: "Share",
   signatures: "Signatures",
   settings: "Settings",
+  branding: "Branding",
   billing: "Billing",
 };
 
@@ -117,7 +119,7 @@ export function AppShell({
       <nav className="flex-1 space-y-0.5 px-3">
         {NAV.map((item) => {
           const active =
-            item.href === "/settings/billing"
+            item.href === "/settings/branding"
               ? pathname.startsWith("/settings")
               : pathname.startsWith(item.href);
           return (

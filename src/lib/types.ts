@@ -9,8 +9,11 @@ export type FieldType =
   | "name"
   | "email"
   | "phone"
+  | "date"
   | "date_of_birth"
   | "text"
+  | "multiline"
+  | "select"
   | "checkbox"
   | "initials";
 
@@ -19,6 +22,34 @@ export interface WaiverField {
   type: FieldType;
   label: string;
   required: boolean;
+  /** Choices for `select` fields. */
+  options?: string[];
+  /**
+   * Answers that flag the signed waiver for staff attention (amber badge).
+   * Compared against the normalized answer: checkboxes normalize to
+   * "yes"/"no", everything else to the exact string value.
+   */
+  flag_values?: string[];
+}
+
+/** Normalize a submitted value for flag comparison. */
+export function normalizeFieldValue(value: string | boolean | undefined): string {
+  if (value === true) return "yes";
+  if (value === false) return "no";
+  return value ?? "";
+}
+
+/** Evaluate a version's flag config against submitted values. */
+export function evaluateFlags(
+  fields: WaiverField[],
+  values: Record<string, string | boolean>
+): boolean {
+  return fields.some(
+    (field) =>
+      field.flag_values &&
+      field.flag_values.length > 0 &&
+      field.flag_values.includes(normalizeFieldValue(values[field.key]))
+  );
 }
 
 export type MinorMode = "allowed" | "disallowed";
@@ -39,10 +70,18 @@ export type TemplateStatus = "draft" | "published" | "archived";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
 export type SigningChannel = "link" | "kiosk" | "qr";
 
+export interface OrgBranding {
+  /** Private storage path in the `uploads` bucket. */
+  logo_path?: string;
+  /** Hex brand color, e.g. "#4F46E5". */
+  color?: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
   waiver_volume_band: string | null;
+  branding: OrgBranding | null;
   created_at: string;
 }
 
@@ -97,6 +136,7 @@ export interface SignedWaiver {
   pdf_sha256: string;
   consent_given: boolean;
   consent_text_snapshot: string;
+  flagged: boolean;
   signed_at: string;
   ip: string | null;
   user_agent: string | null;

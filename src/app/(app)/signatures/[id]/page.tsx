@@ -43,7 +43,14 @@ export default async function SignatureDetailPage({
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{sig.signer_name}</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-bold">
+            {sig.signer_name}
+            {sig.flagged && (
+              <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                Flagged
+              </span>
+            )}
+          </h1>
           <p className="text-muted-foreground">
             {template?.name ?? "Waiver"} · signed{" "}
             {new Date(sig.signed_at).toLocaleString()}
@@ -55,6 +62,13 @@ export default async function SignatureDetailPage({
           label="Download signed PDF"
         />
       </div>
+
+      {sig.flagged && (
+        <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          One of this signer&apos;s answers matched a flag you configured — review
+          the responses below before admitting the participant.
+        </div>
+      )}
 
       {/* Signer details */}
       <section className="mt-8 rounded-xl border border-border p-6">

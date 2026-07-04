@@ -17,7 +17,7 @@ export default async function DashboardPage() {
       supabase.from("signed_waivers").select("id", { count: "exact", head: true }),
       supabase
         .from("signed_waivers")
-        .select("id, signer_name, signed_at, signing_channel, template_id")
+        .select("id, signer_name, flagged, signed_at, signing_channel, template_id")
         .order("signed_at", { ascending: false })
         .limit(8),
       supabase.from("waiver_templates").select("id, name, status"),
@@ -85,8 +85,16 @@ export default async function DashboardPage() {
               {recent.map((s) => (
                 <tr key={s.id} className="border-b border-border/60 last:border-0">
                   <td className="px-4 py-3">
-                    <Link href={`/signatures/${s.id}`} className="font-medium hover:underline">
+                    <Link
+                      href={`/signatures/${s.id}`}
+                      className="inline-flex items-center gap-2 font-medium hover:underline"
+                    >
                       {s.signer_name}
+                      {s.flagged && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                          Flagged
+                        </span>
+                      )}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

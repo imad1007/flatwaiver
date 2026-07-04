@@ -2,10 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, FileUp, PenLine, Sparkles } from "lucide-react";
 import { createTemplateFromText } from "../actions";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function NewWaiverPage() {
-  const [path, setPath] = useState<"upload" | "text" | null>(null);
+  const [path, setPath] = useState<"upload" | "scratch" | null>(null);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -16,32 +19,64 @@ export default function NewWaiverPage() {
       </p>
 
       {path === null && (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          <button
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <ChoiceCard
+            icon={FileUp}
+            title="Upload existing PDF"
+            badge="AI converts it"
+            body="The waiver you already use, converted into a signable form with every clause preserved exactly."
             onClick={() => setPath("upload")}
-            className="rounded-xl border border-border p-8 text-left hover:border-ring"
-          >
-            <div className="text-lg font-bold">Upload PDF</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Upload the waiver you already use. AI converts it into a signable
-              form — wording preserved exactly.
-            </p>
-          </button>
-          <button
-            onClick={() => setPath("text")}
-            className="rounded-xl border border-border p-8 text-left hover:border-ring"
-          >
-            <div className="text-lg font-bold">Start from text</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Paste your waiver text and build the form yourself.
-            </p>
-          </button>
+          />
+          <ChoiceCard
+            icon={PenLine}
+            title="Start from scratch"
+            body="Paste your waiver text (or start empty) and build the form yourself in the editor."
+            onClick={() => setPath("scratch")}
+          />
         </div>
       )}
 
       {path === "upload" && <UploadPdfForm onBack={() => setPath(null)} />}
-      {path === "text" && <FromTextForm onBack={() => setPath(null)} />}
+      {path === "scratch" && <FromTextForm onBack={() => setPath(null)} />}
     </div>
+  );
+}
+
+function ChoiceCard({
+  icon: Icon,
+  title,
+  badge,
+  body,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  badge?: string;
+  body: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group rounded-2xl border border-border bg-card p-6 text-left shadow-card transition-all",
+        "hover:-translate-y-0.5 hover:border-ring/50 hover:shadow-pop focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      )}
+    >
+      <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-brand-600 transition-transform duration-200 group-hover:scale-110 dark:text-brand-300">
+        <Icon className="size-5" />
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <h2 className="text-lg font-bold">{title}</h2>
+        {badge && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+            <Sparkles className="size-2.5" />
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{body}</p>
+    </button>
   );
 }
 
@@ -72,7 +107,7 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
       const body = await res.json().catch(() => null);
       setError(
         body?.error ??
-          "Conversion failed. You can paste your waiver text instead — use “Start from text.”"
+          "Conversion failed. You can paste your waiver text instead — use “Start from scratch.”"
       );
       setStatus("error");
       return;
@@ -82,8 +117,9 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
       <BackLink onBack={onBack} />
+
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Waiver name</span>
         <input
@@ -91,9 +127,10 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Adult Liability Waiver"
-          className="w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none"
+          className={inputClass}
         />
       </label>
+
       <label className="block">
         <span className="mb-1 block text-sm font-medium">PDF file (max 10 MB)</span>
         <input
@@ -101,19 +138,18 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
           type="file"
           accept="application/pdf"
           required
-          className="w-full rounded-md border border-input px-3 py-2 text-sm"
+          className="w-full rounded-md border border-dashed border-input bg-card px-3 py-6 text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium hover:border-ring/50"
         />
       </label>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+      )}
 
-      <button
-        type="submit"
-        disabled={status === "working"}
-        className="rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
+      <Button type="submit" size="lg" disabled={status === "working"}>
+        <Sparkles className="size-4" />
         {status === "working" ? "Converting… (up to a minute)" : "Convert to digital waiver"}
-      </button>
+      </Button>
       <p className="text-xs text-muted-foreground/70">
         AI conversion is a draft. You&apos;ll review every clause before anything is
         published.
@@ -135,9 +171,10 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
           setSubmitting(false);
         }
       }}
-      className="mt-8 space-y-4"
+      className="mt-8 space-y-5"
     >
       <BackLink onBack={onBack} />
+
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Waiver name</span>
         <input
@@ -145,9 +182,10 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
           type="text"
           required
           placeholder="e.g. Adult Liability Waiver"
-          className="w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none"
+          className={inputClass}
         />
       </label>
+
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Waiver text</span>
         <textarea
@@ -155,28 +193,29 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
           required
           rows={14}
           placeholder="Paste your full waiver text. Blank lines separate paragraphs."
-          className="w-full rounded-md border border-input px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none"
+          className={cn(inputClass, "font-mono text-sm")}
         />
       </label>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
+
+      <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? "Creating…" : "Create draft"}
-      </button>
+      </Button>
     </form>
   );
 }
+
+const inputClass =
+  "w-full rounded-md border border-input bg-card px-3 py-2 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow";
 
 function BackLink({ onBack }: { onBack: () => void }) {
   return (
     <button
       type="button"
       onClick={onBack}
-      className="text-sm text-muted-foreground underline hover:text-foreground"
+      className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
-      ← Choose a different method
+      <ArrowLeft className="size-3.5" />
+      Choose a different method
     </button>
   );
 }

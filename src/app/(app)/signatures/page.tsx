@@ -8,6 +8,7 @@ interface SearchParams {
   from?: string;
   to?: string;
   template?: string;
+  flagged?: string;
   page?: string;
 }
 
@@ -21,6 +22,7 @@ export default async function SignaturesPage({
   const from = params.from ?? "";
   const to = params.to ?? "";
   const templateFilter = params.template ?? "";
+  const flaggedOnly = params.flagged === "1";
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
 
   const supabase = await createClient();
@@ -32,9 +34,10 @@ export default async function SignaturesPage({
 
   let query = supabase
     .from("signed_waivers")
-    .select("id, signer_name, signer_email, is_minor, signed_at, signing_channel, template_id", {
-      count: "exact",
-    })
+    .select(
+      "id, signer_name, signer_email, is_minor, flagged, signed_at, signing_channel, template_id",
+      { count: "exact" }
+    )
     .order("signed_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
@@ -42,6 +45,7 @@ export default async function SignaturesPage({
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
   if (templateFilter) query = query.eq("template_id", templateFilter);
+  if (flaggedOnly) query = query.eq("flagged", true);
 
   const { data: rows, count } = await query;
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
@@ -52,6 +56,7 @@ export default async function SignaturesPage({
   if (from) exportQuery.set("from", from);
   if (to) exportQuery.set("to", to);
   if (templateFilter) exportQuery.set("template", templateFilter);
+  if (flaggedOnly) exportQuery.set("flagged", "1");
 
   return (
     <div>
@@ -112,13 +117,23 @@ export default async function SignaturesPage({
             ))}
           </select>
         </label>
+        <label className="flex items-center gap-2 self-center pb-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            name="flagged"
+            value="1"
+            defaultChecked={flaggedOnly}
+            className="size-4 accent-warning"
+          />
+          Flagged only
+        </label>
         <button
           type="submit"
           className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Filter
         </button>
-        {(q || from || to || templateFilter) && (
+        {(q || from || to || templateFilter || flaggedOnly) && (
           <Link href="/signatures" className="text-sm text-muted-foreground underline">
             Clear
           </Link>
@@ -151,10 +166,21 @@ export default async function SignaturesPage({
               </tr>
             ) : (
               (rows ?? []).map((s) => (
-                <tr key={s.id} className="border-b border-border/60 last:border-0">
+                <tr
+                  key={s.id}
+                  className={`border-b border-border/60 last:border-0 ${s.flagged ? "bg-amber-500/5" : ""}`}
+                >
                   <td className="px-4 py-3">
-                    <Link href={`/signatures/${s.id}`} className="font-medium hover:underline">
+                    <Link
+                      href={`/signatures/${s.id}`}
+                      className="inline-flex items-center gap-2 font-medium hover:underline"
+                    >
                       {s.signer_name}
+                      {s.flagged && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                          Flagged
+                        </span>
+                      )}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{s.signer_email ?? "—"}</td>
@@ -207,6 +233,7 @@ function buildPageHref(params: SearchParams, page: number): string {
   if (params.from) qs.set("from", params.from);
   if (params.to) qs.set("to", params.to);
   if (params.template) qs.set("template", params.template);
+  if (params.flagged === "1") qs.set("flagged", "1");
   qs.set("page", String(page));
   return `/signatures?${qs.toString()}`;
 }
