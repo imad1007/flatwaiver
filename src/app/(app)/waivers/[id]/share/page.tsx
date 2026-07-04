@@ -25,13 +25,13 @@ export default async function SharePage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href={`/waivers/${template.id}`} className="text-sm text-neutral-500 hover:underline">
+      <Link href={`/waivers/${template.id}`} className="text-sm text-muted-foreground hover:underline">
         ← {template.name}
       </Link>
       <h1 className="mt-1 text-2xl font-bold">Share &ldquo;{template.name}&rdquo;</h1>
 
       {template.status !== "published" ? (
-        <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900">
+        <div className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-amber-800 dark:text-amber-200">
           This waiver isn&apos;t published{template.status === "archived" ? " (archived)" : ""}.
           The links below won&apos;t work until you publish it.
         </div>

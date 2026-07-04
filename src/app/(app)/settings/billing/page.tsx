@@ -22,24 +22,24 @@ export default async function BillingPage({
       <h1 className="text-2xl font-bold">Billing</h1>
 
       {checkout === "success" && (
-        <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+        <div className="mt-4 rounded-md border border-success/30 bg-success/10 p-4 text-sm text-success">
           Thanks — your subscription is active. (It may take a few seconds to
           reflect here.)
         </div>
       )}
       {checkout === "canceled" && (
-        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
           Checkout canceled — no charge was made.
         </div>
       )}
 
-      <section className="mt-6 rounded-xl border border-neutral-200 p-6">
+      <section className="mt-6 rounded-xl border border-border p-6">
         <h2 className="font-bold">Plan</h2>
         <p className="mt-2 text-3xl font-bold">
           ${APP.priceMonthlyUsd}
-          <span className="text-base font-normal text-neutral-500">/month, flat</span>
+          <span className="text-base font-normal text-muted-foreground">/month, flat</span>
         </p>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Unlimited signed waivers, templates, and storage.
         </p>
 
@@ -64,7 +64,7 @@ export default async function BillingPage({
           {status === "active" && (
             <>
               <p className="mb-4 text-sm">
-                Subscription <strong className="text-green-700">active</strong>
+                Subscription <strong className="text-success">active</strong>
                 {sub?.current_period_end && (
                   <>
                     {" "}
@@ -105,8 +105,8 @@ export default async function BillingPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-xl border border-neutral-200 p-6 text-sm text-neutral-600">
-        <h2 className="font-bold text-neutral-900">Your documents are never held hostage</h2>
+      <section className="mt-6 rounded-xl border border-border p-6 text-sm text-muted-foreground">
+        <h2 className="font-bold text-foreground">Your documents are never held hostage</h2>
         <p className="mt-2">
           Whatever happens with billing, you can always view, search, download,
           and export every waiver you&apos;ve collected. A lapsed subscription only

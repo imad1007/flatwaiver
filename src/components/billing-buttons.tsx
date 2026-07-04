@@ -37,13 +37,13 @@ export function BillingButton({
         disabled={busy}
         className={
           primary
-            ? "rounded-md bg-neutral-900 px-6 py-3 font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-            : "rounded-md border border-neutral-300 px-6 py-3 font-semibold hover:border-neutral-900 disabled:opacity-50"
+            ? "rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            : "rounded-md border border-input px-6 py-3 font-semibold hover:border-ring disabled:opacity-50"
         }
       >
         {busy ? "One moment…" : label}
       </button>
-      {error && <span className="ml-3 text-sm text-red-600">{error}</span>}
+      {error && <span className="ml-3 text-sm text-destructive">{error}</span>}
     </span>
   );
 }

@@ -38,9 +38,9 @@ export default async function PublicSigningPage({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
       <header className="mb-6">
-        <p className="text-sm font-medium text-neutral-500">{waiver.orgName}</p>
+        <p className="text-sm font-medium text-muted-foreground">{waiver.orgName}</p>
         <h1 className="text-2xl font-bold">{waiver.name}</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Please read the waiver below, fill in your details, and sign.
         </p>
       </header>
@@ -56,7 +56,7 @@ export default async function PublicSigningPage({
         channel="link"
       />
 
-      <footer className="mt-10 text-center text-xs text-neutral-400">
+      <footer className="mt-10 text-center text-xs text-muted-foreground/70">
         Powered by {APP.name}
       </footer>
     </main>
@@ -67,7 +67,7 @@ function NotAvailable({ message }: { message: string }) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <h1 className="text-2xl font-bold">Waiver unavailable</h1>
-      <p className="mt-3 max-w-md text-neutral-600">{message}</p>
+      <p className="mt-3 max-w-md text-muted-foreground">{message}</p>
     </main>
   );
 }

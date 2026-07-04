@@ -59,7 +59,7 @@ export default async function SignaturesPage({
         <h1 className="text-2xl font-bold">Signatures</h1>
         <a
           href={`/api/signatures/export?${exportQuery.toString()}`}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:border-neutral-900"
+          className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
         >
           Export CSV
         </a>
@@ -68,7 +68,7 @@ export default async function SignaturesPage({
       {/* Filters */}
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-neutral-500">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">
             Signer name
           </span>
           <input
@@ -76,33 +76,33 @@ export default async function SignaturesPage({
             name="q"
             defaultValue={q}
             placeholder="Search names…"
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+            className="rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-neutral-500">From</span>
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">From</span>
           <input
             type="date"
             name="from"
             defaultValue={from}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="rounded-md border border-input px-3 py-2 text-sm"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-neutral-500">To</span>
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">To</span>
           <input
             type="date"
             name="to"
             defaultValue={to}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="rounded-md border border-input px-3 py-2 text-sm"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-neutral-500">Waiver</span>
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">Waiver</span>
           <select
             name="template"
             defaultValue={templateFilter}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="rounded-md border border-input px-3 py-2 text-sm"
           >
             <option value="">All waivers</option>
             {(templates ?? []).map((t) => (
@@ -114,25 +114,25 @@ export default async function SignaturesPage({
         </label>
         <button
           type="submit"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Filter
         </button>
         {(q || from || to || templateFilter) && (
-          <Link href="/signatures" className="text-sm text-neutral-500 underline">
+          <Link href="/signatures" className="text-sm text-muted-foreground underline">
             Clear
           </Link>
         )}
       </form>
 
       {/* Results */}
-      <p className="mt-4 text-sm text-neutral-500">
+      <p className="mt-4 text-sm text-muted-foreground">
         {count ?? 0} signature{(count ?? 0) === 1 ? "" : "s"}
       </p>
 
-      <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200">
+      <div className="mt-2 overflow-hidden rounded-xl border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-500">
+          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Signer</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -145,25 +145,25 @@ export default async function SignaturesPage({
           <tbody>
             {(rows ?? []).length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-neutral-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground/70">
                   No signatures match these filters.
                 </td>
               </tr>
             ) : (
               (rows ?? []).map((s) => (
-                <tr key={s.id} className="border-b border-neutral-100 last:border-0">
+                <tr key={s.id} className="border-b border-border/60 last:border-0">
                   <td className="px-4 py-3">
                     <Link href={`/signatures/${s.id}`} className="font-medium hover:underline">
                       {s.signer_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">{s.signer_email ?? "—"}</td>
-                  <td className="px-4 py-3 text-neutral-600">
+                  <td className="px-4 py-3 text-muted-foreground">{s.signer_email ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {templateNames.get(s.template_id) ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-neutral-500">{s.is_minor ? "Yes" : ""}</td>
-                  <td className="px-4 py-3 text-neutral-500">{s.signing_channel}</td>
-                  <td className="px-4 py-3 text-neutral-500">
+                  <td className="px-4 py-3 text-muted-foreground">{s.is_minor ? "Yes" : ""}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{s.signing_channel}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(s.signed_at).toLocaleString()}
                   </td>
                 </tr>
@@ -179,18 +179,18 @@ export default async function SignaturesPage({
           {page > 1 && (
             <Link
               href={buildPageHref(params, page - 1)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 hover:border-neutral-900"
+              className="rounded-md border border-input px-3 py-1.5 hover:border-ring"
             >
               ← Previous
             </Link>
           )}
-          <span className="text-neutral-500">
+          <span className="text-muted-foreground">
             Page {page} of {totalPages}
           </span>
           {page < totalPages && (
             <Link
               href={buildPageHref(params, page + 1)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 hover:border-neutral-900"
+              className="rounded-md border border-input px-3 py-1.5 hover:border-ring"
             >
               Next →
             </Link>

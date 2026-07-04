@@ -28,7 +28,7 @@ export default async function KioskPage({
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <h1 className="text-2xl font-bold">Waiver unavailable</h1>
-        <p className="mt-3 max-w-md text-neutral-600">
+        <p className="mt-3 max-w-md text-muted-foreground">
           {!waiver
             ? "This waiver link doesn't exist or is no longer active."
             : "This business's waiver collection is paused."}
@@ -41,7 +41,7 @@ export default async function KioskPage({
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
       <WakeLock />
       <header className="mb-6 text-center">
-        <p className="text-base font-medium text-neutral-500">{waiver.orgName}</p>
+        <p className="text-base font-medium text-muted-foreground">{waiver.orgName}</p>
         <h1 className="text-3xl font-bold">{waiver.name}</h1>
       </header>
 

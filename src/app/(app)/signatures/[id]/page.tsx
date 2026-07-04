@@ -37,14 +37,14 @@ export default async function SignatureDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/signatures" className="text-sm text-neutral-500 hover:underline">
+      <Link href="/signatures" className="text-sm text-muted-foreground hover:underline">
         ← Signatures
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{sig.signer_name}</h1>
-          <p className="text-neutral-500">
+          <p className="text-muted-foreground">
             {template?.name ?? "Waiver"} · signed{" "}
             {new Date(sig.signed_at).toLocaleString()}
           </p>
@@ -57,7 +57,7 @@ export default async function SignatureDetailPage({
       </div>
 
       {/* Signer details */}
-      <section className="mt-8 rounded-xl border border-neutral-200 p-6">
+      <section className="mt-8 rounded-xl border border-border p-6">
         <h2 className="font-bold">Signer</h2>
         <dl className="mt-4 space-y-2 text-sm">
           <DetailRow label="Full legal name" value={sig.signer_name} />
@@ -84,9 +84,9 @@ export default async function SignatureDetailPage({
       </section>
 
       {/* Audit block */}
-      <section className="mt-6 rounded-xl border border-neutral-200 p-6">
+      <section className="mt-6 rounded-xl border border-border p-6">
         <h2 className="font-bold">Audit record</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Evidence captured at signing time. This record is append-only and cannot
           be modified.
         </p>
@@ -111,11 +111,11 @@ export default async function SignatureDetailPage({
           <DetailRow label="Consent given" value={sig.consent_given ? "Yes" : "No"} />
         </dl>
 
-        <div className="mt-4 rounded-md bg-neutral-50 p-4">
-          <p className="text-xs font-medium text-neutral-500">
+        <div className="mt-4 rounded-md bg-muted/50 p-4">
+          <p className="text-xs font-medium text-muted-foreground">
             Consent text shown to signer (exact snapshot):
           </p>
-          <p className="mt-1 text-sm italic text-neutral-700">
+          <p className="mt-1 text-sm italic text-foreground/90">
             &ldquo;{sig.consent_text_snapshot}&rdquo;
           </p>
         </div>
@@ -135,7 +135,7 @@ function DetailRow({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <dt className="w-52 shrink-0 text-neutral-500">{label}</dt>
+      <dt className="w-52 shrink-0 text-muted-foreground">{label}</dt>
       <dd className={`flex-1 break-all ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
     </div>
   );

@@ -120,10 +120,10 @@ export function SigningForm(props: SigningFormProps) {
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <div className="text-6xl">✓</div>
         <h2 className="mt-4 text-3xl font-bold">You&apos;re all set!</h2>
-        <p className="mt-2 text-lg text-neutral-600">
+        <p className="mt-2 text-lg text-muted-foreground">
           Your waiver has been signed and recorded.
         </p>
-        <p className="mt-6 text-sm text-neutral-400">
+        <p className="mt-6 text-sm text-muted-foreground/70">
           Ready for the next person in a few seconds…
         </p>
       </div>
@@ -133,7 +133,7 @@ export function SigningForm(props: SigningFormProps) {
   return (
     <form key={formKey} onSubmit={handleSubmit} className="space-y-8">
       {/* Waiver text */}
-      <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-5 leading-relaxed">
+      <div className="space-y-4 rounded-xl border border-border bg-card p-5 leading-relaxed">
         {props.blocks.map((block, i) => (
           <BlockView key={i} block={block} />
         ))}
@@ -157,7 +157,7 @@ export function SigningForm(props: SigningFormProps) {
 
       {/* Minor / guardian flow */}
       {props.minorMode === "allowed" && (
-        <div className="rounded-xl border border-neutral-200 p-5">
+        <div className="rounded-xl border border-border p-5">
           <label className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -171,7 +171,7 @@ export function SigningForm(props: SigningFormProps) {
           {isMinor && (
             <div className="mt-4 space-y-4">
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-neutral-700">
+                <span className="mb-1 block text-sm font-medium text-foreground/90">
                   Parent / guardian full legal name
                 </span>
                 <input
@@ -183,7 +183,7 @@ export function SigningForm(props: SigningFormProps) {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-neutral-700">
+                <span className="mb-1 block text-sm font-medium text-foreground/90">
                   Relationship to participant
                 </span>
                 <input
@@ -205,7 +205,7 @@ export function SigningForm(props: SigningFormProps) {
       )}
 
       {/* Consent */}
-      <div className="rounded-xl border border-neutral-200 p-5">
+      <div className="rounded-xl border border-border p-5">
         <label className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -221,7 +221,7 @@ export function SigningForm(props: SigningFormProps) {
       {/* Name + signature */}
       <div className="space-y-4">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-neutral-700">
+          <span className="mb-1 block text-sm font-medium text-foreground/90">
             Full legal name
           </span>
           <input
@@ -239,13 +239,13 @@ export function SigningForm(props: SigningFormProps) {
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
 
       {error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
       )}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-neutral-900 px-6 py-4 text-lg font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Sign waiver"}
       </button>
@@ -254,17 +254,17 @@ export function SigningForm(props: SigningFormProps) {
 }
 
 const inputClass =
-  "w-full rounded-md border border-neutral-300 px-3 py-3 text-base focus:border-neutral-900 focus:outline-none";
+  "w-full rounded-md border border-input px-3 py-3 text-base focus:border-ring focus:outline-none";
 
 function BlockView({ block }: { block: WaiverBlock }) {
   if (block.type === "heading") {
     return <h2 className="text-lg font-bold">{block.text}</h2>;
   }
   if (block.type === "paragraph") {
-    return <p className="whitespace-pre-wrap text-sm text-neutral-800">{block.text}</p>;
+    return <p className="whitespace-pre-wrap text-sm text-foreground">{block.text}</p>;
   }
   return (
-    <ul className="list-inside list-disc space-y-1 text-sm text-neutral-800">
+    <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
       {block.items.map((item, i) => (
         <li key={i}>{item}</li>
       ))}
@@ -307,7 +307,7 @@ function FieldInput({
 
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-neutral-700">
+      <span className="mb-1 block text-sm font-medium text-foreground/90">
         {field.label}
         {field.required && <span className="text-red-500"> *</span>}
       </span>

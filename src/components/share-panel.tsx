@@ -27,27 +27,27 @@ export function SharePanel({
 
   return (
     <div className="mt-8 space-y-8">
-      <section className="rounded-xl border border-neutral-200 p-6">
+      <section className="rounded-xl border border-border p-6">
         <h2 className="font-bold">Signing link</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Send by text, email, or put it on your website. Works on any phone.
         </p>
         <div className="mt-3 flex items-center gap-2">
-          <code className="flex-1 overflow-x-auto rounded-md bg-neutral-100 px-3 py-2 text-sm">
+          <code className="flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2 text-sm">
             {signingUrl}
           </code>
           <button
             onClick={() => copy(signingUrl, "link")}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:border-neutral-900"
+            className="rounded-md border border-input px-3 py-2 text-sm font-medium hover:border-ring"
           >
             {copied === "link" ? "Copied!" : "Copy"}
           </button>
         </div>
       </section>
 
-      <section className="rounded-xl border border-neutral-200 p-6">
+      <section className="rounded-xl border border-border p-6">
         <h2 className="font-bold">QR code</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Print it and put it at your front desk. Customers scan and sign on their
           own phone.
         </p>
@@ -58,7 +58,7 @@ export function SharePanel({
             <a
               href={qrDataUrl}
               download="waiver-qr.png"
-              className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:border-neutral-900"
+              className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:border-ring"
             >
               Download PNG
             </a>
@@ -66,19 +66,19 @@ export function SharePanel({
         )}
       </section>
 
-      <section className="rounded-xl border border-neutral-200 p-6">
+      <section className="rounded-xl border border-border p-6">
         <h2 className="font-bold">Kiosk mode</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Open this on a front-desk tablet. Fullscreen, no site chrome, resets
           automatically after each signature.
         </p>
         <div className="mt-3 flex items-center gap-2">
-          <code className="flex-1 overflow-x-auto rounded-md bg-neutral-100 px-3 py-2 text-sm">
+          <code className="flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2 text-sm">
             {kioskUrl}
           </code>
           <button
             onClick={() => copy(kioskUrl, "kiosk")}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:border-neutral-900"
+            className="rounded-md border border-input px-3 py-2 text-sm font-medium hover:border-ring"
           >
             {copied === "kiosk" ? "Copied!" : "Copy"}
           </button>

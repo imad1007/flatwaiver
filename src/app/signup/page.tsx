@@ -69,7 +69,7 @@ export default function SignupPage() {
     return (
       <AuthShell>
         <h1 className="text-2xl font-bold">Check your email</h1>
-        <p className="mt-4 text-neutral-600">
+        <p className="mt-4 text-muted-foreground">
           We sent a confirmation link to <strong>{email}</strong>. Click it to
           activate your account and start your free trial.
         </p>
@@ -80,7 +80,7 @@ export default function SignupPage() {
   return (
     <AuthShell>
       <h1 className="text-2xl font-bold">Start your free {APP.trialDays}-day trial</h1>
-      <p className="mt-2 text-sm text-neutral-500">No credit card required.</p>
+      <p className="mt-2 text-sm text-muted-foreground">No credit card required.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <Field label="Business name">
@@ -135,24 +135,24 @@ export default function SignupPage() {
           />
         </Field>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {submitting ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-neutral-500">
+      <p className="mt-6 text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link href="/login" className="underline">
           Log in
         </Link>
       </p>
-      <p className="mt-4 text-xs text-neutral-400">
+      <p className="mt-4 text-xs text-muted-foreground/70">
         By signing up you agree to our{" "}
         <Link href="/terms" className="underline">
           Terms
@@ -168,12 +168,12 @@ export default function SignupPage() {
 }
 
 const inputClass =
-  "w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-neutral-900 focus:outline-none";
+  "w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-neutral-700">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-foreground/90">{label}</span>
       {children}
     </label>
   );
@@ -186,7 +186,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="text-lg font-bold tracking-tight">
           {APP.name}
         </Link>
-        <div className="mt-8 rounded-xl border border-neutral-200 p-8">{children}</div>
+        <div className="mt-8 rounded-xl border border-border p-8">{children}</div>
       </div>
     </main>
   );

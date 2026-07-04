@@ -12,11 +12,11 @@ export default function TermsPage() {
       <MarketingHeader />
       <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
         <h1 className="text-3xl font-bold">Terms of Service</h1>
-        <p className="mt-2 text-sm text-neutral-500">Last updated: July 4, 2026</p>
+        <p className="mt-2 text-sm text-muted-foreground">Last updated: July 4, 2026</p>
 
-        <div className="mt-8 space-y-6 leading-relaxed text-neutral-700">
+        <div className="mt-8 space-y-6 leading-relaxed text-foreground/90">
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               1. What {APP.name} is
             </h2>
             <p className="mt-2">
@@ -28,7 +28,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               2. Your content, your responsibility
             </h2>
             <p className="mt-2">
@@ -40,7 +40,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               3. No legal advice
             </h2>
             <p className="mt-2">
@@ -51,7 +51,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               4. Electronic signatures
             </h2>
             <p className="mt-2">
@@ -64,7 +64,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               5. Prohibited use — healthcare
             </h2>
             <p className="mt-2">
@@ -75,7 +75,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               6. Billing and trial
             </h2>
             <p className="mt-2">
@@ -90,7 +90,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               7. Acceptable use
             </h2>
             <p className="mt-2">
@@ -100,7 +100,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               8. Disclaimer and limitation of liability
             </h2>
             <p className="mt-2">
@@ -112,7 +112,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">9. Contact</h2>
+            <h2 className="text-xl font-semibold text-foreground">9. Contact</h2>
             <p className="mt-2">
               Questions:{" "}
               <a className="underline" href={`mailto:${APP.supportEmail}`}>

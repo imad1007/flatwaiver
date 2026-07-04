@@ -12,11 +12,11 @@ export default function PrivacyPage() {
       <MarketingHeader />
       <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
         <h1 className="text-3xl font-bold">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-neutral-500">Last updated: July 4, 2026</p>
+        <p className="mt-2 text-sm text-muted-foreground">Last updated: July 4, 2026</p>
 
-        <div className="prose-neutral mt-8 space-y-6 leading-relaxed text-neutral-700">
+        <div className="prose-neutral mt-8 space-y-6 leading-relaxed text-foreground/90">
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">Who we are</h2>
+            <h2 className="text-xl font-semibold text-foreground">Who we are</h2>
             <p className="mt-2">
               {APP.name} is a digital waiver signing service operated for businesses
               (&ldquo;organizations&rdquo;) that collect signed liability waivers from their
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               Information we collect
             </h2>
             <p className="mt-2">
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               Electronic signature consent
             </h2>
             <p className="mt-2">
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               Where data is stored and who processes it
             </h2>
             <p className="mt-2">
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">Retention</h2>
+            <h2 className="text-xl font-semibold text-foreground">Retention</h2>
             <p className="mt-2">
               Signed waivers are legal records and are retained until the
               organization that collected them deletes its account, or until a
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">
+            <h2 className="text-xl font-semibold text-foreground">
               Data deletion requests
             </h2>
             <p className="mt-2">
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-neutral-900">Contact</h2>
+            <h2 className="text-xl font-semibold text-foreground">Contact</h2>
             <p className="mt-2">
               Questions about this policy:{" "}
               <a className="underline" href={`mailto:${APP.supportEmail}`}>

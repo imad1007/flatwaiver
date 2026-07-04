@@ -44,11 +44,11 @@ export function FileDownloadButton({
       <button
         onClick={handleClick}
         disabled={busy}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {busy ? "Preparing…" : label}
       </button>
-      {error && <span className="ml-3 text-sm text-red-600">{error}</span>}
+      {error && <span className="ml-3 text-sm text-destructive">{error}</span>}
     </span>
   );
 }

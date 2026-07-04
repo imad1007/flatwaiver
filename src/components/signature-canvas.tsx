@@ -68,21 +68,21 @@ export const SignatureCanvas = forwardRef<
   return (
     <div>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-neutral-700">{label}</span>
+        <span className="text-sm font-medium text-foreground/90">{label}</span>
         <button
           type="button"
           onClick={() => padRef.current?.clear()}
-          className="text-xs text-neutral-500 underline"
+          className="text-xs text-muted-foreground underline"
         >
           Clear
         </button>
       </div>
       <canvas
         ref={canvasRef}
-        className="mt-1 h-40 w-full touch-none rounded-md border border-neutral-300 bg-white"
+        className="mt-1 h-40 w-full touch-none rounded-md border border-input bg-card"
         aria-label={label}
       />
-      <p className="mt-1 text-xs text-neutral-400">Draw your signature above</p>
+      <p className="mt-1 text-xs text-muted-foreground/70">Draw your signature above</p>
     </div>
   );
 });

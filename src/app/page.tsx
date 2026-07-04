@@ -53,18 +53,18 @@ export default function LandingPage() {
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl">
             Unlimited waivers. $39/month. Flat.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-neutral-600">
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
             Stop paying per signed waiver. Upload the PDF you already use — your
             digital waiver is live in 5 minutes.
           </p>
           <div className="mt-10">
             <Link
               href="/signup"
-              className="inline-block rounded-lg bg-neutral-900 px-8 py-4 text-lg font-semibold text-white hover:bg-neutral-700"
+              className="inline-block rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground hover:bg-primary/90"
             >
               Start free 14-day trial
             </Link>
-            <p className="mt-3 text-sm text-neutral-500">No credit card required</p>
+            <p className="mt-3 text-sm text-muted-foreground">No credit card required</p>
           </div>
         </section>
 
@@ -73,7 +73,7 @@ export default function LandingPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm sm:text-base">
               <thead>
-                <tr className="border-b border-neutral-300">
+                <tr className="border-b border-input">
                   <th className="py-3 pr-4"></th>
                   <th className="py-3 pr-4 font-semibold">Monthly price</th>
                   <th className="py-3 font-semibold">1,000 waivers/month costs</th>
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 {comparisonRows.map((row) => (
                   <tr
                     key={row.name}
-                    className={`border-b border-neutral-200 ${row.us ? "bg-neutral-50 font-bold" : ""}`}
+                    className={`border-b border-border ${row.us ? "bg-muted/50 font-bold" : ""}`}
                   >
                     <td className="py-3 pr-4">{row.name}</td>
                     <td className="py-3 pr-4">{row.price}</td>
@@ -93,7 +93,7 @@ export default function LandingPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-xs text-neutral-400">
+          <p className="mt-3 text-xs text-muted-foreground/70">
             Competitor prices from public pricing pages, July 2026.
           </p>
         </section>
@@ -101,9 +101,9 @@ export default function LandingPage() {
         {/* Feature blocks */}
         <section className="mx-auto grid max-w-5xl gap-8 px-6 py-16 sm:grid-cols-3">
           {features.map((f) => (
-            <div key={f.title} className="rounded-xl border border-neutral-200 p-6">
+            <div key={f.title} className="rounded-xl border border-border p-6">
               <h2 className="text-lg font-bold">{f.title}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">{f.body}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
             </div>
           ))}
         </section>
@@ -115,23 +115,23 @@ export default function LandingPage() {
             {faqs.map((f) => (
               <div key={f.q}>
                 <dt className="font-semibold">{f.q}</dt>
-                <dd className="mt-2 text-neutral-600">{f.a}</dd>
+                <dd className="mt-2 text-muted-foreground">{f.a}</dd>
               </div>
             ))}
           </dl>
         </section>
 
         {/* Bottom CTA */}
-        <section className="border-t border-neutral-200 bg-neutral-50 py-16 text-center">
+        <section className="border-t border-border bg-muted/50 py-16 text-center">
           <h2 className="text-3xl font-bold">Unlimited waivers. $39/month. Flat.</h2>
           <div className="mt-8">
             <Link
               href="/signup"
-              className="inline-block rounded-lg bg-neutral-900 px-8 py-4 text-lg font-semibold text-white hover:bg-neutral-700"
+              className="inline-block rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground hover:bg-primary/90"
             >
               Start free 14-day trial
             </Link>
-            <p className="mt-3 text-sm text-neutral-500">No credit card required</p>
+            <p className="mt-3 text-sm text-muted-foreground">No credit card required</p>
           </div>
         </section>
       </main>

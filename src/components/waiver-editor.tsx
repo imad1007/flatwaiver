@@ -101,17 +101,17 @@ export function WaiverEditor({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link href="/waivers" className="text-sm text-neutral-500 hover:underline">
+          <Link href="/waivers" className="text-sm text-muted-foreground hover:underline">
             ← Waivers
           </Link>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full max-w-md rounded-md border border-transparent px-2 py-1 text-2xl font-bold hover:border-neutral-300 focus:border-neutral-900 focus:outline-none"
+            className="mt-1 block w-full max-w-md rounded-md border border-transparent px-2 py-1 text-2xl font-bold hover:border-input focus:border-ring focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium">
+          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
             {template.status}
           </span>
           {template.status === "published" && (
@@ -125,31 +125,31 @@ export function WaiverEditor({
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:border-neutral-900 disabled:opacity-50"
+            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring disabled:opacity-50"
           >
             Save draft
           </button>
           <button
             onClick={handlePublish}
             disabled={isPending}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             Publish
           </button>
         </div>
       </div>
 
-      {message && <p className="mt-3 text-sm text-green-700">{message}</p>}
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {message && <p className="mt-3 text-sm text-success">{message}</p>}
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       {/* AI draft disclaimer */}
-      <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+      <div className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
         AI conversion is a draft. Review every clause against your original before
         publishing — you are responsible for the legal text.
       </div>
 
       {draft.warnings && draft.warnings.length > 0 && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+        <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p className="font-semibold">Conversion warnings:</p>
           <ul className="mt-1 list-inside list-disc">
             {draft.warnings.map((w, i) => (
@@ -162,7 +162,7 @@ export function WaiverEditor({
       {/* Blocks */}
       <section className="mt-8">
         <h2 className="text-lg font-bold">Waiver text</h2>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           This is the legal content signers will read, in order.
         </p>
         <div className="mt-4 space-y-3">
@@ -214,7 +214,7 @@ export function WaiverEditor({
       {/* Fields */}
       <section className="mt-10">
         <h2 className="text-lg font-bold">Signer fields</h2>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Inputs the signer fills in. Full legal name and the signature are always
           included automatically.
         </p>
@@ -271,14 +271,14 @@ export function WaiverEditor({
       {/* Consent text */}
       <section className="mt-10">
         <h2 className="text-lg font-bold">E-sign consent text</h2>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Shown next to the consent checkbox and stored with every signature.
         </p>
         <textarea
           value={draft.consent_text}
           onChange={(e) => update({ consent_text: e.target.value })}
           rows={3}
-          className="mt-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none"
+          className="mt-3 w-full rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
         />
       </section>
 
@@ -286,11 +286,11 @@ export function WaiverEditor({
       <section className="mt-10">
         <h2 className="text-lg font-bold">Version history</h2>
         {versions.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             Not published yet. Publishing creates version 1.
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-neutral-100 rounded-xl border border-neutral-200 text-sm">
+          <ul className="mt-3 divide-y divide-border/60 rounded-xl border border-border text-sm">
             {versions.map((v) => (
               <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <span className="font-semibold">
@@ -301,11 +301,11 @@ export function WaiverEditor({
                     </span>
                   )}
                 </span>
-                <span className="text-neutral-500">
+                <span className="text-muted-foreground">
                   {new Date(v.created_at).toLocaleString()}
                 </span>
                 <span
-                  className="ml-auto font-mono text-xs text-neutral-400"
+                  className="ml-auto font-mono text-xs text-muted-foreground/70"
                   title="SHA-256 of this version's content"
                 >
                   {v.content_sha256.slice(0, 16)}…
@@ -314,14 +314,14 @@ export function WaiverEditor({
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs text-neutral-400">
+        <p className="mt-2 text-xs text-muted-foreground/70">
           Versions are immutable. Signed waivers stay locked to the exact version
           they were signed against, forever.
         </p>
       </section>
 
       {/* Archive */}
-      <section className="mt-10 border-t border-neutral-200 pt-6">
+      <section className="mt-10 border-t border-border pt-6">
         {template.status === "archived" ? (
           <button
             onClick={() =>
@@ -330,7 +330,7 @@ export function WaiverEditor({
                 router.refresh();
               })
             }
-            className="text-sm text-neutral-500 underline hover:text-neutral-900"
+            className="text-sm text-muted-foreground underline hover:text-foreground"
           >
             Restore this waiver
           </button>
@@ -347,7 +347,7 @@ export function WaiverEditor({
                   router.refresh();
                 });
             }}
-            className="text-sm text-neutral-500 underline hover:text-neutral-900"
+            className="text-sm text-muted-foreground underline hover:text-foreground"
           >
             Archive this waiver
           </button>
@@ -368,7 +368,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:border-neutral-900"
+      className="rounded-md border border-input px-3 py-1.5 text-sm hover:border-ring"
     >
       {label}
     </button>
@@ -389,8 +389,8 @@ function BlockEditor({
   onMoveDown?: () => void;
 }) {
   return (
-    <div className="rounded-md border border-neutral-200 p-3">
-      <div className="flex items-center justify-between text-xs text-neutral-400">
+    <div className="rounded-md border border-border p-3">
+      <div className="flex items-center justify-between text-xs text-muted-foreground/70">
         <span className="uppercase tracking-wide">{block.type}</span>
         <span className="flex gap-2">
           {onMoveUp && (
@@ -406,7 +406,7 @@ function BlockEditor({
           <button
             type="button"
             onClick={onRemove}
-            className="text-red-400 hover:text-red-600"
+            className="text-destructive/60 hover:text-destructive"
             title="Remove block"
           >
             ✕
@@ -419,7 +419,7 @@ function BlockEditor({
           value={block.text}
           onChange={(e) => onChange({ ...block, text: e.target.value })}
           placeholder="Heading text"
-          className="mt-2 w-full rounded border border-neutral-200 px-2 py-1.5 font-bold focus:border-neutral-900 focus:outline-none"
+          className="mt-2 w-full rounded border border-border px-2 py-1.5 font-bold focus:border-ring focus:outline-none"
         />
       )}
       {block.type === "paragraph" && (
@@ -428,14 +428,14 @@ function BlockEditor({
           onChange={(e) => onChange({ ...block, text: e.target.value })}
           placeholder="Paragraph text"
           rows={Math.min(10, Math.max(2, Math.ceil(block.text.length / 90)))}
-          className="mt-2 w-full rounded border border-neutral-200 px-2 py-1.5 text-sm focus:border-neutral-900 focus:outline-none"
+          className="mt-2 w-full rounded border border-border px-2 py-1.5 text-sm focus:border-ring focus:outline-none"
         />
       )}
       {block.type === "list" && (
         <div className="mt-2 space-y-1.5">
           {block.items.map((item, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="text-neutral-400">•</span>
+              <span className="text-muted-foreground/70">•</span>
               <input
                 value={item}
                 onChange={(e) =>
@@ -444,14 +444,14 @@ function BlockEditor({
                     items: block.items.map((x, j) => (j === i ? e.target.value : x)),
                   })
                 }
-                className="w-full rounded border border-neutral-200 px-2 py-1 text-sm focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded border border-border px-2 py-1 text-sm focus:border-ring focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() =>
                   onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
                 }
-                className="text-xs text-red-400 hover:text-red-600"
+                className="text-xs text-destructive/60 hover:text-destructive"
               >
                 ✕
               </button>
@@ -460,7 +460,7 @@ function BlockEditor({
           <button
             type="button"
             onClick={() => onChange({ ...block, items: [...block.items, ""] })}
-            className="text-xs text-neutral-500 underline"
+            className="text-xs text-muted-foreground underline"
           >
             + item
           </button>
@@ -480,12 +480,12 @@ function FieldEditor({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-neutral-200 p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 text-sm">
       <input
         value={field.label}
         onChange={(e) => onChange({ ...field, label: e.target.value })}
         placeholder="Label shown to signer"
-        className="min-w-40 flex-1 rounded border border-neutral-200 px-2 py-1.5 focus:border-neutral-900 focus:outline-none"
+        className="min-w-40 flex-1 rounded border border-border px-2 py-1.5 focus:border-ring focus:outline-none"
       />
       <input
         value={field.key}
@@ -496,12 +496,12 @@ function FieldEditor({
           })
         }
         placeholder="snake_case_key"
-        className="w-40 rounded border border-neutral-200 px-2 py-1.5 font-mono text-xs focus:border-neutral-900 focus:outline-none"
+        className="w-40 rounded border border-border px-2 py-1.5 font-mono text-xs focus:border-ring focus:outline-none"
       />
       <select
         value={field.type}
         onChange={(e) => onChange({ ...field, type: e.target.value as FieldType })}
-        className="rounded border border-neutral-200 px-2 py-1.5"
+        className="rounded border border-border px-2 py-1.5"
       >
         {FIELD_TYPES.map((t) => (
           <option key={t} value={t}>
@@ -520,7 +520,7 @@ function FieldEditor({
       <button
         type="button"
         onClick={onRemove}
-        className="text-red-400 hover:text-red-600"
+        className="text-destructive/60 hover:text-destructive"
         title="Remove field"
       >
         ✕

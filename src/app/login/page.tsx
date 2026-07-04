@@ -67,34 +67,34 @@ function LoginForm() {
         <Link href="/" className="text-lg font-bold tracking-tight">
           {APP.name}
         </Link>
-        <div className="mt-8 rounded-xl border border-neutral-200 p-8">
+        <div className="mt-8 rounded-xl border border-border p-8">
           <h1 className="text-2xl font-bold">Log in</h1>
 
-          <div className="mt-6 flex rounded-md border border-neutral-200 p-1 text-sm">
+          <div className="mt-6 flex rounded-md border border-border p-1 text-sm">
             <button
               type="button"
               onClick={() => setMode("password")}
-              className={`flex-1 rounded px-3 py-1.5 ${mode === "password" ? "bg-neutral-900 text-white" : "text-neutral-600"}`}
+              className={`flex-1 rounded px-3 py-1.5 ${mode === "password" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
             >
               Password
             </button>
             <button
               type="button"
               onClick={() => setMode("magic")}
-              className={`flex-1 rounded px-3 py-1.5 ${mode === "magic" ? "bg-neutral-900 text-white" : "text-neutral-600"}`}
+              className={`flex-1 rounded px-3 py-1.5 ${mode === "magic" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
             >
               Magic link
             </button>
           </div>
 
           {magicSent ? (
-            <p className="mt-6 text-neutral-600">
+            <p className="mt-6 text-muted-foreground">
               Check your email — we sent a sign-in link to <strong>{email}</strong>.
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-neutral-700">
+                <span className="mb-1 block text-sm font-medium text-foreground/90">
                   Email
                 </span>
                 <input
@@ -102,13 +102,13 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-neutral-900 focus:outline-none"
+                  className="w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none"
                 />
               </label>
 
               {mode === "password" && (
                 <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-neutral-700">
+                  <span className="mb-1 block text-sm font-medium text-foreground/90">
                     Password
                   </span>
                   <input
@@ -116,17 +116,17 @@ function LoginForm() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 focus:border-neutral-900 focus:outline-none"
+                    className="w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none"
                   />
                 </label>
               )}
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-md bg-neutral-900 px-4 py-3 font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
+                className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {submitting
                   ? "Signing in…"
@@ -137,7 +137,7 @@ function LoginForm() {
             </form>
           )}
 
-          <p className="mt-6 text-sm text-neutral-500">
+          <p className="mt-6 text-sm text-muted-foreground">
             New here?{" "}
             <Link href="/signup" className="underline">
               Start your free trial
