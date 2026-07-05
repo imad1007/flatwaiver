@@ -20,12 +20,12 @@ import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome"
 import { Reveal } from "@/components/marketing/reveal";
 import { SavingsCalculator } from "@/components/marketing/savings-calculator";
 import {
-  BuilderMockup,
   ConvertMockup,
   EvidenceCard,
   PhoneMockup,
   QrChip,
 } from "@/components/marketing/mockups";
+import { HeroDemo } from "@/components/marketing/hero-demo";
 import { Button } from "@/components/ui/button";
 import { APP } from "@/lib/config";
 
@@ -135,6 +135,7 @@ export default function LandingPage() {
         <HowItWorks />
         <Comparison />
         <Features />
+        <HonestyStrip />
         <Bento />
         <Testimonials />
         <Pricing />
@@ -233,7 +234,7 @@ function Hero() {
         <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
           <Reveal>
             <div className="relative">
-              <BuilderMockup className="rotate-1" />
+              <HeroDemo className="rotate-1" />
               <EvidenceCard className="absolute -bottom-10 -left-4 -rotate-2 sm:-left-10" />
               <QrChip className="absolute -top-6 -right-2 rotate-3 sm:-right-6" />
             </div>
@@ -481,6 +482,63 @@ function FeatureRow({
         <div className="rounded-2xl border border-border bg-muted/40 p-8 sm:p-10">{visual}</div>
       </Reveal>
     </div>
+  );
+}
+
+function HonestyStrip() {
+  const items = [
+    {
+      icon: FileUp,
+      title: "Preserved, not paraphrased",
+      body: "AI copies your legal wording character-for-character and warns you about anything it can't read — it never guesses.",
+    },
+    {
+      icon: BadgeCheck,
+      title: "Nothing goes live without you",
+      body: "Every AI conversion is a draft until you've reviewed it and hit publish. You own the legal text; we make that easy to honor.",
+    },
+    {
+      icon: Lock,
+      title: "Append-only, forever",
+      body: "Signed waivers can never be silently edited — not by you, not by us. That's enforced in the database, not just promised.",
+    },
+  ];
+
+  return (
+    <section className="relative overflow-hidden bg-brand-950 py-16">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 right-1/4 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
+      </div>
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-300">
+              Straight talk
+            </p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white">
+              How we treat your legal text
+            </h2>
+            <p className="mt-3 text-base text-brand-100/70">
+              It&apos;s a liability document, not a landing page. These three rules
+              are non-negotiable in how the product is built:
+            </p>
+          </div>
+        </Reveal>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {items.map((item, i) => (
+            <Reveal key={item.title} delay={i * 100}>
+              <div className="h-full rounded-2xl border border-white/10 bg-white/5 p-6">
+                <item.icon className="size-5 text-brand-300" />
+                <h3 className="mt-3 font-bold text-white">{item.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-brand-100/70">
+                  {item.body}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
