@@ -26,6 +26,7 @@ import {
   QrChip,
 } from "@/components/marketing/mockups";
 import { HeroDemo } from "@/components/marketing/hero-demo";
+import { DemoSandbox } from "@/components/marketing/demo-sandbox";
 import { Button } from "@/components/ui/button";
 import { APP } from "@/lib/config";
 
@@ -136,6 +137,7 @@ export default function LandingPage() {
         <Comparison />
         <Features />
         <HonestyStrip />
+        <TryIt />
         <Bento />
         <Testimonials />
         <Pricing />
@@ -537,6 +539,23 @@ function HonestyStrip() {
             </Reveal>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function TryIt() {
+  return (
+    <section id="try-it" className="scroll-mt-20 py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <SectionHeading
+          eyebrow="Try it yourself"
+          title="Feel what your customers feel"
+          sub="Sign the demo waiver below — right here, no signup. It's exactly the flow your customers get on their phone."
+        />
+        <Reveal className="mt-10">
+          <DemoSandbox />
+        </Reveal>
       </div>
     </section>
   );

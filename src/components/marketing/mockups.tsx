@@ -242,8 +242,10 @@ export function ConvertMockup({ className }: { className?: string }) {
 }
 
 function SignatureSquiggle({ className }: { className?: string }) {
+  // `fw-draw`: strokes draw themselves when inside a visible Reveal wrapper
+  // (see globals.css; instantly complete under prefers-reduced-motion).
   return (
-    <svg viewBox="0 0 100 30" fill="none" className={className} aria-hidden>
+    <svg viewBox="0 0 100 30" fill="none" className={cn("fw-draw", className)} aria-hidden>
       <path
         d="M4 22c6-14 10-16 12-9s2 12 7 6 8-16 12-10-1 16 5 12 9-14 14-11 3 13 9 9 10-12 14-8 4 8 9 6"
         stroke="currentColor"
