@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BadgeCheck,
@@ -139,6 +140,7 @@ export default function LandingPage() {
         <HonestyStrip />
         <TryIt />
         <Bento />
+        <WhyWeBuiltThis />
         <Testimonials />
         <Pricing />
         <Faq />
@@ -583,6 +585,71 @@ function Bento() {
             </Reveal>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function WhyWeBuiltThis() {
+  return (
+    <section className="py-20">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
+        {/* Supporting photo — below the fold, lazy-loaded, fixed dimensions */}
+        <Reveal>
+          <figure className="relative">
+            <div
+              aria-hidden
+              className="absolute -inset-3 -rotate-1 rounded-2xl border border-brand-200/60 dark:border-brand-800/60"
+            />
+            <Image
+              src="https://images.pexels.com/photos/8117465/pexels-photo-8117465.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop"
+              alt="Front-desk employees working through a stack of paper documents together"
+              width={1200}
+              height={800}
+              loading="lazy"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="relative rounded-2xl object-cover shadow-pop"
+            />
+            <figcaption className="mt-2 text-right text-[10px] text-muted-foreground/60">
+              Photo by{" "}
+              <a
+                href="https://www.pexels.com/photo/employees-looking-at-documents-8117465/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-muted-foreground"
+              >
+                Ivan S on Pexels
+              </a>
+            </figcaption>
+          </figure>
+        </Reveal>
+
+        <Reveal delay={120}>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-300">
+              Why we built this
+            </p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight">
+              The busier your front desk gets, the more you pay. That&apos;s
+              backwards.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              Every waiver platform prices the same way: the more customers you
+              welcome, the bigger your bill. A packed Saturday shouldn&apos;t come
+              with a software penalty — and a binder of paper waivers
+              shouldn&apos;t be the alternative.
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              So we built the version we&apos;d want at our own front desk: the
+              waiver you already use, digital in minutes, evidence-grade forever
+              — for one flat price that never moves.
+            </p>
+            <Button className="mt-6" size="lg" render={<Link href="/signup" />}>
+              Start free 14-day trial
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
