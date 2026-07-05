@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
 import { Reveal } from "@/components/marketing/reveal";
+import { SavingsCalculator } from "@/components/marketing/savings-calculator";
 import {
   BuilderMockup,
   ConvertMockup,
@@ -333,53 +334,19 @@ function HowItWorks() {
 }
 
 function Comparison() {
-  const max = Math.max(...COMPARISON.map((c) => c.thousand));
-
   return (
     <section id="compare" className="scroll-mt-20 py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="The math"
           title="Everyone else charges by volume. We don't."
-          sub="What a busy venue signing 1,000 waivers a month actually pays:"
+          sub="Drag the slider to your monthly volume and watch what everyone else charges:"
         />
 
         <div className="mt-12 grid items-end gap-10 lg:grid-cols-2">
-          {/* Price bars */}
+          {/* Interactive price comparison */}
           <Reveal>
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
-              <div className="flex h-56 items-end justify-around gap-4">
-                {COMPARISON.map((row) => (
-                  <div key={row.name} className="flex h-full w-full max-w-24 flex-col items-center justify-end gap-2">
-                    <span
-                      className={
-                        row.us
-                          ? "text-lg font-extrabold text-brand-600 dark:text-brand-300"
-                          : "text-sm font-semibold text-muted-foreground"
-                      }
-                    >
-                      {row.display}
-                    </span>
-                    <div
-                      className={
-                        row.us
-                          ? "w-full rounded-t-lg bg-gradient-to-t from-brand-600 to-brand-500 shadow-pop"
-                          : "w-full rounded-t-lg bg-muted-foreground/20"
-                      }
-                      style={{ height: `${Math.round((row.thousand / max) * 82)}%` }}
-                    />
-                    <span
-                      className={`truncate text-xs ${row.us ? "font-bold" : "text-muted-foreground"}`}
-                    >
-                      {row.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-5 rounded-lg bg-success/10 px-4 py-2.5 text-center text-sm font-semibold text-success">
-                That&apos;s $1,392 back in your pocket every year vs. the priciest plan.
-              </p>
-            </div>
+            <SavingsCalculator />
           </Reveal>
 
           {/* Table */}
