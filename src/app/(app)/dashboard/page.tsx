@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { FilePlus2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -62,14 +65,31 @@ export default async function DashboardPage() {
       {/* Recent signatures */}
       <h2 className="mt-10 text-lg font-bold">Recent signatures</h2>
       {!recent || recent.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-input p-10 text-center text-muted-foreground">
-          <p>No signatures yet.</p>
-          <p className="mt-1 text-sm">
-            {publishedCount === 0
-              ? "Publish a waiver and share its link to start collecting."
-              : "Share your signing link or QR code to start collecting."}
-          </p>
-        </div>
+        publishedCount === 0 ? (
+          <EmptyState
+            className="mt-4"
+            icon={FilePlus2}
+            title="Your first waiver is five minutes away"
+            description="Upload the PDF you already use — AI converts it into a signable form, you review it, and it's live."
+            action={
+              <Button size="lg" render={<Link href="/waivers/new" />}>
+                Create your first waiver
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            className="mt-4"
+            icon={Send}
+            title="Your waiver is live — now share it"
+            description="Send the link, print the QR code, or open kiosk mode. Signatures land here the moment someone signs."
+            action={
+              <Button size="lg" render={<Link href="/waivers" />}>
+                Get your signing link
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="mt-4 overflow-hidden rounded-xl border border-border">
           <table className="w-full text-left text-sm">

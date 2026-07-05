@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 import type { WaiverTemplate } from "@/lib/types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -30,19 +33,17 @@ export default async function WaiversPage() {
       </div>
 
       {list.length === 0 ? (
-        <div className="mt-16 rounded-xl border border-dashed border-input p-12 text-center">
-          <p className="text-lg font-semibold">No waivers yet</p>
-          <p className="mt-2 text-muted-foreground">
-            Upload the PDF waiver you already use — it&apos;ll be live in about 5
-            minutes.
-          </p>
-          <Link
-            href="/waivers/new"
-            className="mt-6 inline-block rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            Create your first waiver
-          </Link>
-        </div>
+        <EmptyState
+          className="mt-8"
+          icon={FileUp}
+          title="The waiver you already use, made digital"
+          description="Upload your PDF and AI converts it into a signable form — wording preserved exactly, live in about five minutes."
+          action={
+            <Button size="lg" render={<Link href="/waivers/new" />}>
+              Create your first waiver
+            </Button>
+          }
+        />
       ) : (
         <div className="mt-6 overflow-hidden rounded-xl border border-border">
           <table className="w-full text-left text-sm">

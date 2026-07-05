@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 
 const PAGE_SIZE = 50;
 
@@ -57,6 +60,29 @@ export default async function SignaturesPage({
   if (to) exportQuery.set("to", to);
   if (templateFilter) exportQuery.set("template", templateFilter);
   if (flaggedOnly) exportQuery.set("flagged", "1");
+
+  const hasFilters = Boolean(q || from || to || templateFilter || flaggedOnly);
+
+  // Zero signatures ever (not just a filtered miss): a designed first-run
+  // moment instead of an empty toolbar and table.
+  if ((count ?? 0) === 0 && !hasFilters) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold">Signatures</h1>
+        <EmptyState
+          className="mt-8"
+          icon={FileSignature}
+          title="Signatures will appear here"
+          description="The moment your first customer signs — from a link, QR code, or kiosk — the record lands here with its full evidence trail."
+          action={
+            <Button size="lg" render={<Link href="/waivers" />}>
+              Get your signing link
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
