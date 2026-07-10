@@ -124,11 +124,56 @@ const PRICING_CHECKLIST = [
   "Email copies for signers & owners",
 ];
 
+// ─── Structured data (rich results: org, product+price, FAQ) ────────────────
+
+const SITE_URL = (APP.url || "http://localhost:3000").replace(/\/$/, "");
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: APP.name,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.svg`,
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: APP.name,
+      url: SITE_URL,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description:
+        "Digital waiver software with unlimited signed waivers, kiosk mode, QR codes, AI PDF conversion, and court-ready evidence — for one flat monthly price.",
+      offers: {
+        "@type": "Offer",
+        price: String(APP.priceMonthlyUsd),
+        priceCurrency: "USD",
+        description: `Flat $${APP.priceMonthlyUsd}/month for unlimited signed waivers`,
+      },
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: { "@type": "Answer", text: faq.a },
+      })),
+    },
+  ],
+};
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+      />
       <MarketingHeader />
       <main className="flex-1 overflow-x-clip">
         <Hero />
@@ -610,17 +655,6 @@ function WhyWeBuiltThis() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="relative rounded-2xl object-cover shadow-pop"
             />
-            <figcaption className="mt-2 text-right text-[10px] text-muted-foreground/60">
-              Photo by{" "}
-              <a
-                href="https://www.pexels.com/photo/employees-looking-at-documents-8117465/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2 hover:text-muted-foreground"
-              >
-                Ivan S on Pexels
-              </a>
-            </figcaption>
           </figure>
         </Reveal>
 

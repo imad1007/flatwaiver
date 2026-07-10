@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   FileSignature,
@@ -13,8 +14,9 @@ import {
   Plus,
   Search,
   Settings,
-  ShieldCheck,
+  UserRound,
 } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 import { APP } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/checkin", label: "Front desk", icon: ClipboardCheck },
   { href: "/waivers", label: "Waivers", icon: ClipboardList },
   { href: "/signatures", label: "Signatures", icon: FileSignature },
   { href: "/settings/branding", label: "Settings", icon: Settings },
@@ -40,11 +43,13 @@ const NAV = [
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
+  checkin: "Front desk",
   waivers: "Waivers",
   new: "New waiver",
   share: "Share",
   signatures: "Signatures",
   settings: "Settings",
+  account: "Account",
   branding: "Branding",
   billing: "Billing",
 };
@@ -94,9 +99,7 @@ export function AppShell({
     <div className="flex h-full flex-col">
       {/* Org / brand */}
       <div className="flex items-center gap-2.5 px-4 py-5">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <ShieldCheck className="size-4.5" />
-        </div>
+        <LogoMark className="size-8 shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold leading-tight">{orgName}</p>
           <p className="text-xs text-muted-foreground">{APP.name}</p>
@@ -140,30 +143,42 @@ export function AppShell({
         })}
       </nav>
 
-      {/* User menu */}
+      {/* User menu + sign out */}
       <div className="border-t border-sidebar-border p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/60">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase">
-              {email.slice(0, 1)}
-            </div>
-            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-              {email}
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem render={<Link href="/settings/billing" />}>
-              <CreditCard className="size-4" />
-              Billing
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="size-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/60">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase">
+                {email.slice(0, 1)}
+              </div>
+              <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                {email}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/settings/account" />}>
+                <UserRound className="size-4" />
+                Account settings
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings/billing" />}>
+                <CreditCard className="size-4" />
+                Billing
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+            title="Sign out"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

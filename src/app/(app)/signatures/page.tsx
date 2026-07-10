@@ -86,14 +86,23 @@ export default async function SignaturesPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Signatures</h1>
-        <a
-          href={`/api/signatures/export?${exportQuery.toString()}`}
-          className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
-        >
-          Export CSV
-        </a>
+        <div className="flex gap-2">
+          <a
+            href={`/api/signatures/export?${exportQuery.toString()}`}
+            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
+          >
+            Export CSV
+          </a>
+          <a
+            href={`/api/signatures/export-pdfs?${exportQuery.toString()}`}
+            title="Downloads every matching signed PDF in one ZIP (up to 500 per batch)"
+            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
+          >
+            Download PDFs (ZIP)
+          </a>
+        </div>
       </div>
 
       {/* Filters */}

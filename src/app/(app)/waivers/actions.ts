@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { contentSha256 } from "@/lib/canonical";
 import { draftContentSchema } from "@/lib/waiver-schema";
+import { sendSigningInviteEmail } from "@/lib/email";
+import { APP } from "@/lib/config";
 import {
   DEFAULT_CONSENT_TEXT,
   subscriptionIsUsable,
@@ -145,6 +148,40 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
   revalidatePath(`/waivers/${templateId}`);
   revalidatePath("/waivers");
   return { ok: true, versionNumber: version.version_number };
+}
+
+/**
+ * Email a customer the signing link for a published waiver.
+ * RLS scopes the template lookup to the caller's org.
+ */
+export async function sendSigningLink(templateId: string, rawEmail: string) {
+  const email = z.string().trim().email().max(320).parse(rawEmail);
+
+  const supabase = await createClient();
+  const { data: template } = await supabase
+    .from("waiver_templates")
+    .select("name, slug, status, org_id")
+    .eq("id", templateId)
+    .maybeSingle();
+  if (!template) throw new Error("Waiver not found.");
+  if (template.status !== "published") {
+    throw new Error("Publish this waiver before sending it to signers.");
+  }
+
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", template.org_id)
+    .single();
+
+  const base = APP.url?.replace(/\/$/, "") ?? "";
+  await sendSigningInviteEmail({
+    to: email,
+    waiverName: template.name,
+    orgName: org?.name ?? APP.name,
+    signingUrl: `${base}/w/${template.slug}`,
+  });
+  return { ok: true };
 }
 
 /** Archive: stops the public link from resolving. Versions are untouched. */

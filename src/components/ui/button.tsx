@@ -1,3 +1,4 @@
+import { isValidElement } from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -44,11 +45,21 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Base UI must be told when `render` swaps in a non-<button> element
+  // (e.g. a Next.js <Link>, which renders an <a>); otherwise it warns and
+  // keeps native-button semantics on the wrong tag.
+  const isNativeButton =
+    nativeButton ??
+    (render === undefined || (isValidElement(render) && render.type === "button"))
   return (
     <ButtonPrimitive
       data-slot="button"
+      render={render}
+      nativeButton={isNativeButton}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

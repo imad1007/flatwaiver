@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { APP } from "@/lib/config";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
@@ -14,11 +14,8 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheck className="size-4" />
-          </span>
-          <span className="text-lg font-bold tracking-tight">{APP.name}</span>
+        <Link href="/" aria-label={`${APP.name} home`}>
+          <Logo />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
@@ -66,6 +63,7 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
   {
     heading: "Legal",
     links: [
+      { label: "Security & evidence", href: "/security" },
       { label: "Privacy policy", href: "/privacy" },
       { label: "Terms of service", href: "/terms" },
     ],
@@ -79,11 +77,8 @@ export function MarketingFooter() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand column */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <ShieldCheck className="size-4" />
-              </span>
-              <span className="text-lg font-bold tracking-tight">{APP.name}</span>
+            <Link href="/" aria-label={`${APP.name} home`} className="inline-block">
+              <Logo />
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               Unlimited digital waivers for ${APP.priceMonthlyUsd}/month, flat.

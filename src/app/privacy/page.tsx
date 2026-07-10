@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground">Who we are</h2>
             <p className="mt-2">
-              {APP.name} is a digital waiver signing service operated for businesses
+              {APP.name}{" "}is a digital waiver signing service operated for businesses
               (&ldquo;organizations&rdquo;) that collect signed liability waivers from their
               customers (&ldquo;signers&rdquo;). This policy describes what we collect from
               both groups and how it is handled.

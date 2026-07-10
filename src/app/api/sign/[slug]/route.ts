@@ -6,7 +6,13 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import { renderSignedPdf } from "@/lib/pdf/waiver-pdf";
 import { sendOwnerNotificationEmail, sendSignerCopyEmail } from "@/lib/email";
 import { APP } from "@/lib/config";
-import { evaluateFlags, type WaiverField } from "@/lib/types";
+import {
+  evaluateFlags,
+  medicalAnswerIsYes,
+  MEDICAL_CONDITION_DETAIL_KEY,
+  MEDICAL_CONDITION_KEY,
+  type WaiverField,
+} from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -325,6 +331,19 @@ function validateFieldValues(
         if (typeof value !== "string") return `"${field.label}" is invalid.`;
     }
   }
+
+  // Medical-condition conditional: when this version pairs the condition field
+  // with a detail field, a "yes" answer requires a non-empty detail. "No" (or
+  // an absent answer) leaves the detail optional.
+  const medical = fields.find((f) => f.key === MEDICAL_CONDITION_KEY);
+  const medicalDetail = fields.find((f) => f.key === MEDICAL_CONDITION_DETAIL_KEY);
+  if (medical && medicalDetail && medicalAnswerIsYes(values[medical.key])) {
+    const detail = values[medicalDetail.key];
+    if (typeof detail !== "string" || detail.trim() === "") {
+      return `"${medicalDetail.label}" is required when "${medical.label}" is answered yes.`;
+    }
+  }
+
   return null;
 }
 

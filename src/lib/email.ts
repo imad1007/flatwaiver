@@ -72,6 +72,31 @@ export async function sendOwnerNotificationEmail(opts: {
   }
 }
 
+/** Signing invite: the owner sends a customer a link to sign a waiver. */
+export async function sendSigningInviteEmail(opts: {
+  to: string;
+  waiverName: string;
+  orgName: string;
+  signingUrl: string;
+}) {
+  const resend = resendClient();
+  if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
+  await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: `${opts.orgName} needs your signature — ${opts.waiverName}`,
+    html: `
+      <p>Hi,</p>
+      <p><strong>${escapeHtml(opts.orgName)}</strong> has asked you to sign
+      <strong>${escapeHtml(opts.waiverName)}</strong> before your visit.</p>
+      <p><a href="${opts.signingUrl}">Read and sign the waiver</a> — it takes about a minute
+      and works on any phone or computer.</p>
+      <p>After signing you can request a copy of the signed document for your records.</p>
+      <p>— ${escapeHtml(opts.orgName)}, via ${APP.name}</p>
+    `,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

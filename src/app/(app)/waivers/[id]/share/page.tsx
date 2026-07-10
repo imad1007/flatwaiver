@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SharePanel } from "@/components/share-panel";
+import { SendWaiverForm } from "@/components/send-waiver-form";
 import { APP } from "@/lib/config";
 
 export default async function SharePage({
@@ -38,6 +39,8 @@ export default async function SharePage({
       ) : null}
 
       <SharePanel signingUrl={signingUrl} kioskUrl={kioskUrl} />
+
+      {template.status === "published" && <SendWaiverForm templateId={template.id} />}
     </div>
   );
 }

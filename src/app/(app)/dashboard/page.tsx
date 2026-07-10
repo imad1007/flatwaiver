@@ -2,7 +2,10 @@ import Link from "next/link";
 import { FilePlus2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/empty-state";
+import { SignaturesChart, type DayCount } from "@/components/signatures-chart";
 import { Button } from "@/components/ui/button";
+
+const CHART_DAYS = 30;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -11,34 +14,90 @@ export default async function DashboardPage() {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  const [{ count: signedThisMonth }, { count: totalSigned }, { data: recent }, { data: templates }] =
-    await Promise.all([
-      supabase
-        .from("signed_waivers")
-        .select("id", { count: "exact", head: true })
-        .gte("signed_at", monthStart.toISOString()),
-      supabase.from("signed_waivers").select("id", { count: "exact", head: true }),
-      supabase
-        .from("signed_waivers")
-        .select("id, signer_name, flagged, signed_at, signing_channel, template_id")
-        .order("signed_at", { ascending: false })
-        .limit(8),
-      supabase.from("waiver_templates").select("id, name, status"),
-    ]);
+  const chartStart = new Date();
+  chartStart.setUTCHours(0, 0, 0, 0);
+  chartStart.setUTCDate(chartStart.getUTCDate() - (CHART_DAYS - 1));
+
+  const [
+    { count: signedThisMonth },
+    { count: totalSigned },
+    { count: flaggedThisMonth },
+    { data: recent },
+    { data: templates },
+    { data: recentWindow },
+  ] = await Promise.all([
+    supabase
+      .from("signed_waivers")
+      .select("id", { count: "exact", head: true })
+      .gte("signed_at", monthStart.toISOString()),
+    supabase.from("signed_waivers").select("id", { count: "exact", head: true }),
+    supabase
+      .from("signed_waivers")
+      .select("id", { count: "exact", head: true })
+      .eq("flagged", true)
+      .gte("signed_at", monthStart.toISOString()),
+    supabase
+      .from("signed_waivers")
+      .select("id, signer_name, flagged, signed_at, signing_channel, template_id")
+      .order("signed_at", { ascending: false })
+      .limit(8),
+    supabase.from("waiver_templates").select("id, name, status"),
+    supabase
+      .from("signed_waivers")
+      .select("signed_at, signing_channel")
+      .gte("signed_at", chartStart.toISOString())
+      .range(0, 9999),
+  ]);
 
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
   const publishedCount = (templates ?? []).filter((t) => t.status === "published").length;
+
+  // Per-day counts for the last 30 days (UTC), zero-filled
+  const days: DayCount[] = Array.from({ length: CHART_DAYS }, (_, i) => {
+    const d = new Date(chartStart);
+    d.setUTCDate(d.getUTCDate() + i);
+    return { date: d.toISOString().slice(0, 10), count: 0 };
+  });
+  const dayIndex = new Map(days.map((d, i) => [d.date, i]));
+  const channelCounts: Record<string, number> = { link: 0, qr: 0, kiosk: 0 };
+  for (const row of recentWindow ?? []) {
+    const idx = dayIndex.get(row.signed_at.slice(0, 10));
+    if (idx !== undefined) days[idx].count += 1;
+    channelCounts[row.signing_channel] = (channelCounts[row.signing_channel] ?? 0) + 1;
+  }
+  const windowTotal = (recentWindow ?? []).length;
 
   return (
     <div>
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
       {/* Stats */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Signed this month" value={signedThisMonth ?? 0} />
         <StatCard label="Signed all-time" value={totalSigned ?? 0} />
         <StatCard label="Live waivers" value={publishedCount} />
+        <StatCard label="Flagged this month" value={flaggedThisMonth ?? 0} />
       </div>
+
+      {/* 30-day activity */}
+      {windowTotal > 0 && (
+        <div className="mt-6 rounded-xl border border-border p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-bold">Signatures — last 30 days</h2>
+            <p className="text-sm text-muted-foreground">
+              {windowTotal.toLocaleString()} total
+              <span className="mx-2 text-border">·</span>
+              {(["link", "qr", "kiosk"] as const)
+                .filter((c) => channelCounts[c] > 0)
+                .map((c) => `${channelCounts[c]} via ${c}`)
+                .join(" · ") || "no activity"}
+            </p>
+          </div>
+          <div className="mt-4">
+            <SignaturesChart days={days} />
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="mt-6 flex flex-wrap gap-3">

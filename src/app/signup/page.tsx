@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { fireSignupConversion } from "@/components/signup-conversion";
 import { APP } from "@/lib/config";
+import { Logo } from "@/components/logo";
 
 const VOLUME_BANDS = ["<100", "100-300", "300-1000", "1000+"] as const;
 const VOLUME_LABELS: Record<string, string> = {
@@ -183,8 +184,8 @@ function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          {APP.name}
+        <Link href="/" aria-label={`${APP.name} home`} className="inline-block">
+          <Logo />
         </Link>
         <div className="mt-8 rounded-xl border border-border p-8">{children}</div>
       </div>

@@ -39,6 +39,20 @@ export function normalizeFieldValue(value: string | boolean | undefined): string
   return value ?? "";
 }
 
+/**
+ * Medical-condition conditional (signer flow): when a version's fields define
+ * BOTH keys below, a "yes" answer to the condition field makes the detail
+ * field mandatory. Enforced client-side in SigningForm (inline error) and
+ * server-side in the sign route's field validation (source of truth).
+ */
+export const MEDICAL_CONDITION_KEY = "medical_condition";
+export const MEDICAL_CONDITION_DETAIL_KEY = "medical_condition_detail";
+
+/** True when a medical-condition answer means "yes" (select "Yes" or a checked box). */
+export function medicalAnswerIsYes(value: string | boolean | undefined): boolean {
+  return normalizeFieldValue(value).trim().toLowerCase() === "yes";
+}
+
 /** Evaluate a version's flag config against submitted values. */
 export function evaluateFlags(
   fields: WaiverField[],

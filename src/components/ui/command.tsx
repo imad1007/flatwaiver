@@ -60,7 +60,8 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        {/* cmdk parts (Input, List, …) require this Command root for context */}
+        <Command>{children}</Command>
       </DialogContent>
     </Dialog>
   )

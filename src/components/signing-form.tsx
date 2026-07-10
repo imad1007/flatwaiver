@@ -8,7 +8,14 @@ import {
 } from "@/components/signature-canvas";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { BlockView, FieldInput, signerInputClass } from "@/components/waiver-render";
-import type { SigningChannel, WaiverBlock, WaiverField } from "@/lib/types";
+import {
+  medicalAnswerIsYes,
+  MEDICAL_CONDITION_DETAIL_KEY,
+  MEDICAL_CONDITION_KEY,
+  type SigningChannel,
+  type WaiverBlock,
+  type WaiverField,
+} from "@/lib/types";
 
 export interface SigningFormProps {
   slug: string;
@@ -37,9 +44,21 @@ export function SigningForm(props: SigningFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [kioskDone, setKioskDone] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [medicalDetailError, setMedicalDetailError] = useState(false);
 
   const signatureRef = useRef<SignatureCanvasHandle>(null);
   const guardianSignatureRef = useRef<SignatureCanvasHandle>(null);
+  const medicalDetailRef = useRef<HTMLTextAreaElement>(null);
+
+  // Medical-condition conditional: active only when this version defines both
+  // the condition field and its detail field (see lib/types.ts).
+  const medicalField = props.fields.find((f) => f.key === MEDICAL_CONDITION_KEY);
+  const medicalDetailField = props.fields.find(
+    (f) => f.key === MEDICAL_CONDITION_DETAIL_KEY
+  );
+  const medicalConditional = Boolean(medicalField && medicalDetailField);
+  const medicalYes =
+    medicalConditional && medicalAnswerIsYes(fieldValues[MEDICAL_CONDITION_KEY]);
 
   function resetForm() {
     setFieldValues({});
@@ -49,6 +68,7 @@ export function SigningForm(props: SigningFormProps) {
     setConsentGiven(false);
     setSignerName("");
     setError(null);
+    setMedicalDetailError(false);
     setKioskDone(false);
     setTurnstileReset((n) => n + 1);
     setFormKey((k) => k + 1);
@@ -58,6 +78,22 @@ export function SigningForm(props: SigningFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Medical-condition conditional: "yes" requires the detail box; when the
+    // answer isn't yes the box is hidden, so never submit stale hidden text.
+    const submittedValues = { ...fieldValues };
+    if (medicalConditional) {
+      if (medicalYes) {
+        const detail = submittedValues[MEDICAL_CONDITION_DETAIL_KEY];
+        if (typeof detail !== "string" || detail.trim() === "") {
+          setMedicalDetailError(true);
+          medicalDetailRef.current?.focus();
+          return;
+        }
+      } else {
+        delete submittedValues[MEDICAL_CONDITION_DETAIL_KEY];
+      }
+    }
 
     const signatureDataUrl = signatureRef.current?.getDataUrl() ?? null;
     if (!signatureDataUrl) {
@@ -91,7 +127,7 @@ export function SigningForm(props: SigningFormProps) {
         isMinor,
         guardianName: isMinor ? guardianName.trim() : undefined,
         guardianRelationship: isMinor ? guardianRelationship.trim() : undefined,
-        fieldValues,
+        fieldValues: submittedValues,
         signatureDataUrl,
         guardianSignatureDataUrl: guardianSignatureDataUrl ?? undefined,
         consentGiven,
@@ -143,16 +179,60 @@ export function SigningForm(props: SigningFormProps) {
       {/* Dynamic fields */}
       {props.fields.length > 0 && (
         <div className="space-y-4">
-          {props.fields.map((field) => (
-            <FieldInput
-              key={field.key}
-              field={field}
-              value={fieldValues[field.key]}
-              onChange={(v) =>
-                setFieldValues((prev) => ({ ...prev, [field.key]: v }))
-              }
-            />
-          ))}
+          {props.fields.map((field) => {
+            // Medical-condition conditional: the detail box only exists when
+            // the answer is yes, and is then mandatory (see lib/types.ts).
+            if (medicalConditional && field.key === MEDICAL_CONDITION_DETAIL_KEY) {
+              if (!medicalYes) return null;
+              const detailValue = fieldValues[field.key];
+              return (
+                <div key={field.key}>
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-foreground/90">
+                      {field.label}
+                      <span className="text-destructive"> *</span>
+                    </span>
+                    <textarea
+                      ref={medicalDetailRef}
+                      rows={3}
+                      value={typeof detailValue === "string" ? detailValue : ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setFieldValues((prev) => ({ ...prev, [field.key]: v }));
+                        if (v.trim() !== "") setMedicalDetailError(false);
+                      }}
+                      aria-required="true"
+                      aria-invalid={medicalDetailError || undefined}
+                      aria-describedby={
+                        medicalDetailError ? "medical-detail-error" : undefined
+                      }
+                      className={signerInputClass}
+                    />
+                  </label>
+                  {medicalDetailError && (
+                    <p
+                      id="medical-detail-error"
+                      role="alert"
+                      className="mt-1.5 text-sm text-destructive"
+                    >
+                      Please describe the medical condition — this is required
+                      because you answered yes.
+                    </p>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <FieldInput
+                key={field.key}
+                field={field}
+                value={fieldValues[field.key]}
+                onChange={(v) =>
+                  setFieldValues((prev) => ({ ...prev, [field.key]: v }))
+                }
+              />
+            );
+          })}
         </div>
       )}
 

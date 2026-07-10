@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   FilePlus2,
   FileSignature,
   LayoutDashboard,
+  LogOut,
   Palette,
   Search,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import {
   CommandDialog,
   CommandEmpty,
@@ -78,6 +81,10 @@ export function CommandPalette({
             <LayoutDashboard className="size-4" />
             Dashboard
           </CommandItem>
+          <CommandItem onSelect={() => go("/checkin")}>
+            <ClipboardCheck className="size-4" />
+            Front desk
+          </CommandItem>
           <CommandItem onSelect={() => go("/waivers")}>
             <ClipboardList className="size-4" />
             Waivers
@@ -93,6 +100,22 @@ export function CommandPalette({
           <CommandItem onSelect={() => go("/settings/billing")}>
             <CreditCard className="size-4" />
             Billing
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Session">
+          <CommandItem
+            onSelect={async () => {
+              handleOpenChange(false);
+              await createClient().auth.signOut();
+              router.push("/login");
+              router.refresh();
+            }}
+          >
+            <LogOut className="size-4" />
+            Sign out
           </CommandItem>
         </CommandGroup>
       </CommandList>
