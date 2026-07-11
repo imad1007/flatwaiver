@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fireSignupConversion } from "@/components/signup-conversion";
 import { APP } from "@/lib/config";
 import { Logo } from "@/components/logo";
+import { AuthDivider, GoogleAuthButton } from "@/components/google-auth-button";
 
 const VOLUME_BANDS = ["<100", "100-300", "300-1000", "1000+"] as const;
 const VOLUME_LABELS: Record<string, string> = {
@@ -83,7 +84,12 @@ export default function SignupPage() {
       <h1 className="text-2xl font-bold">Start your free {APP.trialDays}-day trial</h1>
       <p className="mt-2 text-sm text-muted-foreground">No credit card required.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <div className="mt-6">
+        <GoogleAuthButton label="Sign up with Google" />
+      </div>
+      <AuthDivider />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Business name">
           <input
             type="text"

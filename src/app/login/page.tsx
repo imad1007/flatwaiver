@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { APP } from "@/lib/config";
 import { Logo } from "@/components/logo";
+import { AuthDivider, GoogleAuthButton } from "@/components/google-auth-button";
 
 export default function LoginPage() {
   return (
@@ -71,7 +72,12 @@ function LoginForm() {
         <div className="mt-8 rounded-xl border border-border p-8">
           <h1 className="text-2xl font-bold">Log in</h1>
 
-          <div className="mt-6 flex rounded-md border border-border p-1 text-sm">
+          <div className="mt-6">
+            <GoogleAuthButton next={next} />
+          </div>
+          <AuthDivider />
+
+          <div className="flex rounded-md border border-border p-1 text-sm">
             <button
               type="button"
               onClick={() => setMode("password")}
