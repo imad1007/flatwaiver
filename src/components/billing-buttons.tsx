@@ -7,7 +7,7 @@ export function BillingButton({
   label,
   primary = false,
 }: {
-  endpoint: "/api/stripe/checkout" | "/api/stripe/portal";
+  endpoint: "/api/paddle/portal" | "/api/stripe/checkout" | "/api/stripe/portal";
   label: string;
   primary?: boolean;
 }) {

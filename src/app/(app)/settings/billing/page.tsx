@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { BillingButton } from "@/components/billing-buttons";
+import { PaddleCheckoutButton } from "@/components/paddle-checkout-button";
 import { APP } from "@/lib/config";
 import { daysLeftUntil } from "@/lib/dates";
 import type { Subscription } from "@/lib/types";
@@ -11,8 +12,16 @@ export default async function BillingPage({
 }) {
   const { checkout } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase.from("subscriptions").select("*").maybeSingle();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase.from("subscriptions").select("*").maybeSingle(),
+    supabase.from("profiles").select("org_id").maybeSingle(),
+  ]);
   const sub = (data ?? null) as Subscription | null;
+  const orgId = profile?.org_id ?? "";
+  const email = user?.email ?? null;
 
   const status = sub?.status ?? "trialing";
   const trialDaysLeft = sub?.trial_ends_at ? daysLeftUntil(sub.trial_ends_at) : 0;
@@ -51,11 +60,19 @@ export default async function BillingPage({
                 </strong>
                 . No card on file.
               </p>
+              <PaddleCheckoutButton
+                orgId={orgId}
+                email={email}
+                label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
+                primary
+              />
+              {/* STRIPE (dormant) — switch back by restoring this and the
+                  /api/stripe/* routes; see src/lib/stripe.ts:
               <BillingButton
                 endpoint="/api/stripe/checkout"
                 label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
                 primary
-              />
+              /> */}
             </>
           )}
 
@@ -71,7 +88,9 @@ export default async function BillingPage({
                 )}
                 .
               </p>
-              <BillingButton endpoint="/api/stripe/portal" label="Manage subscription" />
+              <BillingButton endpoint="/api/paddle/portal" label="Manage subscription" />
+              {/* STRIPE (dormant):
+              <BillingButton endpoint="/api/stripe/portal" label="Manage subscription" /> */}
             </>
           )}
 
@@ -85,18 +104,28 @@ export default async function BillingPage({
                 . New signatures are paused until billing is fixed.
               </p>
               <div className="flex flex-wrap gap-3">
-                {sub?.stripe_customer_id && (
+                {sub?.paddle_customer_id && (
                   <BillingButton
-                    endpoint="/api/stripe/portal"
+                    endpoint="/api/paddle/portal"
                     label="Fix billing"
                     primary
                   />
+                )}
+                <PaddleCheckoutButton
+                  orgId={orgId}
+                  email={email}
+                  label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
+                  primary={!sub?.paddle_customer_id}
+                />
+                {/* STRIPE (dormant):
+                {sub?.stripe_customer_id && (
+                  <BillingButton endpoint="/api/stripe/portal" label="Fix billing" primary />
                 )}
                 <BillingButton
                   endpoint="/api/stripe/checkout"
                   label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
                   primary={!sub?.stripe_customer_id}
-                />
+                /> */}
               </div>
             </>
           )}

@@ -1,3 +1,9 @@
+// ⚠️ STRIPE — DORMANT. Paddle is the active billing provider (src/lib/paddle.ts,
+// /api/paddle/*). This module and the /api/stripe/* routes are kept intact for
+// a possible future switch back: nothing in the UI calls them, and they are
+// inert without the STRIPE_* env vars. To reactivate, restore the commented
+// Stripe blocks in settings/billing/page.tsx and set the env vars.
+
 import "server-only";
 
 import Stripe from "stripe";

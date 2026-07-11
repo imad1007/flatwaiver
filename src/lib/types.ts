@@ -160,8 +160,12 @@ export interface SignedWaiver {
 
 export interface Subscription {
   org_id: string;
+  /** Stripe ids — dormant while Paddle is the active provider (see lib/stripe.ts). */
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  /** Paddle ids (migration 0007) — the active billing provider. */
+  paddle_customer_id: string | null;
+  paddle_subscription_id: string | null;
   status: SubscriptionStatus;
   trial_ends_at: string | null;
   current_period_end: string | null;
