@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import mammoth from "mammoth";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,10 +13,46 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const AI_MODEL = "claude-sonnet-4-6";
 
-const SYSTEM_PROMPT = `You convert liability waiver documents into structured JSON for a digital signing system.
+/**
+ * Accepted upload types → how we hand them to Claude.
+ * - pdf/image: sent natively (document / image content block).
+ * - docx: text is extracted server-side (Claude has no native .docx block).
+ */
+const ACCEPTED_TYPES: Record<string, { kind: "pdf" | "image" | "docx"; ext: string }> = {
+  "application/pdf": { kind: "pdf", ext: "pdf" },
+  "image/png": { kind: "image", ext: "png" },
+  "image/jpeg": { kind: "image", ext: "jpg" },
+  "image/webp": { kind: "image", ext: "webp" },
+  "image/gif": { kind: "image", ext: "gif" },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+    kind: "docx",
+    ext: "docx",
+  },
+};
+
+/** Resolve the upload's type from its MIME, falling back to file extension. */
+function resolveType(file: File): { mime: string; kind: "pdf" | "image" | "docx"; ext: string } | null {
+  if (file.type && ACCEPTED_TYPES[file.type]) {
+    return { mime: file.type, ...ACCEPTED_TYPES[file.type] };
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+  const mime = ext ? byExt[ext] : undefined;
+  return mime ? { mime, ...ACCEPTED_TYPES[mime] } : null;
+}
+
+const SYSTEM_PROMPT = `You convert liability waiver documents into structured JSON for a digital signing system. The source may be a PDF, a photo or scan of a paper waiver, or text exported from a Word document.
 
 Rules:
 1. PRESERVE ALL LEGAL LANGUAGE EXACTLY. Never paraphrase, summarize, shorten, or "improve" any clause. Copy wording character-for-character, including capitalized sections.
@@ -106,39 +143,89 @@ export async function POST(request: Request) {
   const file = formData.get("file");
   const name = String(formData.get("name") ?? "").trim();
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No PDF uploaded." }, { status: 400 });
+    return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
   }
-  if (file.size > MAX_PDF_BYTES) {
-    return NextResponse.json({ error: "PDF must be 10 MB or smaller." }, { status: 400 });
+  if (file.size > MAX_FILE_BYTES) {
+    return NextResponse.json({ error: "File must be 10 MB or smaller." }, { status: 400 });
   }
-  if (file.type && file.type !== "application/pdf") {
-    return NextResponse.json({ error: "File must be a PDF." }, { status: 400 });
+  const type = resolveType(file);
+  if (!type) {
+    return NextResponse.json(
+      {
+        error:
+          "Unsupported file. Upload a PDF, an image (PNG, JPG, WebP, GIF), or a Word .docx. (Old .doc files aren't supported — save as .docx or PDF.)",
+      },
+      { status: 400 }
+    );
   }
 
-  const pdfBuffer = Buffer.from(await file.arrayBuffer());
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-  // Store the original PDF (uploads bucket, service role — buckets are private).
+  // Build the Claude content block for this file type. .docx has no native
+  // block, so extract its text first; if that yields nothing, bail early.
+  let userContent: Anthropic.ContentBlockParam[];
+  if (type.kind === "docx") {
+    let text = "";
+    try {
+      text = (await mammoth.extractRawText({ buffer: fileBuffer })).value.trim();
+    } catch {
+      return NextResponse.json(
+        { error: "Couldn't read that Word file. Save it as PDF and try again." },
+        { status: 422 }
+      );
+    }
+    if (text.length < 20) {
+      return NextResponse.json(
+        {
+          error:
+            "That Word file has no extractable text (it may be scanned images). Export it as a PDF and try again.",
+        },
+        { status: 422 }
+      );
+    }
+    userContent = [{ type: "text", text: `Waiver document text:\n\n${text}` }];
+  } else if (type.kind === "image") {
+    userContent = [
+      {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: type.mime as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
+          data: fileBuffer.toString("base64"),
+        },
+      },
+    ];
+  } else {
+    userContent = [
+      {
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: fileBuffer.toString("base64") },
+      },
+    ];
+  }
+
+  // Store the original upload (uploads bucket, service role — buckets private).
   const admin = createAdminClient();
-  const pdfPath = `${profile.org_id}/${crypto.randomUUID()}.pdf`;
+  const sourcePath = `${profile.org_id}/${crypto.randomUUID()}.${type.ext}`;
   const { error: uploadError } = await admin.storage
     .from("uploads")
-    .upload(pdfPath, pdfBuffer, { contentType: "application/pdf" });
+    .upload(sourcePath, fileBuffer, { contentType: type.mime });
   if (uploadError) {
-    return NextResponse.json({ error: "Failed to store PDF." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to store the uploaded file." }, { status: 500 });
   }
 
   // Convert with Claude (retry once on malformed JSON).
   let result: z.infer<typeof aiResultSchema> | null = null;
   try {
-    result = await convertPdf(pdfBuffer.toString("base64"), false);
+    result = await convertDocument(userContent, false);
   } catch {
     try {
-      result = await convertPdf(pdfBuffer.toString("base64"), true);
+      result = await convertDocument(userContent, true);
     } catch {
       return NextResponse.json(
         {
           error:
-            "AI conversion failed after two attempts. Use “Start from text” and paste your waiver instead.",
+            "AI conversion failed after two attempts. Use “Start from scratch” and paste your waiver instead.",
         },
         { status: 422 }
       );
@@ -163,7 +250,7 @@ export async function POST(request: Request) {
       slug: makeSlug(draft.title),
       name: draft.title,
       status: "draft",
-      source_pdf_path: pdfPath,
+      source_pdf_path: sourcePath,
       draft_content: draft,
     })
     .select("id")
@@ -175,11 +262,18 @@ export async function POST(request: Request) {
   return NextResponse.json({ templateId: template.id, warnings: result.warnings });
 }
 
-async function convertPdf(
-  base64Pdf: string,
+async function convertDocument(
+  userContent: Anthropic.ContentBlockParam[],
   retryReminder: boolean
 ): Promise<z.infer<typeof aiResultSchema>> {
   const anthropic = new Anthropic();
+
+  const instruction: Anthropic.ContentBlockParam = {
+    type: "text",
+    text:
+      "Convert this waiver document." +
+      (retryReminder ? " Return only valid JSON — no markdown fences, no commentary." : ""),
+  };
 
   const response = await anthropic.messages.create({
     model: AI_MODEL,
@@ -189,24 +283,7 @@ async function convertPdf(
     messages: [
       {
         role: "user",
-        content: [
-          {
-            type: "document",
-            source: {
-              type: "base64",
-              media_type: "application/pdf",
-              data: base64Pdf,
-            },
-          },
-          {
-            type: "text",
-            text:
-              "Convert this waiver document." +
-              (retryReminder
-                ? " Return only valid JSON — no markdown fences, no commentary."
-                : ""),
-          },
-        ],
+        content: [...userContent, instruction],
       },
     ],
   });

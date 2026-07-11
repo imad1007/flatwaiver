@@ -22,9 +22,9 @@ export default function NewWaiverPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <ChoiceCard
             icon={FileUp}
-            title="Upload existing PDF"
+            title="Upload existing waiver"
             badge="AI converts it"
-            body="The waiver you already use, converted into a signable form with every clause preserved exactly."
+            body="PDF, a photo or scan, or a Word doc — the waiver you already use, converted into a signable form with every clause preserved exactly."
             onClick={() => setPath("upload")}
           />
           <ChoiceCard
@@ -92,7 +92,7 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      setError("PDF must be 10 MB or smaller.");
+      setError("File must be 10 MB or smaller.");
       return;
     }
     setStatus("working");
@@ -100,7 +100,7 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
 
     const formData = new FormData();
     formData.set("file", file);
-    formData.set("name", name || file.name.replace(/\.pdf$/i, ""));
+    formData.set("name", name || file.name.replace(/\.[^.]+$/, ""));
 
     const res = await fetch("/api/ai-import", { method: "POST", body: formData });
     if (!res.ok) {
@@ -132,14 +132,20 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">PDF file (max 10 MB)</span>
+        <span className="mb-1 block text-sm font-medium">
+          PDF, image, or Word file (max 10 MB)
+        </span>
         <input
           ref={fileRef}
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,image/png,image/jpeg,image/webp,image/gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.png,.jpg,.jpeg,.webp,.gif,.docx"
           required
           className="w-full rounded-md border border-dashed border-input bg-card px-3 py-6 text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium hover:border-ring/50"
         />
+        <span className="mt-1 block text-xs text-muted-foreground/70">
+          Accepts PDF, images (PNG, JPG, WebP, GIF), and Word .docx. A clear photo
+          of a paper waiver works too.
+        </span>
       </label>
 
       {error && (
