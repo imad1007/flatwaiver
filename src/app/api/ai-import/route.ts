@@ -14,7 +14,11 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const AI_MODEL = "claude-sonnet-4-6";
+// Cheapest tier for this extraction: Haiku 4.5 is $1/$5 per M tokens vs Sonnet
+// 4.6's $3/$15 — ~3× cheaper in and out. The signer/owner always reviews the
+// draft before publishing, so a small transcription-accuracy tradeoff is
+// acceptable here. Bump back to "claude-sonnet-4-6" if conversions get sloppy.
+const AI_MODEL = "claude-haiku-4-5";
 
 /**
  * Accepted upload types → how we hand them to Claude.
