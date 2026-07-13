@@ -176,3 +176,21 @@ export interface Subscription {
 export function subscriptionIsUsable(status: string | null | undefined): boolean {
   return status === "trialing" || status === "active";
 }
+
+/**
+ * "Business name missing" gate for post-signup profile completion.
+ * Missing = null / empty / whitespace-only, OR equal to the user's email.
+ * The email case matters because org bootstrap defaults an org's name to the
+ * user's email when signup carried no business_name (Google OAuth gives us a
+ * personal name + email but never a business name), so an email-as-name is a
+ * placeholder, not a real answer. This is the exact inverse of that fallback.
+ */
+export function businessNameMissing(
+  name: string | null | undefined,
+  email: string | null | undefined
+): boolean {
+  const n = (name ?? "").trim();
+  if (!n) return true;
+  const e = (email ?? "").trim();
+  return e.length > 0 && n.toLowerCase() === e.toLowerCase();
+}

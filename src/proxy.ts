@@ -7,6 +7,7 @@ const PROTECTED_PREFIXES = [
   "/waivers",
   "/signatures",
   "/settings",
+  "/onboarding",
 ];
 
 export default async function proxy(request: NextRequest) {

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBootstrapped } from "@/lib/bootstrap";
 import { AppShell } from "@/components/app-shell";
 import { APP } from "@/lib/config";
-import { subscriptionIsUsable } from "@/lib/types";
+import { businessNameMissing, subscriptionIsUsable } from "@/lib/types";
 import { daysLeftUntil } from "@/lib/dates";
 
 export default async function AppLayout({
@@ -40,6 +40,11 @@ export default async function AppLayout({
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // Profile-completion gate: no business name yet (missing, or the email
+  // placeholder from OAuth bootstrap) → finish setup first. /onboarding lives
+  // outside this layout, so this can't loop.
+  if (businessNameMissing(org?.name, user.email)) redirect("/onboarding");
 
   return (
     <AppShell
