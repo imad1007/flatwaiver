@@ -51,6 +51,7 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
       { label: "Compare pricing", href: "/#compare" },
       { label: "Pricing", href: "/#pricing" },
       { label: "FAQ", href: "/#faq" },
+      { label: "Support", href: "/support" },
     ],
   },
   {

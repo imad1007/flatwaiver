@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileSignature,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   Plus,
@@ -39,6 +40,7 @@ const NAV = [
   { href: "/waivers", label: "Waivers", icon: ClipboardList },
   { href: "/signatures", label: "Signatures", icon: FileSignature },
   { href: "/settings/branding", label: "Settings", icon: Settings },
+  { href: "/support", label: "Support", icon: LifeBuoy },
 ];
 
 const SEGMENT_LABELS: Record<string, string> = {
