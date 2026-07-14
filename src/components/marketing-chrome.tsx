@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: "Compare", href: "/#compare" },
   { label: "Pricing", href: "/#pricing" },
   { label: "FAQ", href: "/#faq" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export function MarketingHeader() {
@@ -51,6 +52,7 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
       { label: "Compare pricing", href: "/#compare" },
       { label: "Pricing", href: "/#pricing" },
       { label: "FAQ", href: "/#faq" },
+      { label: "Blog", href: "/blog" },
       { label: "Support", href: "/support" },
     ],
   },
