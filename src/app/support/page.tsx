@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { APP } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: `Support — ${APP.name}`,
-  robots: { index: false },
+  title: `Support — contact the ${APP.name} team`,
+  description: `Need help with ${APP.name}? Email our team and we'll get back to you — usually within one business day.`,
 };
 
 export default async function SupportPage() {

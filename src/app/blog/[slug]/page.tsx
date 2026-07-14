@@ -54,7 +54,7 @@ export async function generateMetadata({
   };
 }
 
-const SITE_URL = (APP.url || "http://localhost:3000").replace(/\/$/, "");
+const SITE_URL = APP.siteUrl;
 
 export default async function BlogPostPage({
   params,

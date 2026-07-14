@@ -11,7 +11,7 @@ import { APP } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Finish setting up — ${APP.name}`,
-  robots: { index: false },
+  robots: { index: false, follow: false },
 };
 
 export default async function OnboardingPage() {

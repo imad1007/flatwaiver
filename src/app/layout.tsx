@@ -18,8 +18,13 @@ const geistMono = Geist_Mono({
 const SITE_DESCRIPTION =
   "Stop paying per signed waiver. Upload the PDF you already use — your digital waiver is live in 5 minutes.";
 
+/** Only the real production deploy is indexable; every preview is noindex. */
+const IS_PRODUCTION = process.env.VERCEL_ENV === "production";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(APP.url || "http://localhost:3000"),
+  // Hardcoded www so all canonical/OG URLs resolve to the one true host,
+  // never a preview deployment's URL.
+  metadataBase: new URL(APP.siteUrl),
   title: `Unlimited Digital Waivers — $${APP.priceMonthlyUsd}/month Flat | ${APP.name}`,
   description: SITE_DESCRIPTION,
   // "./" resolves per-route, so every page canonicalizes its own clean URL
@@ -37,6 +42,12 @@ export const metadata: Metadata = {
     title: `Unlimited Digital Waivers — $${APP.priceMonthlyUsd}/month Flat`,
     description: SITE_DESCRIPTION,
   },
+  // Belt-and-suspenders: noindex the entire site on any non-production
+  // environment (preview / development), on top of the disallow-all robots.txt.
+  ...(IS_PRODUCTION ? {} : { robots: { index: false, follow: false } }),
+  // Rendered only when the env var is set; verify via DNS instead and this
+  // stays inert.
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION },
 };
 
 /**

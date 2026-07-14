@@ -126,7 +126,7 @@ const PRICING_CHECKLIST = [
 
 // ─── Structured data (rich results: org, product+price, FAQ) ────────────────
 
-const SITE_URL = (APP.url || "http://localhost:3000").replace(/\/$/, "");
+const SITE_URL = APP.siteUrl;
 
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
@@ -137,6 +137,13 @@ const STRUCTURED_DATA = {
       name: APP.name,
       url: SITE_URL,
       logo: `${SITE_URL}/icon.svg`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: APP.name,
+      url: SITE_URL,
+      publisher: { "@id": `${SITE_URL}/#organization` },
     },
     {
       "@type": "SoftwareApplication",

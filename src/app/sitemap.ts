@@ -2,13 +2,17 @@ import type { MetadataRoute } from "next";
 import { APP } from "@/lib/config";
 import { getAllPosts } from "@/lib/blog";
 
+/**
+ * Public, indexable pages only — no app/auth routes, no /login, no thin
+ * utility pages beyond /support. Always the canonical www origin.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = (APP.url || "http://localhost:3000").replace(/\/$/, "");
+  const base = APP.siteUrl;
   const pages: { path: string; priority: number }[] = [
     { path: "/", priority: 1 },
     { path: "/security", priority: 0.8 },
-    { path: "/signup", priority: 0.7 },
     { path: "/blog", priority: 0.7 },
+    { path: "/signup", priority: 0.7 },
     { path: "/support", priority: 0.4 },
     { path: "/privacy", priority: 0.3 },
     { path: "/terms", priority: 0.3 },
