@@ -1,6 +1,12 @@
 import Script from "next/script";
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID; // GA4, e.g. G-XXXXXXXXXX
+// GA4 Measurement ID. Prefer the env var (lets you override or repoint later);
+// otherwise fall back to the production property so analytics works without any
+// Vercel env config. Gated to production so preview/dev never send into the
+// live property.
+const GA_ID =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
+  (process.env.VERCEL_ENV === "production" ? "G-G5NQ493KE5" : undefined);
 const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID; // e.g. AW-XXXXXXXXXX
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
