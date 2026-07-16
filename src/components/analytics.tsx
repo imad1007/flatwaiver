@@ -1,16 +1,33 @@
 import Script from "next/script";
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID; // GA4, e.g. G-XXXXXXXXXX
 const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID; // e.g. AW-XXXXXXXXXX
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
-/** Google Ads tag + Microsoft Clarity. Rendered only when the env vars are set. */
+// GA4 and Google Ads share a single gtag.js — load it once (with whichever id
+// is configured) and `config` each product separately below.
+const gtagLoadId = GA_ID || ADS_ID;
+
+/**
+ * Google Analytics 4 + Google Ads (one shared gtag.js) + Microsoft Clarity.
+ * Each block renders only when its env var is set, so an unconfigured product
+ * injects nothing. GA4 Enhanced Measurement (on by default) captures SPA route
+ * changes via History events, so no manual page_view wiring is needed.
+ */
 export function Analytics() {
+  const gtagConfig = [
+    GA_ID && `gtag('config', '${GA_ID}');`,
+    ADS_ID && `gtag('config', '${ADS_ID}');`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return (
     <>
-      {ADS_ID && (
+      {gtagLoadId && (
         <>
           <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${ADS_ID}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${gtagLoadId}`}
             strategy="afterInteractive"
           />
           <Script id="gtag-init" strategy="afterInteractive">
@@ -18,7 +35,7 @@ export function Analytics() {
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', '${ADS_ID}');
+              ${gtagConfig}
             `}
           </Script>
         </>
