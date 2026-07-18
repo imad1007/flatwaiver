@@ -15,6 +15,7 @@ import {
   Plus,
   Search,
   Settings,
+  Shield,
   UserRound,
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
@@ -59,11 +60,13 @@ const SEGMENT_LABELS: Record<string, string> = {
 export function AppShell({
   email,
   orgName,
+  isAdmin = false,
   banner,
   children,
 }: {
   email: string;
   orgName: string;
+  isAdmin?: boolean;
   banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -168,6 +171,15 @@ export function AppShell({
                 <CreditCard className="size-4" />
                 Billing
               </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem render={<Link href="/admin" />}>
+                    <Shield className="size-4" />
+                    Admin panel
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <Button

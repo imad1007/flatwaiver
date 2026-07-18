@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getPost } from "@/lib/blog";
+import { getRenderablePost } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export default async function OpengraphImage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await getRenderablePost(slug);
   const title = post?.title ?? `${APP.name} blog`;
   // Long titles get a smaller size so they never clip.
   const fontSize = title.length > 70 ? 44 : title.length > 45 ? 52 : 60;

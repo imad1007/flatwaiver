@@ -6,18 +6,21 @@ import remarkGfm from "remark-gfm";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
 import { mdxComponents } from "@/components/mdx-components";
 import { Button } from "@/components/ui/button";
+import { formatPostDate } from "@/lib/blog";
 import {
-  getAllPosts,
-  getPost,
-  getRelatedPosts,
-  formatPostDate,
-} from "@/lib/blog";
+  getAllBlogSlugs,
+  getRelatedListItems,
+  getRenderablePost,
+} from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
 
-export const dynamicParams = false;
+// DB-authored posts can appear after the build, so allow on-demand rendering of
+// slugs not known at build time; ISR caches the result.
+export const dynamicParams = true;
+export const revalidate = 600;
 
-export function generateStaticParams() {
-  return getAllPosts().map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  return (await getAllBlogSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -26,7 +29,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await getRenderablePost(slug);
   if (!post) return {};
   return {
     title: `${post.title} | ${APP.name}`,
@@ -62,10 +65,10 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await getRenderablePost(slug);
   if (!post) notFound();
 
-  const related = getRelatedPosts(post);
+  const related = await getRelatedListItems(post);
 
   // BlogPosting + BreadcrumbList; publisher/author reference the Organization
   // node already published in the homepage JSON-LD graph.
@@ -165,11 +168,20 @@ export default async function BlogPostPage({
           </header>
 
           <div className="mt-2">
-            <MDXRemote
-              source={post.content}
-              components={mdxComponents}
-              options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-            />
+            {post.source === "mdx" ? (
+              <MDXRemote
+                source={post.content}
+                components={mdxComponents}
+                options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+              />
+            ) : (
+              // DB body is sanitized at write time (see sanitizeBlogHtml); the
+              // .blog-html rules style raw tags to match the MDX components.
+              <div
+                className="blog-html mt-4"
+                dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+              />
+            )}
           </div>
         </article>
 

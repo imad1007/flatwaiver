@@ -1,12 +1,15 @@
 import type { MetadataRoute } from "next";
 import { APP } from "@/lib/config";
-import { getAllPosts } from "@/lib/blog";
+import { getAllBlogListItems } from "@/lib/blog-merge";
+
+// Revalidate so admin-authored posts enter the sitemap without a redeploy.
+export const revalidate = 600;
 
 /**
  * Public, indexable pages only — no app/auth routes, no /login, no thin
  * utility pages beyond /support. Always the canonical www origin.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = APP.siteUrl;
   const pages: { path: string; priority: number }[] = [
     { path: "/", priority: 1 },
@@ -29,12 +32,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   );
 
-  const postEntries: MetadataRoute.Sitemap = getAllPosts().map((post) => ({
-    url: `${base}/blog/${post.slug}`,
-    lastModified: new Date(`${post.dateModified}T00:00:00Z`),
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
+  const postEntries: MetadataRoute.Sitemap = (await getAllBlogListItems()).map(
+    (post) => ({
+      url: `${base}/blog/${post.slug}`,
+      lastModified: new Date(`${post.dateModified}T00:00:00Z`),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })
+  );
 
   return [...staticEntries, ...postEntries];
 }

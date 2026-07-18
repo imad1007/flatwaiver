@@ -8,6 +8,9 @@ const PROTECTED_PREFIXES = [
   "/signatures",
   "/settings",
   "/onboarding",
+  // Requires a session; the /admin layout additionally enforces the
+  // platform-admin allowlist (a logged-in non-admin is redirected away).
+  "/admin",
 ];
 
 export default async function proxy(request: NextRequest) {

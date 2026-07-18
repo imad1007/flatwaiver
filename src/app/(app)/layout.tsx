@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBootstrapped } from "@/lib/bootstrap";
+import { isPlatformAdmin } from "@/lib/admin";
 import { AppShell } from "@/components/app-shell";
 import { APP } from "@/lib/config";
 import { businessNameMissing, subscriptionIsUsable } from "@/lib/types";
@@ -56,6 +57,7 @@ export default async function AppLayout({
     <AppShell
       email={user.email ?? ""}
       orgName={org?.name ?? APP.name}
+      isAdmin={isPlatformAdmin(user.email)}
       banner={
         <TrialBanner
           status={subscription?.status ?? null}

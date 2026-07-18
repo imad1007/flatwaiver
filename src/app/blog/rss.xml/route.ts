@@ -1,7 +1,8 @@
-import { getAllPosts } from "@/lib/blog";
+import { getAllBlogListItems } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
 
-export const dynamic = "force-static";
+// ISR so admin-authored posts appear in the feed without a redeploy.
+export const revalidate = 600;
 
 function escapeXml(s: string): string {
   return s
@@ -12,10 +13,10 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-/** RSS 2.0 feed for the blog — statically generated at build time. */
-export function GET() {
+/** RSS 2.0 feed for the blog (both MDX and admin-authored posts). */
+export async function GET() {
   const base = (APP.url || "http://localhost:3000").replace(/\/$/, "");
-  const posts = getAllPosts();
+  const posts = await getAllBlogListItems();
 
   const items = posts
     .map(

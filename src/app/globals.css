@@ -189,6 +189,64 @@
   }
 }
 
+/* DB-authored blog posts render pasted/sanitized HTML (no per-tag React
+   components), so mirror the MDX component styling here by tag — admin-created
+   posts then read identically to the MDX cornerstone posts. */
+.blog-html > :first-child {
+  @apply mt-0;
+}
+.blog-html h2 {
+  @apply mt-12 scroll-mt-24 text-2xl font-bold tracking-tight;
+}
+.blog-html h3 {
+  @apply mt-8 scroll-mt-24 text-xl font-semibold;
+}
+.blog-html h4 {
+  @apply mt-6 font-semibold;
+}
+.blog-html p {
+  @apply mt-4 leading-relaxed text-foreground/90;
+}
+.blog-html ul {
+  @apply mt-4 list-disc space-y-2 pl-5 leading-relaxed text-foreground/90;
+}
+.blog-html ol {
+  @apply mt-4 list-decimal space-y-2 pl-5 leading-relaxed text-foreground/90;
+}
+.blog-html li {
+  @apply pl-1;
+}
+.blog-html a {
+  @apply font-medium text-primary underline underline-offset-2 hover:opacity-80;
+}
+.blog-html strong {
+  @apply font-semibold text-foreground;
+}
+.blog-html blockquote {
+  @apply mt-6 border-l-2 border-primary/40 pl-4 text-muted-foreground;
+}
+.blog-html hr {
+  @apply my-10 border-border;
+}
+.blog-html code {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em];
+}
+.blog-html img {
+  @apply mt-6 h-auto w-full rounded-xl border border-border;
+}
+.blog-html table {
+  @apply my-6 block w-full overflow-x-auto border-collapse text-left text-sm;
+}
+.blog-html thead {
+  @apply border-b border-border bg-muted/50 text-muted-foreground;
+}
+.blog-html th {
+  @apply px-4 py-3 font-medium;
+}
+.blog-html td {
+  @apply border-b border-border/60 px-4 py-3 align-top text-foreground/90;
+}
+
 /* Marketing animations (globally disabled by the reduced-motion rule below) */
 @keyframes fw-scan {
   0% {

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
-import { getAllPosts, formatPostDate } from "@/lib/blog";
+import { formatPostDate } from "@/lib/blog";
+import { getAllBlogListItems } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
+
+// ISR so admin-authored posts show up here without a redeploy.
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: `Blog — waiver software pricing, comparisons & e-sign law | ${APP.name}`,
@@ -10,8 +14,8 @@ export const metadata: Metadata = {
     "Practical guides for high-volume waiver collection: software pricing breakdowns, honest comparisons, and what makes digital waivers hold up.",
 };
 
-export default function BlogIndexPage() {
-  const posts = getAllPosts();
+export default async function BlogIndexPage() {
+  const posts = await getAllBlogListItems();
 
   return (
     <>
