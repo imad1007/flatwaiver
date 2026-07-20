@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { BillingButton } from "@/components/billing-buttons";
-import { PaddleCheckoutButton } from "@/components/paddle-checkout-button";
 import { APP } from "@/lib/config";
 import { daysLeftUntil } from "@/lib/dates";
 import type { Subscription } from "@/lib/types";
@@ -8,30 +7,39 @@ import type { Subscription } from "@/lib/types";
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{
+    checkout?: string;
+    // Creem appends these to the success URL — for confirmation display only.
+    // Access is granted by the webhook, never by these params.
+    checkout_id?: string;
+    customer_id?: string;
+    subscription_id?: string;
+  }>;
 }) {
-  const { checkout } = await searchParams;
+  const { checkout, checkout_id } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const [{ data }, { data: profile }] = await Promise.all([
-    supabase.from("subscriptions").select("*").maybeSingle(),
-    supabase.from("profiles").select("org_id").maybeSingle(),
-  ]);
+  const { data } = await supabase.from("subscriptions").select("*").maybeSingle();
   const sub = (data ?? null) as Subscription | null;
-  const orgId = profile?.org_id ?? "";
-  const email = user?.email ?? null;
 
   const status = sub?.status ?? "trialing";
   const trialDaysLeft = sub?.trial_ends_at ? daysLeftUntil(sub.trial_ends_at) : 0;
+
+  // Server-side: is Creem wired up? Drives whether we show the subscribe button.
+  const billingConfigured = Boolean(
+    process.env.CREEM_API_KEY && process.env.CREEM_PRODUCT_ID
+  );
 
   return (
     <div>
       {checkout === "success" && (
         <div className="mt-4 rounded-md border border-success/30 bg-success/10 p-4 text-sm text-success">
-          Thanks — your subscription is active. (It may take a few seconds to
-          reflect here.)
+          Thanks — your subscription is being activated. (It may take a few
+          seconds to reflect here.)
+          {checkout_id && (
+            <span className="mt-1 block text-xs text-success/80">
+              Reference: {checkout_id}
+            </span>
+          )}
         </div>
       )}
       {checkout === "canceled" && (
@@ -51,6 +59,13 @@ export default async function BillingPage({
         </p>
 
         <div className="mt-6">
+          {!billingConfigured && status !== "active" && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              Billing isn&apos;t configured yet (missing Creem keys). Your trial
+              keeps working in the meantime.
+            </p>
+          )}
+
           {status === "trialing" && (
             <>
               <p className="mb-4 text-sm">
@@ -60,19 +75,13 @@ export default async function BillingPage({
                 </strong>
                 . No card on file.
               </p>
-              <PaddleCheckoutButton
-                orgId={orgId}
-                email={email}
-                label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
-                primary
-              />
-              {/* STRIPE (dormant) — switch back by restoring this and the
-                  /api/stripe/* routes; see src/lib/stripe.ts:
-              <BillingButton
-                endpoint="/api/stripe/checkout"
-                label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
-                primary
-              /> */}
+              {billingConfigured && (
+                <BillingButton
+                  endpoint="/api/creem/checkout"
+                  label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
+                  primary
+                />
+              )}
             </>
           )}
 
@@ -88,9 +97,9 @@ export default async function BillingPage({
                 )}
                 .
               </p>
-              <BillingButton endpoint="/api/paddle/portal" label="Manage subscription" />
-              {/* STRIPE (dormant):
-              <BillingButton endpoint="/api/stripe/portal" label="Manage subscription" /> */}
+              {sub?.creem_customer_id && (
+                <BillingButton endpoint="/api/creem/portal" label="Manage subscription" />
+              )}
             </>
           )}
 
@@ -104,28 +113,20 @@ export default async function BillingPage({
                 . New signatures are paused until billing is fixed.
               </p>
               <div className="flex flex-wrap gap-3">
-                {sub?.paddle_customer_id && (
+                {sub?.creem_customer_id && (
                   <BillingButton
-                    endpoint="/api/paddle/portal"
+                    endpoint="/api/creem/portal"
                     label="Fix billing"
                     primary
                   />
                 )}
-                <PaddleCheckoutButton
-                  orgId={orgId}
-                  email={email}
-                  label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
-                  primary={!sub?.paddle_customer_id}
-                />
-                {/* STRIPE (dormant):
-                {sub?.stripe_customer_id && (
-                  <BillingButton endpoint="/api/stripe/portal" label="Fix billing" primary />
+                {billingConfigured && (
+                  <BillingButton
+                    endpoint="/api/creem/checkout"
+                    label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
+                    primary={!sub?.creem_customer_id}
+                  />
                 )}
-                <BillingButton
-                  endpoint="/api/stripe/checkout"
-                  label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
-                  primary={!sub?.stripe_customer_id}
-                /> */}
               </div>
             </>
           )}

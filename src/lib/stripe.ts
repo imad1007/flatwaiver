@@ -1,8 +1,8 @@
-// ⚠️ STRIPE — DORMANT. Paddle is the active billing provider (src/lib/paddle.ts,
-// /api/paddle/*). This module and the /api/stripe/* routes are kept intact for
-// a possible future switch back: nothing in the UI calls them, and they are
-// inert without the STRIPE_* env vars. To reactivate, restore the commented
-// Stripe blocks in settings/billing/page.tsx and set the env vars.
+// ⚠️ STRIPE — DORMANT. Creem is the active billing provider (src/lib/creem.ts,
+// /api/creem/*, /api/webhooks/creem). This module and the /api/stripe/* routes
+// are kept intact for a possible future switch: nothing in the UI calls them,
+// and they are inert without the STRIPE_* env vars. To reactivate, point the
+// billing page's BillingButton at /api/stripe/* and set the env vars.
 
 import "server-only";
 

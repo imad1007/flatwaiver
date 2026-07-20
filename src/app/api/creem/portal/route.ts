@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createPaddlePortalUrl } from "@/lib/paddle";
+import { createCreemPortalUrl } from "@/lib/creem";
 
 export const runtime = "nodejs";
 
 /**
- * Customer portal (manage payment method, invoices, cancel). Same response
- * contract as the Stripe portal route: `{ url }` to redirect to.
+ * Creem customer portal (manage payment method, invoices, cancel). Same
+ * response contract as the Stripe portal route: `{ url }` to redirect to.
  */
 export async function POST() {
   const supabase = await createClient();
@@ -19,16 +19,16 @@ export async function POST() {
 
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("paddle_customer_id")
+    .select("creem_customer_id")
     .maybeSingle();
-  if (!sub?.paddle_customer_id) {
+  if (!sub?.creem_customer_id) {
     return NextResponse.json(
       { error: "No billing profile yet — subscribe first." },
       { status: 400 }
     );
   }
 
-  const url = await createPaddlePortalUrl(sub.paddle_customer_id);
+  const url = await createCreemPortalUrl(sub.creem_customer_id);
   if (!url) {
     return NextResponse.json(
       { error: "Couldn't open the billing portal. Try again shortly." },
