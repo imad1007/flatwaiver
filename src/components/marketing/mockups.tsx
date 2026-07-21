@@ -193,9 +193,9 @@ export function PhoneMockup({ className }: { className?: string }) {
 /** PDF → structured blocks conversion visual (AI import feature). */
 export function ConvertMockup({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex items-center gap-2 sm:gap-3", className)}>
       {/* PDF side */}
-      <div className="w-32 rotate-[-3deg] rounded-lg border border-border bg-card p-2.5 shadow-card">
+      <div className="w-28 rotate-[-3deg] rounded-lg border border-border bg-card p-2.5 shadow-card sm:w-32">
         <div className="mb-1.5 flex items-center gap-1">
           <span className="rounded bg-destructive/15 px-1 py-0.5 text-[7px] font-bold text-destructive">
             PDF
@@ -217,7 +217,7 @@ export function ConvertMockup({ className }: { className?: string }) {
         </svg>
       </div>
       {/* Structured side */}
-      <div className="w-36 rotate-[2deg] space-y-1 rounded-lg border border-border bg-card p-2.5 shadow-card">
+      <div className="w-32 rotate-[2deg] space-y-1 rounded-lg border border-border bg-card p-2.5 shadow-card sm:w-36">
         <div className="rounded border border-border/70 bg-background px-1.5 py-1 text-[7px] font-bold tracking-wide text-foreground/80">
           RELEASE OF LIABILITY
         </div>

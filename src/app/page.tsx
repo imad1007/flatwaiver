@@ -492,7 +492,7 @@ function Features() {
         ]}
         visual={
           <div className="flex justify-center py-4">
-            <EvidenceCard className="rotate-1 scale-125" />
+            <EvidenceCard className="rotate-1 sm:scale-125" />
           </div>
         }
       />
@@ -535,7 +535,9 @@ function FeatureRow({
         </div>
       </Reveal>
       <Reveal delay={120} className={flip ? "lg:order-1" : undefined}>
-        <div className="rounded-2xl border border-border bg-muted/40 p-8 sm:p-10">{visual}</div>
+        <div className="overflow-hidden rounded-2xl border border-border bg-muted/40 p-5 sm:p-8 lg:p-10">
+          {visual}
+        </div>
       </Reveal>
     </div>
   );

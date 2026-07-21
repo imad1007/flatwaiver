@@ -57,7 +57,7 @@ export function SavingsCalculator() {
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card sm:p-8">
       {/* Volume slider */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <label htmlFor="volume-slider" className="text-sm font-medium">
@@ -84,7 +84,7 @@ export function SavingsCalculator() {
       </div>
 
       {/* Bars */}
-      <div className="mt-6 flex h-56 items-end justify-around gap-4">
+      <div className="mt-6 flex h-56 items-end justify-around gap-2 sm:gap-4">
         {bars.map((bar) => (
           <div
             key={bar.name}

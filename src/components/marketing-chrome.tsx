@@ -31,12 +31,14 @@ export function MarketingHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button variant="ghost" size="sm" render={<Link href="/login" />}>
             Log in
           </Button>
           <Button size="sm" render={<Link href="/signup" />}>
-            Start free trial
+            {/* Compact label on phones so the header never overflows. */}
+            <span className="sm:hidden">Sign up</span>
+            <span className="hidden sm:inline">Start free trial</span>
           </Button>
         </div>
       </div>
