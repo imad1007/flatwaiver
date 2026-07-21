@@ -172,26 +172,32 @@ function WaiverPdf({
           </>
         )}
 
-        <Text style={styles.sectionTitle}>Signature</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Full legal name</Text>
-          <Text style={styles.value}>{input.signerName}</Text>
-        </View>
-        {input.signerEmail && (
+        {/* wrap={false} keeps the whole signature block together: the heading,
+            the name/email/timestamp rows, and the signature image never split
+            across a page break. If it doesn't fit in the space left on the
+            current page, the entire block moves to the next page intact. */}
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>Signature</Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{input.signerEmail}</Text>
+            <Text style={styles.label}>Full legal name</Text>
+            <Text style={styles.value}>{input.signerName}</Text>
           </View>
-        )}
-        <View style={styles.row}>
-          <Text style={styles.label}>Signed at (UTC)</Text>
-          <Text style={styles.value}>{input.signedAtIso}</Text>
+          {input.signerEmail && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.value}>{input.signerEmail}</Text>
+            </View>
+          )}
+          <View style={styles.row}>
+            <Text style={styles.label}>Signed at (UTC)</Text>
+            <Text style={styles.value}>{input.signedAtIso}</Text>
+          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={input.signatureDataUrl} style={styles.signatureImage} />
         </View>
-        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        <Image src={input.signatureDataUrl} style={styles.signatureImage} />
 
         {input.isMinor && (
-          <>
+          <View wrap={false}>
             <Text style={styles.sectionTitle}>Parent / guardian</Text>
             <View style={styles.row}>
               <Text style={styles.label}>Guardian name</Text>
@@ -208,7 +214,7 @@ function WaiverPdf({
                 style={styles.signatureImage}
               />
             )}
-          </>
+          </View>
         )}
       </Page>
 
