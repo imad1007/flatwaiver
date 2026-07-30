@@ -6,8 +6,11 @@ import { getAllBlogListItems } from "@/lib/blog-merge";
 export const revalidate = 600;
 
 /**
- * Public, indexable pages only — no app/auth routes, no /login, no thin
- * utility pages beyond /support. Always the canonical www origin.
+ * Public, INDEXABLE pages only. Deliberately excludes /signup: it serves
+ * `<meta robots="noindex">` and canonicalizes to /dashboard, so listing it
+ * sends contradictory signals and wastes discovery crawl. /login and all
+ * (app) routes are noindex too and likewise omitted. Always the canonical www
+ * origin, with no trailing slash — matching Next's normalized page canonicals.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = APP.siteUrl;
@@ -15,7 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/", priority: 1 },
     { path: "/security", priority: 0.8 },
     { path: "/blog", priority: 0.7 },
-    { path: "/signup", priority: 0.7 },
     { path: "/support", priority: 0.4 },
     { path: "/privacy", priority: 0.3 },
     { path: "/terms", priority: 0.3 },
