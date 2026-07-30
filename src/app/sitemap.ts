@@ -14,18 +14,23 @@ export const revalidate = 600;
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = APP.siteUrl;
-  const pages: { path: string; priority: number }[] = [
+  // `lastModified` is set only on static pages whose content actually changed,
+  // so the sitemap reports real freshness (bump the date when you edit one).
+  const pages: { path: string; priority: number; lastModified?: string }[] = [
     { path: "/", priority: 1 },
     { path: "/security", priority: 0.8 },
     { path: "/blog", priority: 0.7 },
-    { path: "/support", priority: 0.4 },
+    { path: "/support", priority: 0.4, lastModified: "2026-07-30" },
     { path: "/privacy", priority: 0.3 },
     { path: "/terms", priority: 0.3 },
   ];
 
   const staticEntries: MetadataRoute.Sitemap = pages.map(
-    ({ path, priority }) => ({
+    ({ path, priority, lastModified }) => ({
       url: path === "/" ? base : `${base}${path}`,
+      ...(lastModified
+        ? { lastModified: new Date(`${lastModified}T00:00:00Z`) }
+        : {}),
       changeFrequency:
         path === "/" || path === "/blog"
           ? ("weekly" as const)
