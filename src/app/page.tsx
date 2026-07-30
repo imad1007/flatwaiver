@@ -648,23 +648,34 @@ function WhyWeBuiltThis() {
   return (
     <section className="py-20">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
-        {/* Supporting photo — below the fold, lazy-loaded, fixed dimensions */}
+        {/* Supporting photos — the high-liability businesses that live on
+            waivers, and the signature itself. Below the fold, lazy-loaded,
+            uniform 4:3 crop (Pexels fit=crop) so the different source sizes
+            stay tidy with no layout shift. Alt text carries the vertical
+            keywords (climbing gym, trampoline park, adventure tour, waiver).
+            Photos via Pexels (license: attribution not required):
+            climbing — Pavel Danilyuk; ball pit — Nothing Ahead; off-road
+            buggy — Joel de la cruz; signing — Tima Miroshnichenko. */}
         <Reveal>
-          <figure className="relative">
-            <div
-              aria-hidden
-              className="absolute -inset-3 -rotate-1 rounded-2xl border border-brand-200/60 dark:border-brand-800/60"
-            />
-            <Image
-              src="https://images.pexels.com/photos/8117465/pexels-photo-8117465.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop"
-              alt="Front-desk employees working through a stack of paper documents together"
-              width={1200}
-              height={800}
-              loading="lazy"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="relative rounded-2xl object-cover shadow-pop"
-            />
-          </figure>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {[
+              { id: "7590967", alt: "A woman rock climbing an indoor climbing-gym wall" },
+              { id: "19875335", alt: "A young child playing in a colorful indoor ball pit at a trampoline park" },
+              { id: "31234510", alt: "Two adults riding a bright orange off-road buggy on an adventure tour" },
+              { id: "7567600", alt: "A hand signing a paper liability waiver with a ballpoint pen" },
+            ].map((photo) => (
+              <Image
+                key={photo.id}
+                src={`https://images.pexels.com/photos/${photo.id}/pexels-photo-${photo.id}.jpeg?auto=compress&cs=tinysrgb&w=600&h=450&fit=crop`}
+                alt={photo.alt}
+                width={600}
+                height={450}
+                loading="lazy"
+                sizes="(max-width: 1024px) 45vw, 22vw"
+                className="aspect-[4/3] w-full rounded-2xl border border-border object-cover shadow-card"
+              />
+            ))}
+          </div>
         </Reveal>
 
         <Reveal delay={120}>
@@ -677,10 +688,11 @@ function WhyWeBuiltThis() {
               backwards.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-              Every waiver platform prices the same way: the more customers you
-              welcome, the bigger your bill. A packed Saturday shouldn&apos;t come
-              with a software penalty — and a binder of paper waivers
-              shouldn&apos;t be the alternative.
+              A climbing gym, a trampoline park, an off-road tour — any business
+              where every guest signs a waiver — gets priced the same way: the
+              more customers you welcome, the bigger your bill. A packed Saturday
+              shouldn&apos;t come with a software penalty, and a binder of paper
+              waivers shouldn&apos;t be the alternative.
             </p>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
               So we built the version we&apos;d want at our own front desk: the
