@@ -5,7 +5,7 @@ import { APP } from "@/lib/config";
 
 /**
  * Interactive comparison: drag the volume slider, competitor estimates move,
- * our $39 bar stays flat. Estimates are linear interpolations between each
+ * our $19 bar stays flat. Estimates are linear interpolations between each
  * competitor's published entry price and their published cost at 1,000
  * waivers/month, capped at their top listed plan price — labeled as
  * estimates, sourced from public pricing pages (July 2026).

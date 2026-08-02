@@ -6,7 +6,7 @@ import { APP } from "@/lib/config";
 
 export const runtime = "nodejs";
 
-/** Creates a Stripe Checkout Session for the $39/mo subscription. */
+/** Creates a Stripe Checkout Session for the $19/mo subscription. */
 export async function POST() {
   const supabase = await createClient();
   const {

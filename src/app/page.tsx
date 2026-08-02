@@ -45,7 +45,7 @@ const INDUSTRIES = [
 ];
 
 const STATS = [
-  { value: "$39", label: "per month. Flat, forever." },
+  { value: "$19", label: "per month. Flat, forever." },
   { value: "∞", label: "waivers, templates & storage" },
   { value: "< 5 min", label: "from PDF to live signing link" },
   { value: "14 days", label: "free trial, no card required" },
@@ -55,7 +55,7 @@ const COMPARISON = [
   { name: "Smartwaiver", price: "$19–$155 by volume", thousand: 155, display: "$155/mo" },
   { name: "WaiverForever", price: "$19.99–$129 by volume", thousand: 129, display: "$129/mo" },
   { name: "WaiverFile", price: "$15–$199 by volume", thousand: 104, display: "~$104/mo" },
-  { name: APP.name, price: "$39 flat", thousand: 39, display: "$39/mo", us: true },
+  { name: APP.name, price: "$19 flat", thousand: 19, display: "$19/mo", us: true },
 ];
 
 const BENTO = [
@@ -101,7 +101,7 @@ const FAQS = [
   },
   {
     q: "Really unlimited?",
-    a: "Yes. Flat $39/month for unlimited signed waivers, templates, and storage. Fair-use applies only to abuse (e.g., automated spam).",
+    a: "Yes. Flat $19/month for unlimited signed waivers, templates, and storage. Fair-use applies only to abuse (e.g., automated spam).",
   },
   {
     q: "What happens to my data if I cancel?",
@@ -228,7 +228,7 @@ function Hero() {
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Unlimited waivers.
             <br />
-            $39/month.{" "}
+            $19/month.{" "}
             <span className="relative whitespace-nowrap text-brand-600 dark:text-brand-300">
               Flat.
               <svg
@@ -822,7 +822,7 @@ function FinalCta() {
       </div>
       <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
         <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          Unlimited waivers. $39/month. Flat.
+          Unlimited waivers. $19/month. Flat.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg text-brand-100/80">
           Your first waiver can be live before your coffee gets cold.

@@ -1,6 +1,6 @@
 export const APP = {
   name: "FlatWaiver",            // rename here only
-  priceMonthlyUsd: 39,
+  priceMonthlyUsd: 19,
   trialDays: 14,
   supportEmail: "contact@flatwaiver.com",
   /**

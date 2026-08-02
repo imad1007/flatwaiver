@@ -29,7 +29,7 @@ function client(): Creem {
 }
 
 /**
- * Create a hosted checkout for the single $39/mo product and return its URL.
+ * Create a hosted checkout for the single $19/mo product and return its URL.
  * org_id rides along as checkout metadata so the webhook can map the resulting
  * subscription back to the org. Returns null if billing isn't configured.
  */

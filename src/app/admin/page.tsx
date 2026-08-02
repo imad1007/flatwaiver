@@ -39,7 +39,7 @@ export default async function AdminOverviewPage() {
             <Kpi
               label="Est. MRR"
               value={`$${fmt(stats.estMrrUsd)}`}
-              hint="active × $39/mo"
+              hint="active × $19/mo"
               accent="primary"
             />
             <Kpi
