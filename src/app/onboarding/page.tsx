@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBootstrapped } from "@/lib/bootstrap";
 import { businessNameMissing } from "@/lib/types";
-import { OnboardingForm } from "@/components/onboarding-form";
+import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { Logo } from "@/components/logo";
 import { APP } from "@/lib/config";
 
@@ -34,7 +34,7 @@ export default async function OnboardingPage() {
   const { data: org } = profile
     ? await admin
         .from("organizations")
-        .select("name")
+        .select("name, branding")
         .eq("id", profile.org_id)
         .single()
     : { data: null };
@@ -43,25 +43,27 @@ export default async function OnboardingPage() {
   if (!businessNameMissing(org?.name, user.email)) redirect("/dashboard");
 
   // Greet with the Google-provided personal name when we have one (email
-  // signups won't) so it doesn't feel like starting from zero.
+  // signups won't), and use it to pre-fill a sensible default org name.
   const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
-  const firstName = (meta.full_name || meta.name || "").trim().split(/\s+/)[0] || null;
+  const fullName = (meta.full_name || meta.name || "").trim();
+  const firstName = fullName.split(/\s+/)[0] || null;
+  const defaultBusinessName = fullName ? `${fullName}'s Organization` : "My Organization";
+
+  const branding = (org?.branding ?? null) as { color?: string } | null;
+  const defaultColor = branding?.color ?? "#4F46E5";
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
+    <main className="flex flex-1 justify-center px-6 py-12">
+      <div className="w-full max-w-3xl">
         <Link href="/" aria-label={`${APP.name} home`} className="inline-block">
           <Logo />
         </Link>
-        <div className="mt-8 rounded-xl border border-border p-8">
-          <h1 className="text-2xl font-bold">
-            {firstName ? `Welcome, ${firstName}!` : "Welcome!"}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            One quick thing before your dashboard — what&apos;s your business name?
-            It appears on your waivers.
-          </p>
-          <OnboardingForm />
+        <div className="mt-8 rounded-2xl border border-border bg-card/40 p-6 shadow-card sm:p-8">
+          <OnboardingWizard
+            firstName={firstName}
+            defaultBusinessName={defaultBusinessName}
+            defaultColor={defaultColor}
+          />
         </div>
       </div>
     </main>
