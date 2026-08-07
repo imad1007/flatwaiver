@@ -30,6 +30,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // The generated OG images (site-wide + per-post) are real routes Google can
+  // discover and list as "pages". They're images, not content — mark them
+  // noindex so Search Console stops flagging them.
+  async headers() {
+    return [
+      {
+        source: "/opengraph-image",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+      {
+        source: "/blog/:slug/opengraph-image",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

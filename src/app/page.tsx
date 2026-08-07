@@ -29,7 +29,13 @@ import {
 import { HeroDemo } from "@/components/marketing/hero-demo";
 import { DemoSandbox } from "@/components/marketing/demo-sandbox";
 import { Button } from "@/components/ui/button";
+import { formatPostDate } from "@/lib/blog";
+import { getAllBlogListItems, type BlogListItem } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
+
+// ISR so newly published posts flow into the homepage "Guides" section (and
+// their homepage backlink) without a redeploy.
+export const revalidate = 600;
 
 // ─── Content ────────────────────────────────────────────────────────────────
 
@@ -174,7 +180,9 @@ const STRUCTURED_DATA = {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const posts = (await getAllBlogListItems()).slice(0, 4);
+
   return (
     <>
       <script
@@ -195,11 +203,65 @@ export default function LandingPage() {
         <WhyWeBuiltThis />
         <Testimonials />
         <Pricing />
+        <Guides posts={posts} />
         <Faq />
         <FinalCta />
       </main>
       <MarketingFooter />
     </>
+  );
+}
+
+/**
+ * Direct homepage links to recent guides. The homepage is the most-crawled page
+ * on the site, so linking straight to posts here gives each one a strong
+ * referring page — Google reaches them without /blog being crawled first, and
+ * new posts inherit the same backlink automatically.
+ */
+function Guides({ posts }: { posts: BlogListItem[] }) {
+  if (posts.length === 0) return null;
+  return (
+    <section className="py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <SectionHeading
+          eyebrow="Guides"
+          title="Read up before you switch"
+          sub="Honest breakdowns of waiver pricing, e-sign law, and how the tools compare."
+        />
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {posts.map((post, i) => (
+            <Reveal key={post.slug} delay={(i % 4) * 80}>
+              <Link
+                href={`/blog/${post.slug}`}
+                className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-ring/50 hover:shadow-pop"
+              >
+                <p className="text-xs text-muted-foreground">
+                  {formatPostDate(post.datePublished)} · {post.readingMinutes} min
+                  read
+                </p>
+                <h3 className="mt-2 font-bold leading-snug transition-colors group-hover:text-primary">
+                  {post.title}
+                </h3>
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                  {post.description}
+                </p>
+                <span className="mt-4 text-sm font-medium text-primary">
+                  Read the guide →
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <Link
+            href="/blog"
+            className="text-sm font-semibold text-primary hover:opacity-80"
+          >
+            Browse all guides →
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
