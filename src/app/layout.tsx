@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics";
+import { LiveChat } from "@/components/live-chat";
 import { Toaster } from "@/components/ui/sonner";
 import { APP } from "@/lib/config";
 
@@ -77,6 +78,7 @@ export default function RootLayout({
         {children}
         <Toaster position="bottom-right" />
         <Analytics />
+        <LiveChat />
       </body>
     </html>
   );
