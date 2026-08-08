@@ -24,6 +24,7 @@ import {
   Flag,
   GripVertical,
   Heading2,
+  Info,
   List,
   Monitor,
   Pilcrow,
@@ -192,6 +193,8 @@ export function WaiverEditor({
   }
 
   const nextVersion = (versions[0]?.version_number ?? 0) + 1;
+  const liveVersion = versions.find((v) => v.id === template.current_version_id)?.version_number;
+  const currentVersionLabel = liveVersion ? `v${liveVersion}` : "Draft";
   const baseUrl = (APP.url ?? "").replace(/\/$/, "");
 
   return (
@@ -204,8 +207,11 @@ export function WaiverEditor({
             className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3.5" />
-            Waivers
+            All waivers
           </Link>
+          <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Editor · {currentVersionLabel}
+          </p>
           <div className="mt-1 flex items-center gap-3">
             <input
               value={name}
@@ -222,9 +228,6 @@ export function WaiverEditor({
               Share
             </Button>
           )}
-          <Button variant="outline" onClick={handleSave} disabled={isPending}>
-            Save draft
-          </Button>
           <Button onClick={() => setPublishOpen(true)} disabled={isPending}>
             <Rocket className="size-4" />
             Publish
@@ -232,10 +235,14 @@ export function WaiverEditor({
         </div>
       </div>
 
-      {/* AI disclaimer + warnings */}
-      <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-        AI conversion is a draft. Review every clause against your original before
-        publishing — you are responsible for the legal text.
+      {/* Legal-responsibility disclaimer + conversion warnings */}
+      <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-sm text-foreground/80">
+        <Info className="mt-0.5 size-4 shrink-0 text-info" />
+        <span>
+          {APP.name} doesn&apos;t review waiver content for legal enforceability.
+          You&apos;re responsible for the language and lawfulness of what you
+          publish — review every clause and have a lawyer check it for your state.
+        </span>
       </div>
       {warnings.length > 0 && (
         <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -251,9 +258,9 @@ export function WaiverEditor({
       {/* Two-pane layout */}
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
         {/* ── Editor pane ── */}
-        <div className="min-w-0 space-y-10">
+        <div className="min-w-0 space-y-6">
           {/* Blocks */}
-          <section>
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle
               title="Waiver text"
               sub="The legal content signers read, in order. Drag to reorder."
@@ -320,7 +327,7 @@ export function WaiverEditor({
           </section>
 
           {/* Fields */}
-          <section>
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle
               title="Signer fields"
               sub="Inputs the signer fills in. Full legal name and the signature are always included automatically."
@@ -375,7 +382,7 @@ export function WaiverEditor({
           </section>
 
           {/* Minors */}
-          <section>
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle title="Minors" />
             <label className="mt-3 flex items-center gap-3 text-sm">
               <Switch
@@ -390,7 +397,7 @@ export function WaiverEditor({
           </section>
 
           {/* Consent */}
-          <section>
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle
               title="E-sign consent text"
               sub="Shown next to the consent checkbox and stored with every signature."
@@ -404,7 +411,7 @@ export function WaiverEditor({
           </section>
 
           {/* Version history */}
-          <section>
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle title="Version history" />
             {versions.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -437,39 +444,54 @@ export function WaiverEditor({
             </p>
           </section>
 
-          {/* Archive */}
-          <section className="border-t border-border pt-5">
+          {/* Danger zone */}
+          <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+            <h2 className="font-bold text-destructive">Danger zone</h2>
             {template.status === "archived" ? (
-              <button
-                onClick={() =>
-                  startTransition(async () => {
-                    await unarchiveTemplate(template.id);
-                    toast.success("Waiver restored");
-                    router.refresh();
-                  })
-                }
-                className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-              >
-                Restore this waiver
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Archive this waiver? The public signing link will stop working. Existing signed waivers are unaffected."
-                    )
-                  )
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  This waiver is archived — its public link is off. Restore it to
+                  start collecting signatures again.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() =>
                     startTransition(async () => {
-                      await archiveTemplate(template.id);
-                      toast.success("Waiver archived");
+                      await unarchiveTemplate(template.id);
+                      toast.success("Waiver restored");
                       router.refresh();
-                    });
-                }}
-                className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-              >
-                Archive this waiver
-              </button>
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  Restore waiver
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Archiving turns off the public signing link. Existing signed
+                  waivers are unaffected and stay fully accessible.
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Archive this waiver? The public signing link will stop working. Existing signed waivers are unaffected."
+                      )
+                    )
+                      startTransition(async () => {
+                        await archiveTemplate(template.id);
+                        toast.success("Waiver archived");
+                        router.refresh();
+                      });
+                  }}
+                  disabled={isPending}
+                >
+                  Archive waiver
+                </Button>
+              </div>
             )}
           </section>
         </div>
@@ -519,6 +541,18 @@ export function WaiverEditor({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sticky save bar */}
+      <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Unsaved changes apply on save.
+          </p>
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending ? "Saving…" : "Save changes"}
+          </Button>
         </div>
       </div>
 
