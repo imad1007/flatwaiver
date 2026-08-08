@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FilePlus2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/empty-state";
+import { GettingStarted, type GuideStep } from "@/components/getting-started";
 import { SignaturesChart, type DayCount } from "@/components/signatures-chart";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
     { data: recent },
     { data: templates },
     { data: recentWindow },
+    { data: org },
   ] = await Promise.all([
     supabase
       .from("signed_waivers")
@@ -47,10 +49,49 @@ export default async function DashboardPage() {
       .select("signed_at, signing_channel")
       .gte("signed_at", chartStart.toISOString())
       .range(0, 9999),
+    supabase.from("organizations").select("branding").maybeSingle(),
   ]);
 
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
   const publishedCount = (templates ?? []).filter((t) => t.status === "published").length;
+
+  // First-run getting-started checklist — reflects real progress, hides when done.
+  const hasTemplate = (templates ?? []).length > 0;
+  const branding = (org?.branding ?? null) as { logo_path?: string; color?: string } | null;
+  const guideSteps: GuideStep[] = [
+    {
+      key: "create",
+      title: "Create your first waiver",
+      description: "Upload the PDF you already use — AI converts it into a signable form.",
+      href: hasTemplate ? "/waivers" : "/waivers/new",
+      cta: "New waiver",
+      done: hasTemplate,
+    },
+    {
+      key: "publish",
+      title: "Review & publish it",
+      description: "Check the clauses and publish — that locks the exact wording to every signature.",
+      href: "/waivers",
+      cta: "Review & publish",
+      done: publishedCount > 0,
+    },
+    {
+      key: "brand",
+      title: "Add your logo",
+      description: "Put your logo on the signing page and the signed PDF so it feels like you.",
+      href: "/settings/branding",
+      cta: "Add branding",
+      done: Boolean(branding?.logo_path),
+    },
+    {
+      key: "collect",
+      title: "Collect your first signature",
+      description: "Share the link, print the QR code, or open kiosk mode at the front desk.",
+      href: "/waivers",
+      cta: "Get signing link",
+      done: (totalSigned ?? 0) > 0,
+    },
+  ];
 
   // Per-day counts for the last 30 days (UTC), zero-filled
   const days: DayCount[] = Array.from({ length: CHART_DAYS }, (_, i) => {
@@ -70,6 +111,11 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {/* First-run guide (hides once every step is complete or dismissed) */}
+      <div className="mt-6">
+        <GettingStarted steps={guideSteps} />
+      </div>
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
