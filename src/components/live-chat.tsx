@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useConsent } from "@/lib/consent";
+import { isSignerPage } from "@/lib/signer-pages";
 
 /**
  * Tawk.to live chat. Injected client-side (like Tawk's own snippet) rather than
@@ -22,24 +24,12 @@ declare global {
   }
 }
 
-/**
- * The public signing and kiosk pages (/w/*, /kiosk/*) are white-labeled to the
- * customer's own business — a FlatWaiver chat there would confuse signers and
- * reveal which tool the business uses. Keep the vendor chat off them.
- * (/waivers is the app, not a signer page — don't match it.)
- */
-function isSignerPage(pathname: string): boolean {
-  return (
-    pathname === "/w" ||
-    pathname.startsWith("/w/") ||
-    pathname.startsWith("/kiosk")
-  );
-}
-
 export function LiveChat() {
   const pathname = usePathname();
+  const consent = useConsent();
 
   useEffect(() => {
+    if (consent !== "granted") return; // chat is a third-party cookie-setter
     if (isSignerPage(pathname)) return;
     if (document.getElementById("tawk-to")) return; // already loaded this session
 
@@ -60,7 +50,7 @@ export function LiveChat() {
     s.charset = "UTF-8";
     s.setAttribute("crossorigin", "*");
     document.body.appendChild(s);
-  }, [pathname]);
+  }, [pathname, consent]);
 
   return null;
 }

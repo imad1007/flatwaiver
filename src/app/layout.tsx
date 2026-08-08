@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics";
+import { CookieConsent } from "@/components/cookie-consent";
 import { LiveChat } from "@/components/live-chat";
 import { Toaster } from "@/components/ui/sonner";
 import { APP } from "@/lib/config";
@@ -77,6 +78,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col overflow-x-clip">
         {children}
         <Toaster position="bottom-right" />
+        <CookieConsent />
         <Analytics />
         <LiveChat />
       </body>
