@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [{ userAgent: "*", allow: "/" }],
     sitemap: `${APP.siteUrl}/sitemap.xml`,
-    host: APP.siteUrl,
+    // No `host:` — it's a non-standard (Yandex-era) directive Google ignores;
+    // the canonical www host is enforced by the apex→www redirect + canonicals.
   };
 }
