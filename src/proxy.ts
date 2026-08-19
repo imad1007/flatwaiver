@@ -65,9 +65,12 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Skip static assets and public signing pages (/w, /kiosk) — those are
-     * served via the service role and never need a session.
+     * Skip static assets, public signing pages (/w, /kiosk), and crawl/SEO
+     * files. robots.txt, sitemap.xml, and *.xml/*.txt must be served as plain
+     * static files with NO auth-middleware dependency — routing them through
+     * this Edge function (which inits a Supabase client + getUser) risks slow
+     * or failed responses that make Googlebot report "robots.txt unreachable".
      */
-    "/((?!_next/static|_next/image|favicon.ico|w/|kiosk/|api/sign/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|w/|kiosk/|api/sign/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
