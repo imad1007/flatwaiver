@@ -89,6 +89,12 @@ export default async function SignaturesPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Signatures</h1>
         <div className="flex gap-2">
+          <Link
+            href="/signatures/renewals"
+            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
+          >
+            Renewals
+          </Link>
           <a
             href={`/api/signatures/export?${exportQuery.toString()}`}
             className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"

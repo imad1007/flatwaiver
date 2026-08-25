@@ -72,6 +72,35 @@ export async function sendOwnerNotificationEmail(opts: {
   }
 }
 
+/** Re-sign reminder: a signer's waiver is expiring/expired — ask them to renew. */
+export async function sendResignReminderEmail(opts: {
+  to: string;
+  signerName: string;
+  waiverName: string;
+  orgName: string;
+  signingUrl: string;
+  expired: boolean;
+}) {
+  const resend = resendClient();
+  if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
+  const lead = opts.expired
+    ? `your signed waiver has expired`
+    : `your signed waiver is about to expire`;
+  await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: `Time to renew your waiver — ${opts.waiverName}`,
+    html: `
+      <p>Hi ${escapeHtml(opts.signerName)},</p>
+      <p>${escapeHtml(opts.orgName)} asks that you keep a current waiver on file, and
+      ${lead} for <strong>${escapeHtml(opts.waiverName)}</strong>.</p>
+      <p><a href="${opts.signingUrl}">Re-sign the waiver</a> — it takes about a minute
+      on any phone or computer.</p>
+      <p>— ${escapeHtml(opts.orgName)}, via ${APP.name}</p>
+    `,
+  });
+}
+
 /** Team invite: an admin invites a teammate to join the org's account. */
 export async function sendTeamInviteEmail(opts: {
   to: string;

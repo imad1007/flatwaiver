@@ -6,6 +6,7 @@ const ACTION_LABEL: Record<string, string> = {
   "member.joined": "joined the team",
   "member.role_changed": "changed the role of",
   "member.removed": "removed",
+  "reminder.sent": "sent a renewal reminder to",
 };
 
 function describe(entry: AuditLogEntry): string {

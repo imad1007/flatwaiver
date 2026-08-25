@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOrgRole } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { contentSha256 } from "@/lib/canonical";
 import { draftContentSchema } from "@/lib/waiver-schema";
-import { sendSigningInviteEmail } from "@/lib/email";
+import { sendSigningInviteEmail, sendResignReminderEmail } from "@/lib/email";
+import { expiryState } from "@/lib/expiry";
 import { APP } from "@/lib/config";
 import {
   DEFAULT_CONSENT_TEXT,
@@ -223,4 +226,94 @@ export async function unarchiveTemplate(templateId: string) {
   if (error) throw error;
   revalidatePath("/waivers");
   revalidatePath(`/waivers/${templateId}`);
+}
+
+/**
+ * Set a template's renewal window (how long a signature stays valid before the
+ * signer should re-sign). null = never expires. Operational policy, not
+ * versioned content — so this updates the template shell without minting a
+ * version.
+ */
+export async function setWaiverExpiry(templateId: string, rawMonths: number | null) {
+  await requireOrgRole("staff");
+  const months = z
+    .union([z.null(), z.number().int().min(1).max(120)])
+    .parse(rawMonths);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("waiver_templates")
+    .update({ expiry_months: months, updated_at: new Date().toISOString() })
+    .eq("id", templateId);
+  if (error) throw new Error("Couldn't save the renewal setting.");
+
+  revalidatePath(`/waivers/${templateId}`);
+  revalidatePath("/signatures/renewals");
+  return { ok: true };
+}
+
+/**
+ * Email a signer a reminder to re-sign an expiring/expired waiver, then record
+ * it so they're never reminded twice for the same signature. Scoped to the
+ * caller's org; only fires when the signature is genuinely due.
+ */
+export async function sendResignReminder(signedWaiverId: string) {
+  const caller = await requireOrgRole("staff");
+  const admin = createAdminClient();
+
+  const { data: sig } = await admin
+    .from("signed_waivers")
+    .select("id, org_id, template_id, signer_name, signer_email, signed_at")
+    .eq("id", signedWaiverId)
+    .maybeSingle();
+  if (!sig || sig.org_id !== caller.orgId) throw new Error("Signature not found.");
+  if (!sig.signer_email) throw new Error("That signer has no email on file.");
+
+  const { data: tpl } = await admin
+    .from("waiver_templates")
+    .select("name, slug, expiry_months")
+    .eq("id", sig.template_id)
+    .single();
+  const state = expiryState(sig.signed_at, tpl?.expiry_months);
+  if (state !== "expiring" && state !== "expired") {
+    throw new Error("This waiver isn't due for renewal yet.");
+  }
+
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", caller.orgId)
+    .single();
+
+  const base = APP.url?.replace(/\/$/, "") ?? "";
+  await sendResignReminderEmail({
+    to: sig.signer_email,
+    signerName: sig.signer_name,
+    waiverName: tpl?.name ?? "your waiver",
+    orgName: org?.name ?? APP.name,
+    signingUrl: `${base}/w/${tpl?.slug ?? ""}`,
+    expired: state === "expired",
+  });
+
+  await admin.from("signature_reminders").upsert(
+    {
+      org_id: caller.orgId,
+      signed_waiver_id: sig.id,
+      kind: "resign",
+      sent_at: new Date().toISOString(),
+    },
+    { onConflict: "signed_waiver_id,kind" }
+  );
+
+  await logAudit({
+    orgId: caller.orgId,
+    actorId: caller.userId,
+    actorEmail: caller.email,
+    action: "reminder.sent",
+    target: sig.signer_email,
+    metadata: { waiver: tpl?.name, state },
+  });
+
+  revalidatePath("/signatures/renewals");
+  return { ok: true };
 }

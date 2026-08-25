@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WaiverEditor } from "@/components/waiver-editor";
+import { WaiverRenewalSetting } from "@/components/waiver-renewal-setting";
 import type { TemplateVersion, WaiverTemplate } from "@/lib/types";
 
 export default async function WaiverEditorPage({
@@ -24,13 +25,21 @@ export default async function WaiverEditorPage({
     .eq("template_id", id)
     .order("version_number", { ascending: false });
 
+  const typedTemplate = template as WaiverTemplate;
+
   return (
-    <WaiverEditor
-      template={template as WaiverTemplate}
-      versions={(versions ?? []) as Pick<
-        TemplateVersion,
-        "id" | "template_id" | "version_number" | "minor_mode" | "content_sha256" | "created_at"
-      >[]}
-    />
+    <div className="space-y-6">
+      <WaiverEditor
+        template={typedTemplate}
+        versions={(versions ?? []) as Pick<
+          TemplateVersion,
+          "id" | "template_id" | "version_number" | "minor_mode" | "content_sha256" | "created_at"
+        >[]}
+      />
+      <WaiverRenewalSetting
+        templateId={typedTemplate.id}
+        expiryMonths={typedTemplate.expiry_months ?? null}
+      />
+    </div>
   );
 }

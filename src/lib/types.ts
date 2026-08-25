@@ -139,6 +139,8 @@ export interface WaiverTemplate {
   current_version_id: string | null;
   source_pdf_path: string | null;
   draft_content: DraftContent | null;
+  /** Renewal window in months; null = signatures never expire (migration 0011). */
+  expiry_months: number | null;
   created_at: string;
   updated_at: string;
 }
