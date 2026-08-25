@@ -4,6 +4,8 @@ import mammoth from "mammoth";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgCaller } from "@/lib/auth";
+import { canManageTemplates } from "@/lib/permissions";
 import {
   DEFAULT_CONSENT_TEXT,
   subscriptionIsUsable,
@@ -123,11 +125,20 @@ export async function POST(request: Request) {
   }
   const { data: profile } = await supabase
     .from("profiles")
-    .select("org_id")
+    .select("org_id, role")
     .eq("id", user.id)
     .single();
   if (!profile) {
     return NextResponse.json({ error: "No profile." }, { status: 403 });
+  }
+
+  // Gating: only members who can manage templates (owner/admin/staff) may import.
+  const caller = await getOrgCaller();
+  if (!caller || !canManageTemplates(caller.role)) {
+    return NextResponse.json(
+      { error: "You don't have permission to create waivers." },
+      { status: 403 }
+    );
   }
 
   // Gating: creating templates requires a usable subscription.

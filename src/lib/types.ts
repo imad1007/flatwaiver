@@ -107,6 +107,29 @@ export interface Profile {
   created_at: string;
 }
 
+export interface Invitation {
+  id: string;
+  org_id: string;
+  email: string;
+  role: string;
+  token: string;
+  invited_by: string | null;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  org_id: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  action: string;
+  target: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface WaiverTemplate {
   id: string;
   org_id: string;

@@ -72,6 +72,34 @@ export async function sendOwnerNotificationEmail(opts: {
   }
 }
 
+/** Team invite: an admin invites a teammate to join the org's account. */
+export async function sendTeamInviteEmail(opts: {
+  to: string;
+  orgName: string;
+  inviterEmail: string;
+  roleLabel: string;
+  acceptUrl: string;
+}) {
+  const resend = resendClient();
+  if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
+  await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: `You're invited to ${opts.orgName} on ${APP.name}`,
+    html: `
+      <p>Hi,</p>
+      <p><strong>${escapeHtml(opts.inviterEmail)}</strong> invited you to join
+      <strong>${escapeHtml(opts.orgName)}</strong> on ${APP.name} as
+      <strong>${escapeHtml(opts.roleLabel)}</strong>.</p>
+      <p><a href="${opts.acceptUrl}">Accept the invitation</a> — create your account
+      with this email address (${escapeHtml(opts.to)}) and you'll join the team
+      automatically.</p>
+      <p>This invitation expires in 14 days.</p>
+      <p>— ${APP.name}</p>
+    `,
+  });
+}
+
 /** Signing invite: the owner sends a customer a link to sign a waiver. */
 export async function sendSigningInviteEmail(opts: {
   to: string;

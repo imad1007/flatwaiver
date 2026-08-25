@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireOrgRole } from "@/lib/auth";
 import { contentSha256 } from "@/lib/canonical";
 import { draftContentSchema } from "@/lib/waiver-schema";
 import { sendSigningInviteEmail } from "@/lib/email";
@@ -43,6 +44,7 @@ export async function createTemplateFromText(formData: FormData) {
   const text = String(formData.get("text") ?? "").trim();
   if (!name || !text) throw new Error("Name and waiver text are required.");
 
+  await requireOrgRole("staff");
   await requireUsableSubscription();
   const supabase = await createClient();
   const { data: profile } = await supabase.from("profiles").select("org_id").single();
@@ -81,6 +83,7 @@ export async function createTemplateFromText(formData: FormData) {
 
 /** Save the working draft (blocks, fields, consent, minor mode, name). */
 export async function saveDraft(templateId: string, rawDraft: unknown, name: string) {
+  await requireOrgRole("staff");
   const draft = draftContentSchema.parse(rawDraft);
   const supabase = await createClient();
 
@@ -103,6 +106,7 @@ export async function saveDraft(templateId: string, rawDraft: unknown, name: str
  * current_version_id at it. Never edits an existing version.
  */
 export async function publishTemplate(templateId: string, rawDraft: unknown, name: string) {
+  await requireOrgRole("staff");
   const draft = draftContentSchema.parse(rawDraft);
   await requireUsableSubscription();
 
@@ -155,6 +159,7 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
  * RLS scopes the template lookup to the caller's org.
  */
 export async function sendSigningLink(templateId: string, rawEmail: string) {
+  await requireOrgRole("staff");
   const email = z.string().trim().email().max(320).parse(rawEmail);
 
   const supabase = await createClient();
@@ -186,6 +191,7 @@ export async function sendSigningLink(templateId: string, rawEmail: string) {
 
 /** Archive: stops the public link from resolving. Versions are untouched. */
 export async function archiveTemplate(templateId: string) {
+  await requireOrgRole("staff");
   const supabase = await createClient();
   const { error } = await supabase
     .from("waiver_templates")
@@ -198,6 +204,7 @@ export async function archiveTemplate(templateId: string) {
 
 /** Re-publish an archived template that already has a current version. */
 export async function unarchiveTemplate(templateId: string) {
+  await requireOrgRole("staff");
   await requireUsableSubscription();
   const supabase = await createClient();
   const { data: tpl } = await supabase

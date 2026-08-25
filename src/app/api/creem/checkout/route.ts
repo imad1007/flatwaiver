@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getOrgCaller } from "@/lib/auth";
+import { canManageBilling } from "@/lib/permissions";
 import { createCreemCheckoutUrl } from "@/lib/creem";
 
 export const runtime = "nodejs";
@@ -10,28 +11,20 @@ export const runtime = "nodejs";
  * granted here — the webhook is the source of truth once payment completes.
  */
 export async function POST() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const caller = await getOrgCaller();
+  if (!caller) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("org_id")
-    .maybeSingle();
-  if (!profile?.org_id) {
+  if (!canManageBilling(caller.role)) {
     return NextResponse.json(
-      { error: "No organization found for this account." },
-      { status: 400 }
+      { error: "Only an owner or admin can manage billing." },
+      { status: 403 }
     );
   }
 
   const url = await createCreemCheckoutUrl({
-    orgId: profile.org_id,
-    email: user.email ?? null,
+    orgId: caller.orgId,
+    email: caller.email ?? null,
   });
   if (!url) {
     return NextResponse.json(
