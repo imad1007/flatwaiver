@@ -18,10 +18,13 @@ export async function generateMetadata({
 
 export default async function PublicSigningPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tag?: string }>;
 }) {
   const { slug } = await params;
+  const { tag } = await searchParams;
   const waiver = await getPublishedWaiverBySlug(slug);
 
   if (!waiver) {
@@ -66,6 +69,7 @@ export default async function PublicSigningPage({
         consentText={waiver.version.consent_text}
         minorMode={waiver.version.minor_mode}
         channel="link"
+        tag={typeof tag === "string" ? tag.slice(0, 200) : undefined}
       />
 
       <footer className="mt-10 text-center text-xs text-muted-foreground/70">

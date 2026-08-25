@@ -7,6 +7,10 @@ const ACTION_LABEL: Record<string, string> = {
   "member.role_changed": "changed the role of",
   "member.removed": "removed",
   "reminder.sent": "sent a renewal reminder to",
+  "apikey.created": "created API key",
+  "apikey.revoked": "revoked API key",
+  "webhook.added": "added webhook",
+  "webhook.deleted": "deleted webhook",
 };
 
 function describe(entry: AuditLogEntry): string {

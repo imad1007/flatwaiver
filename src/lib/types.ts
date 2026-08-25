@@ -176,10 +176,43 @@ export interface SignedWaiver {
   consent_given: boolean;
   consent_text_snapshot: string;
   flagged: boolean;
+  /** Auto-tag from ?tag= on the signing link (migration 0012); null if none. */
+  tag: string | null;
   signed_at: string;
   ip: string | null;
   user_agent: string | null;
   signing_channel: SigningChannel;
+  created_at: string;
+}
+
+export interface ApiKey {
+  id: string;
+  org_id: string;
+  name: string;
+  prefix: string;
+  created_by: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface WebhookEndpoint {
+  id: string;
+  org_id: string;
+  url: string;
+  secret: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  org_id: string;
+  endpoint_id: string;
+  event: string;
+  status_code: number | null;
+  ok: boolean;
+  error: string | null;
   created_at: string;
 }
 

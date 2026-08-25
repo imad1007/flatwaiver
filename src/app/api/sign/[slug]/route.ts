@@ -5,6 +5,7 @@ import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { renderSignedPdf } from "@/lib/pdf/waiver-pdf";
 import { sendOwnerNotificationEmail, sendSignerCopyEmail } from "@/lib/email";
+import { dispatchWebhooks } from "@/lib/webhooks";
 import { APP } from "@/lib/config";
 import {
   evaluateFlags,
@@ -34,6 +35,8 @@ const basePayloadSchema = z.object({
     .optional(),
   consentGiven: z.literal(true),
   channel: z.enum(["link", "kiosk", "qr"]),
+  /** Optional auto-tag from ?tag= on the signing link (e.g. a reservation id). */
+  tag: z.string().trim().max(200).optional(),
 });
 
 export async function POST(
@@ -228,6 +231,7 @@ export async function POST(
     consent_given: true,
     consent_text_snapshot: version.consent_text,
     flagged: evaluateFlags(version.fields, payload.fieldValues),
+    tag: payload.tag && payload.tag.length > 0 ? payload.tag : null,
     signed_at: signedAtIso,
     ip: clientIp,
     user_agent: userAgent,
@@ -237,6 +241,20 @@ export async function POST(
     console.error("signed_waivers insert failed", insertError);
     return jsonError("Failed to record the signature.", 500);
   }
+
+  // Outbound webhooks (best-effort; never fails the signature).
+  await dispatchWebhooks(waiver.orgId, {
+    event: "signature.created",
+    id: recordId,
+    waiver: { id: waiver.templateId, name: waiver.name },
+    signer_name: payload.signerName,
+    signer_email: signerEmail,
+    is_minor: payload.isMinor,
+    flagged: evaluateFlags(version.fields, payload.fieldValues),
+    tag: payload.tag && payload.tag.length > 0 ? payload.tag : null,
+    channel: payload.channel,
+    signed_at: signedAtIso,
+  });
 
   // 8. Emails (best-effort; never fail the signature over email problems)
   await sendEmails({

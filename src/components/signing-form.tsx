@@ -28,6 +28,8 @@ export interface SigningFormProps {
   channel: SigningChannel;
   /** Kiosk: on success show the done screen inline and auto-reset after 5 s. */
   kiosk?: boolean;
+  /** Auto-tag carried from ?tag= on the signing link. */
+  tag?: string;
 }
 
 export function SigningForm(props: SigningFormProps) {
@@ -132,6 +134,7 @@ export function SigningForm(props: SigningFormProps) {
         guardianSignatureDataUrl: guardianSignatureDataUrl ?? undefined,
         consentGiven,
         channel: props.channel,
+        tag: props.tag,
       }),
     });
 
