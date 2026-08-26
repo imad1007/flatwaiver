@@ -129,6 +129,34 @@ export async function sendTeamInviteEmail(opts: {
   });
 }
 
+/** Flagged-signature alert: a screening answer matched a configured flag. */
+export async function sendFlaggedSignatureEmail(opts: {
+  to: string;
+  signerName: string;
+  waiverName: string;
+  signedAtIso: string;
+  detailUrl: string;
+}) {
+  const resend = resendClient();
+  if (!resend) return;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: opts.to,
+      subject: `⚠️ Flagged signature: ${opts.signerName} — ${opts.waiverName}`,
+      html: `
+        <p><strong>${escapeHtml(opts.signerName)}</strong> signed
+        <strong>${escapeHtml(opts.waiverName)}</strong> at ${opts.signedAtIso} (UTC),
+        and one of their answers matched a flag you configured.</p>
+        <p><a href="${opts.detailUrl}">Review the responses</a> before admitting the participant.</p>
+        <p>— ${APP.name}</p>
+      `,
+    });
+  } catch (err) {
+    console.error("sendFlaggedSignatureEmail failed", err);
+  }
+}
+
 /** Signing invite: the owner sends a customer a link to sign a waiver. */
 export async function sendSigningInviteEmail(opts: {
   to: string;

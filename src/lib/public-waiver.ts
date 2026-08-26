@@ -2,7 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { subscriptionIsUsable } from "@/lib/types";
-import type { OrgBranding, TemplateVersion } from "@/lib/types";
+import type { OrgBranding, PhotoMode, TemplateVersion } from "@/lib/types";
 
 export interface PublicBranding {
   /** Hex brand color, validated. */
@@ -21,6 +21,8 @@ export interface PublicWaiver {
   slug: string;
   version: TemplateVersion;
   branding: PublicBranding;
+  /** Photo/ID capture policy for this waiver. */
+  photoMode: PhotoMode;
   /** false when the org's subscription lapsed — signing is paused. */
   acceptingSignatures: boolean;
 }
@@ -37,7 +39,7 @@ export async function getPublishedWaiverBySlug(
 
   const { data: template } = await admin
     .from("waiver_templates")
-    .select("id, org_id, name, slug, status, current_version_id")
+    .select("id, org_id, name, slug, status, current_version_id, photo_mode")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -84,6 +86,7 @@ export async function getPublishedWaiverBySlug(
     slug: template.slug,
     version: version as TemplateVersion,
     branding: { color, logoUrl, logoPath: rawBranding.logo_path ?? null },
+    photoMode: (template.photo_mode as PhotoMode) ?? "off",
     acceptingSignatures: subscriptionIsUsable(sub?.status),
   };
 }

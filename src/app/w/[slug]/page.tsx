@@ -69,6 +69,7 @@ export default async function PublicSigningPage({
         consentText={waiver.version.consent_text}
         minorMode={waiver.version.minor_mode}
         channel="link"
+        photoMode={waiver.photoMode}
         tag={typeof tag === "string" ? tag.slice(0, 200) : undefined}
       />
 

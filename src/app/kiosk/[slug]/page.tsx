@@ -66,6 +66,7 @@ export default async function KioskPage({
         consentText={waiver.version.consent_text}
         minorMode={waiver.version.minor_mode}
         channel="kiosk"
+        photoMode={waiver.photoMode}
         kiosk
       />
     </main>

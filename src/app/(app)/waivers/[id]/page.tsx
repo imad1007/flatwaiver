@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WaiverEditor } from "@/components/waiver-editor";
 import { WaiverRenewalSetting } from "@/components/waiver-renewal-setting";
+import { WaiverPhotoSetting } from "@/components/waiver-photo-setting";
 import type { TemplateVersion, WaiverTemplate } from "@/lib/types";
 
 export default async function WaiverEditorPage({
@@ -39,6 +40,10 @@ export default async function WaiverEditorPage({
       <WaiverRenewalSetting
         templateId={typedTemplate.id}
         expiryMonths={typedTemplate.expiry_months ?? null}
+      />
+      <WaiverPhotoSetting
+        templateId={typedTemplate.id}
+        photoMode={typedTemplate.photo_mode ?? "off"}
       />
     </div>
   );

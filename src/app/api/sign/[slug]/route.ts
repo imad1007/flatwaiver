@@ -4,7 +4,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { renderSignedPdf } from "@/lib/pdf/waiver-pdf";
-import { sendOwnerNotificationEmail, sendSignerCopyEmail } from "@/lib/email";
+import {
+  sendFlaggedSignatureEmail,
+  sendOwnerNotificationEmail,
+  sendSignerCopyEmail,
+} from "@/lib/email";
 import { dispatchWebhooks } from "@/lib/webhooks";
 import { APP } from "@/lib/config";
 import {
@@ -37,7 +41,24 @@ const basePayloadSchema = z.object({
   channel: z.enum(["link", "kiosk", "qr"]),
   /** Optional auto-tag from ?tag= on the signing link (e.g. a reservation id). */
   tag: z.string().trim().max(200).optional(),
+  /** Optional captured photo/ID, a downscaled JPEG data URL from the client. */
+  photoDataUrl: z.string().startsWith("data:image/").max(8_000_000).optional(),
 });
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+function decodeJpegDataUrl(dataUrl: string): Buffer | null {
+  const match = /^data:image\/jpeg;base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  try {
+    const buf = Buffer.from(match[1], "base64");
+    if (buf.length === 0 || buf.length > MAX_PHOTO_BYTES) return null;
+    if (buf[0] !== 0xff || buf[1] !== 0xd8) return null; // JPEG magic bytes
+    return buf;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(
   request: Request,
@@ -112,6 +133,11 @@ export async function POST(
     return jsonError("This business's waiver collection is paused.", 403);
   }
 
+  // Photo capture: enforce the template's policy.
+  if (waiver.photoMode === "required" && !payload.photoDataUrl) {
+    return jsonError("A photo is required to sign this waiver.", 400);
+  }
+
   // Decode signature PNGs
   const signaturePng = decodePngDataUrl(payload.signatureDataUrl);
   if (!signaturePng) return jsonError("Invalid signature image.", 400);
@@ -141,6 +167,18 @@ export async function POST(
       .from("signatures")
       .upload(guardianSignaturePath, guardianPng, { contentType: "image/png" });
     if (error) return jsonError("Failed to store guardian signature.", 500);
+  }
+
+  // Optional captured photo/ID (private, org-prefixed, alongside the signature).
+  let photoPath: string | null = null;
+  if (payload.photoDataUrl) {
+    const photoBuf = decodeJpegDataUrl(payload.photoDataUrl);
+    if (!photoBuf) return jsonError("Invalid photo image.", 400);
+    photoPath = `${basePath}/photo.jpg`;
+    const { error } = await admin.storage
+      .from("signatures")
+      .upload(photoPath, photoBuf, { contentType: "image/jpeg" });
+    if (error) return jsonError("Failed to store photo.", 500);
   }
 
   // Derive email / DOB from field values by type
@@ -212,6 +250,8 @@ export async function POST(
     .upload(pdfPath, pdf, { contentType: "application/pdf" });
   if (pdfUploadError) return jsonError("Failed to store signed document.", 500);
 
+  const flagged = evaluateFlags(version.fields, payload.fieldValues);
+
   const { error: insertError } = await admin.from("signed_waivers").insert({
     id: recordId,
     org_id: waiver.orgId,
@@ -226,11 +266,12 @@ export async function POST(
     field_values: payload.fieldValues,
     signature_path: signaturePath,
     guardian_signature_path: guardianSignaturePath,
+    photo_path: photoPath,
     pdf_path: pdfPath,
     pdf_sha256: pdfSha256,
     consent_given: true,
     consent_text_snapshot: version.consent_text,
-    flagged: evaluateFlags(version.fields, payload.fieldValues),
+    flagged,
     tag: payload.tag && payload.tag.length > 0 ? payload.tag : null,
     signed_at: signedAtIso,
     ip: clientIp,
@@ -250,7 +291,7 @@ export async function POST(
     signer_name: payload.signerName,
     signer_email: signerEmail,
     is_minor: payload.isMinor,
-    flagged: evaluateFlags(version.fields, payload.fieldValues),
+    flagged,
     tag: payload.tag && payload.tag.length > 0 ? payload.tag : null,
     channel: payload.channel,
     signed_at: signedAtIso,
@@ -267,6 +308,7 @@ export async function POST(
     waiverName: waiver.name,
     orgName: waiver.orgName,
     signedAtIso,
+    flagged,
   });
 
   return NextResponse.json({ ok: true });
@@ -375,6 +417,7 @@ async function sendEmails(opts: {
   waiverName: string;
   orgName: string;
   signedAtIso: string;
+  flagged: boolean;
 }) {
   try {
     // Signer copy via 7-day signed URL
@@ -393,22 +436,44 @@ async function sendEmails(opts: {
       }
     }
 
-    // Owner notification
-    const { data: owner } = await opts.admin
-      .from("profiles")
-      .select("email")
-      .eq("org_id", opts.orgId)
-      .eq("role", "owner")
-      .limit(1)
-      .maybeSingle();
-    if (owner?.email) {
-      await sendOwnerNotificationEmail({
-        to: owner.email,
-        signerName: opts.signerName,
-        waiverName: opts.waiverName,
-        signedAtIso: opts.signedAtIso,
-        detailUrl: `${APP.url?.replace(/\/$/, "")}/signatures/${opts.recordId}`,
-      });
+    const detailUrl = `${APP.url?.replace(/\/$/, "")}/signatures/${opts.recordId}`;
+
+    if (opts.flagged) {
+      // Flagged: alert every owner + admin so a screening hit isn't missed.
+      const { data: staff } = await opts.admin
+        .from("profiles")
+        .select("email")
+        .eq("org_id", opts.orgId)
+        .in("role", ["owner", "admin"]);
+      for (const person of staff ?? []) {
+        if (person.email) {
+          await sendFlaggedSignatureEmail({
+            to: person.email,
+            signerName: opts.signerName,
+            waiverName: opts.waiverName,
+            signedAtIso: opts.signedAtIso,
+            detailUrl,
+          });
+        }
+      }
+    } else {
+      // Normal: notify the owner.
+      const { data: owner } = await opts.admin
+        .from("profiles")
+        .select("email")
+        .eq("org_id", opts.orgId)
+        .eq("role", "owner")
+        .limit(1)
+        .maybeSingle();
+      if (owner?.email) {
+        await sendOwnerNotificationEmail({
+          to: owner.email,
+          signerName: opts.signerName,
+          waiverName: opts.waiverName,
+          signedAtIso: opts.signedAtIso,
+          detailUrl,
+        });
+      }
     }
   } catch (err) {
     console.error("post-sign emails failed", err);

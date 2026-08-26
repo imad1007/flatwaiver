@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { FileDownloadButton } from "@/components/file-download-button";
 import type { SignedWaiver } from "@/lib/types";
 
@@ -34,6 +35,16 @@ export default async function SignatureDetailPage({
   ]);
 
   const fieldEntries = Object.entries(sig.field_values ?? {});
+
+  // Captured photo (if any) via a short-lived signed URL from the private bucket.
+  let photoUrl: string | null = null;
+  if (sig.photo_path) {
+    const admin = createAdminClient();
+    const { data: signed } = await admin.storage
+      .from("signatures")
+      .createSignedUrl(sig.photo_path, 10 * 60);
+    photoUrl = signed?.signedUrl ?? null;
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -96,6 +107,22 @@ export default async function SignatureDetailPage({
           ))}
         </dl>
       </section>
+
+      {/* Captured photo */}
+      {photoUrl && (
+        <section className="mt-6 rounded-xl border border-border p-6">
+          <h2 className="font-bold">Captured photo</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Captured at signing time as identity evidence.
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photoUrl}
+            alt="Signer photo captured at signing"
+            className="mt-4 max-h-80 rounded-lg border border-border object-contain"
+          />
+        </section>
+      )}
 
       {/* Audit block */}
       <section className="mt-6 rounded-xl border border-border p-6">

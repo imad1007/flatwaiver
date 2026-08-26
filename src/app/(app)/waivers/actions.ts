@@ -252,6 +252,22 @@ export async function setWaiverExpiry(templateId: string, rawMonths: number | nu
   return { ok: true };
 }
 
+/** Set a template's photo/ID capture policy (off / optional / required). */
+export async function setPhotoMode(templateId: string, rawMode: string) {
+  await requireOrgRole("staff");
+  const mode = z.enum(["off", "optional", "required"]).parse(rawMode);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("waiver_templates")
+    .update({ photo_mode: mode, updated_at: new Date().toISOString() })
+    .eq("id", templateId);
+  if (error) throw new Error("Couldn't save the photo setting.");
+
+  revalidatePath(`/waivers/${templateId}`);
+  return { ok: true };
+}
+
 /**
  * Email a signer a reminder to re-sign an expiring/expired waiver, then record
  * it so they're never reminded twice for the same signature. Scoped to the

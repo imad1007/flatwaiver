@@ -81,6 +81,7 @@ export const DEFAULT_CONSENT_TEXT =
   "I agree to sign this document electronically and I acknowledge that my electronic signature is legally binding, per the ESIGN Act and UETA.";
 
 export type TemplateStatus = "draft" | "published" | "archived";
+export type PhotoMode = "off" | "optional" | "required";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
 export type SigningChannel = "link" | "kiosk" | "qr";
 
@@ -141,6 +142,8 @@ export interface WaiverTemplate {
   draft_content: DraftContent | null;
   /** Renewal window in months; null = signatures never expire (migration 0011). */
   expiry_months: number | null;
+  /** Photo/ID capture policy at signing (migration 0013). */
+  photo_mode: PhotoMode;
   created_at: string;
   updated_at: string;
 }
@@ -171,6 +174,8 @@ export interface SignedWaiver {
   field_values: Record<string, string | boolean>;
   signature_path: string;
   guardian_signature_path: string | null;
+  /** Captured signer photo/ID path in the `signatures` bucket (migration 0013). */
+  photo_path: string | null;
   pdf_path: string;
   pdf_sha256: string;
   consent_given: boolean;

@@ -12,10 +12,27 @@ import {
   medicalAnswerIsYes,
   MEDICAL_CONDITION_DETAIL_KEY,
   MEDICAL_CONDITION_KEY,
+  type PhotoMode,
   type SigningChannel,
   type WaiverBlock,
   type WaiverField,
 } from "@/lib/types";
+
+/** Read an image File and return a downscaled JPEG data URL (keeps payload small). */
+async function fileToResizedDataUrl(file: File, maxDim = 1200, quality = 0.8): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unsupported");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", quality);
+}
 
 export interface SigningFormProps {
   slug: string;
@@ -30,6 +47,8 @@ export interface SigningFormProps {
   kiosk?: boolean;
   /** Auto-tag carried from ?tag= on the signing link. */
   tag?: string;
+  /** Photo/ID capture policy for this waiver. */
+  photoMode?: PhotoMode;
 }
 
 export function SigningForm(props: SigningFormProps) {
@@ -47,6 +66,10 @@ export function SigningForm(props: SigningFormProps) {
   const [kioskDone, setKioskDone] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [medicalDetailError, setMedicalDetailError] = useState(false);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+
+  const photoMode = props.photoMode ?? "off";
 
   const signatureRef = useRef<SignatureCanvasHandle>(null);
   const guardianSignatureRef = useRef<SignatureCanvasHandle>(null);
@@ -72,9 +95,23 @@ export function SigningForm(props: SigningFormProps) {
     setError(null);
     setMedicalDetailError(false);
     setKioskDone(false);
+    setPhotoDataUrl(null);
     setTurnstileReset((n) => n + 1);
     setFormKey((k) => k + 1);
     window.scrollTo({ top: 0 });
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      setPhotoDataUrl(await fileToResizedDataUrl(file));
+    } catch {
+      setError("Couldn't read that photo. Try again or use a different image.");
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -114,6 +151,10 @@ export function SigningForm(props: SigningFormProps) {
       setError("You must agree to sign electronically.");
       return;
     }
+    if (photoMode === "required" && !photoDataUrl) {
+      setError("A photo is required to sign this waiver.");
+      return;
+    }
     if (!turnstileToken) {
       setError("Please complete the verification challenge.");
       return;
@@ -135,6 +176,7 @@ export function SigningForm(props: SigningFormProps) {
         consentGiven,
         channel: props.channel,
         tag: props.tag,
+        photoDataUrl: photoDataUrl ?? undefined,
       }),
     });
 
@@ -284,6 +326,48 @@ export function SigningForm(props: SigningFormProps) {
                 label="Parent / guardian signature"
               />
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Photo / ID capture */}
+      {photoMode !== "off" && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <p className="font-medium">
+            Photo{photoMode === "required" && <span className="text-destructive"> *</span>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {photoMode === "required"
+              ? "A photo is required to sign this waiver."
+              : "Optionally add a photo (e.g. a photo ID or a selfie)."}
+          </p>
+          {photoDataUrl ? (
+            <div className="mt-3 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photoDataUrl}
+                alt="Captured"
+                className="h-24 w-24 rounded-lg border border-border object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setPhotoDataUrl(null)}
+                className="text-sm text-muted-foreground underline"
+              >
+                Retake
+              </button>
+            </div>
+          ) : (
+            <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm font-medium hover:border-ring">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+              {photoBusy ? "Processing…" : "Take / upload photo"}
+            </label>
           )}
         </div>
       )}
