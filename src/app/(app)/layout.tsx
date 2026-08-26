@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBootstrapped } from "@/lib/bootstrap";
@@ -82,42 +83,58 @@ function TrialBanner({
   if (status === "trialing" && trialEndsAt) {
     const daysLeft = daysLeftUntil(trialEndsAt);
     return (
-      <div className="border-t border-brand-200/60 bg-accent text-accent-foreground dark:border-brand-900">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm sm:px-6">
-          <span>
-            Free trial — <strong>{daysLeft} day{daysLeft === 1 ? "" : "s"}</strong>{" "}
-            remaining.
-          </span>
-          <Link
-            href="/settings/billing"
-            className="font-semibold underline underline-offset-2 hover:opacity-80"
-          >
-            Subscribe for ${APP.priceMonthlyUsd}/mo
-          </Link>
-        </div>
-      </div>
+      <TrialPill>
+        <span>
+          You have{" "}
+          <strong className="font-semibold">
+            {daysLeft} day{daysLeft === 1 ? "" : "s"}
+          </strong>{" "}
+          left on your free trial.
+        </span>
+        <Link
+          href="/settings/billing"
+          className="font-semibold underline underline-offset-2 hover:opacity-80"
+        >
+          Upgrade for ${APP.priceMonthlyUsd}/mo
+        </Link>
+      </TrialPill>
     );
   }
 
   if (!subscriptionIsUsable(status)) {
     return (
-      <div className="border-t border-amber-500/30 bg-amber-500/100/10 text-amber-800 dark:text-amber-200">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm sm:px-6">
-          <span>
-            Your subscription is{" "}
-            <strong>{status === "past_due" ? "past due" : "inactive"}</strong>. New
-            signatures are paused — your existing waivers remain fully accessible.
-          </span>
-          <Link
-            href="/settings/billing"
-            className="font-semibold underline underline-offset-2 hover:opacity-80"
-          >
-            Fix billing
-          </Link>
-        </div>
-      </div>
+      <TrialPill>
+        <span>
+          Your subscription is{" "}
+          <strong className="font-semibold">
+            {status === "past_due" ? "past due" : "inactive"}
+          </strong>
+          . New signatures are paused — existing waivers stay accessible.
+        </span>
+        <Link
+          href="/settings/billing"
+          className="font-semibold underline underline-offset-2 hover:opacity-80"
+        >
+          Fix billing
+        </Link>
+      </TrialPill>
     );
   }
 
   return null;
+}
+
+/**
+ * Compact centered "reminder" pill (amber, warning icon, inline link) — the
+ * shared shell for the trial / past-due notices.
+ */
+function TrialPill({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-center px-4 py-2.5">
+      <div className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 rounded-full border border-amber-300/70 bg-amber-50 px-4 py-1.5 text-center text-sm text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+        <AlertCircle className="size-4 shrink-0 text-amber-500" aria-hidden />
+        {children}
+      </div>
+    </div>
+  );
 }
