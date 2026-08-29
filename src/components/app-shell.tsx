@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ChevronDown,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
@@ -12,11 +13,12 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
-  Plus,
   Search,
   Settings,
   Shield,
+  Sparkles,
   UserRound,
+  Users,
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +33,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -51,11 +59,20 @@ const SEGMENT_LABELS: Record<string, string> = {
   new: "New waiver",
   share: "Share",
   signatures: "Signatures",
+  renewals: "Renewals",
   settings: "Settings",
   account: "Account",
+  team: "Team",
   branding: "Branding",
+  developers: "Developers",
   billing: "Billing",
 };
+
+/** Two-letter avatar initials from an email address. */
+function initialsFromEmail(email: string): string {
+  const letters = email.replace(/[^a-zA-Z]/g, "");
+  return (letters.slice(0, 2) || email.slice(0, 1) || "?").toUpperCase();
+}
 
 export function AppShell({
   email,
@@ -100,6 +117,44 @@ export function AppShell({
     .filter(Boolean)
     .map((segment) => SEGMENT_LABELS[segment] ?? "Detail");
 
+  const accountMenu = (
+    <DropdownMenuContent align="end" className="w-60">
+      <DropdownMenuLabel className="flex flex-col gap-0.5">
+        <span className="truncate font-semibold">{orgName}</span>
+        <span className="truncate text-xs font-normal text-muted-foreground">
+          {email}
+        </span>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem render={<Link href="/settings/account" />}>
+        <UserRound className="size-4" />
+        Account settings
+      </DropdownMenuItem>
+      <DropdownMenuItem render={<Link href="/settings/team" />}>
+        <Users className="size-4" />
+        Team
+      </DropdownMenuItem>
+      <DropdownMenuItem render={<Link href="/settings/billing" />}>
+        <CreditCard className="size-4" />
+        Billing
+      </DropdownMenuItem>
+      {isAdmin && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/admin" />}>
+            <Shield className="size-4" />
+            Admin panel
+          </DropdownMenuItem>
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+        <LogOut className="size-4" />
+        Sign out
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
   const sidebar = (
     <div className="flex h-full flex-col">
       {/* Org / brand */}
@@ -111,14 +166,14 @@ export function AppShell({
         </div>
       </div>
 
-      {/* New waiver — always reachable */}
+      {/* New waiver — AI-accented, always reachable */}
       <div className="px-3 pb-3">
         <Button
           size="sm"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 bg-linear-to-r from-brand-600 to-brand-500 text-white shadow-sm transition-all hover:from-brand-500 hover:to-brand-500 hover:shadow-md hover:shadow-brand-600/20"
           render={<Link href="/waivers/new" />}
         >
-          <Plus className="size-4" />
+          <Sparkles className="size-4" />
           New waiver
         </Button>
       </div>
@@ -134,64 +189,40 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:translate-x-0.5 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="size-4" />
+              {active && (
+                <span className="absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+              )}
+              <item.icon
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground/80 group-hover:text-sidebar-accent-foreground"
+                )}
+              />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* User menu + sign out */}
+      {/* User chip */}
       <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/60">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase">
-                {email.slice(0, 1)}
-              </div>
-              <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                {email}
-              </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href="/settings/account" />}>
-                <UserRound className="size-4" />
-                Account settings
-              </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/settings/billing" />}>
-                <CreditCard className="size-4" />
-                Billing
-              </DropdownMenuItem>
-              {isAdmin && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem render={<Link href="/admin" />}>
-                    <Shield className="size-4" />
-                    Admin panel
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-            title="Sign out"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="size-4" />
-          </Button>
+        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
+            {initialsFromEmail(email)}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {email}
+          </span>
         </div>
       </div>
     </div>
@@ -207,7 +238,7 @@ export function AppShell({
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-md">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
             {/* Mobile nav */}
             <Sheet
@@ -252,27 +283,63 @@ export function AppShell({
               </ol>
             </nav>
 
-            {/* Palette trigger + theme */}
-            <button
-              onClick={() => setPaletteOpen(true)}
-              className="hidden items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 sm:flex"
-            >
-              <Search className="size-3.5" />
-              Search…
-              <kbd className="ml-4 rounded border border-border bg-muted px-1.5 font-mono text-[10px]">
-                ⌘K
-              </kbd>
-            </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sm:hidden"
-              onClick={() => setPaletteOpen(true)}
-              aria-label="Search"
-            >
-              <Search className="size-4" />
-            </Button>
-            <ThemeToggle />
+            {/* Right cluster */}
+            <TooltipProvider delay={150}>
+              <div className="flex items-center gap-1">
+                {/* Search */}
+                <button
+                  onClick={() => setPaletteOpen(true)}
+                  className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 hover:text-foreground sm:flex"
+                >
+                  <Search className="size-3.5" />
+                  Search…
+                  <kbd className="ml-4 rounded border border-border bg-muted px-1.5 font-mono text-[10px]">
+                    ⌘K
+                  </kbd>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="sm:hidden"
+                  onClick={() => setPaletteOpen(true)}
+                  aria-label="Search"
+                >
+                  <Search className="size-4" />
+                </Button>
+
+                {/* Help */}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground transition-colors hover:text-foreground"
+                        aria-label="Help & support"
+                        render={<Link href="/support" />}
+                      />
+                    }
+                  >
+                    <LifeBuoy className="size-4.5" />
+                  </TooltipTrigger>
+                  <TooltipContent>Help &amp; support</TooltipContent>
+                </Tooltip>
+
+                {/* Theme */}
+                <ThemeToggle />
+
+                {/* Account */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
+                      {initialsFromEmail(email)}
+                    </span>
+                    <ChevronDown className="size-4 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  {accountMenu}
+                </DropdownMenu>
+              </div>
+            </TooltipProvider>
           </div>
           {banner}
         </header>

@@ -187,6 +187,26 @@
     background: oklch(0.87 0.065 274.039);
     color: oklch(0.257 0.09 281.288);
   }
+  /* Subtle, modern scrollbars (thin rounded thumb that darkens on hover) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 22%, transparent)
+      transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+    background-clip: content-box;
+  }
 }
 
 /* DB-authored blog posts render pasted/sanitized HTML (no per-tag React
