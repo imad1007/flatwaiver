@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   title: "Team invitation",
 };
 
+/** Whether an ISO timestamp is in the past. Kept at module scope so the
+ *  impure time read doesn't run inside the component's render. */
+function isPast(iso: string): boolean {
+  return new Date(iso).getTime() <= Date.now();
+}
+
 /**
  * Invitation landing page. The actual enrollment happens by email match in the
  * auth bootstrap (src/lib/bootstrap.ts) the moment the invited person signs in —
@@ -44,9 +50,7 @@ export default async function InvitePage({
     : null;
 
   const invalid =
-    !invite ||
-    invite.accepted_at !== null ||
-    new Date(invite.expires_at).getTime() <= Date.now();
+    !invite || invite.accepted_at !== null || isPast(invite.expires_at);
 
   // If already signed in with the invited address, send them into the app —
   // bootstrap enrolls them in the org on the way to the dashboard.

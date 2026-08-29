@@ -24,7 +24,7 @@ import { LogoMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 import { APP } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,12 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -284,62 +278,55 @@ export function AppShell({
             </nav>
 
             {/* Right cluster */}
-            <TooltipProvider delay={150}>
-              <div className="flex items-center gap-1">
-                {/* Search */}
-                <button
-                  onClick={() => setPaletteOpen(true)}
-                  className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 hover:text-foreground sm:flex"
-                >
-                  <Search className="size-3.5" />
-                  Search…
-                  <kbd className="ml-4 rounded border border-border bg-muted px-1.5 font-mono text-[10px]">
-                    ⌘K
-                  </kbd>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="sm:hidden"
-                  onClick={() => setPaletteOpen(true)}
-                  aria-label="Search"
-                >
-                  <Search className="size-4" />
-                </Button>
+            <div className="flex items-center gap-1">
+              {/* Search */}
+              <button
+                onClick={() => setPaletteOpen(true)}
+                className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 hover:text-foreground sm:flex"
+              >
+                <Search className="size-3.5" />
+                Search…
+                <kbd className="ml-4 rounded border border-border bg-muted px-1.5 font-mono text-[10px]">
+                  ⌘K
+                </kbd>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:hidden"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Search"
+              >
+                <Search className="size-4" />
+              </Button>
 
-                {/* Help */}
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground transition-colors hover:text-foreground"
-                        aria-label="Help & support"
-                        render={<Link href="/support" />}
-                      />
-                    }
-                  >
-                    <LifeBuoy className="size-4.5" />
-                  </TooltipTrigger>
-                  <TooltipContent>Help &amp; support</TooltipContent>
-                </Tooltip>
+              {/* Help */}
+              <Link
+                href="/support"
+                aria-label="Help & support"
+                title="Help & support"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LifeBuoy className="size-4.5" />
+              </Link>
 
-                {/* Theme */}
-                <ThemeToggle />
+              {/* Theme */}
+              <ThemeToggle />
 
-                {/* Account */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
-                    <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
-                      {initialsFromEmail(email)}
-                    </span>
-                    <ChevronDown className="size-4 text-muted-foreground" />
-                  </DropdownMenuTrigger>
-                  {accountMenu}
-                </DropdownMenu>
-              </div>
-            </TooltipProvider>
+              {/* Account */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
+                    {initialsFromEmail(email)}
+                  </span>
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                {accountMenu}
+              </DropdownMenu>
+            </div>
           </div>
           {banner}
         </header>
