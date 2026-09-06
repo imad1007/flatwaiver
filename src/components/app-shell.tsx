@@ -18,7 +18,6 @@ import {
   Settings,
   Shield,
   Sparkles,
-  UserRound,
   Users,
   Zap,
 } from "lucide-react";
@@ -42,7 +41,6 @@ import {
   NotificationsMenu,
   type NotificationItem,
 } from "@/components/notifications-menu";
-import { AppShellProvider } from "@/components/app-shell-context";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -129,10 +127,6 @@ export function AppShell({
         </span>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem render={<Link href="/settings/account" />}>
-        <UserRound className="size-4" />
-        Account settings
-      </DropdownMenuItem>
       <DropdownMenuItem render={<Link href="/settings/team" />}>
         <Users className="size-4" />
         Team
@@ -232,8 +226,7 @@ export function AppShell({
   );
 
   return (
-    <AppShellProvider account={{ email, orgName }}>
-      <div className="flex min-h-screen">
+    <div className="flex min-h-screen">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
         {sidebar}
@@ -352,8 +345,7 @@ export function AppShell({
         </main>
       </div>
 
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      </div>
-    </AppShellProvider>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+    </div>
   );
 }

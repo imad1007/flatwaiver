@@ -1,5 +1,5 @@
-import { AccountForm } from "@/components/account-form";
+import { redirect } from "next/navigation";
 
 export default function AccountPage() {
-  return <AccountForm />;
+  redirect("/dashboard");
 }
