@@ -86,8 +86,14 @@ export default async function AppLayout({
     if (daysLeft <= 5) {
       notifications.push({
         id: "trial",
-        title: `Trial ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
-        description: "Upgrade to keep collecting signatures.",
+        title:
+          daysLeft <= 0
+            ? "Your free trial has ended"
+            : `Trial ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
+        description:
+          daysLeft <= 0
+            ? "Upgrade to resume collecting signatures."
+            : "Upgrade to keep collecting signatures.",
         href: "/settings/billing",
       });
     }

@@ -6,19 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 import { updateBusinessName } from "@/app/(app)/settings/account/actions";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/sign-out-button";
+import { useAppShellAccount } from "@/components/app-shell-context";
 
 const inputClass =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none";
 
-export function AccountForm({
-  email,
-  orgName,
-  canEditBusiness,
-}: {
-  email: string;
-  orgName: string;
-  canEditBusiness: boolean;
-}) {
+export function AccountForm() {
+  const { email, orgName } = useAppShellAccount();
   const [name, setName] = useState(orgName);
   const [isPending, startTransition] = useTransition();
 
@@ -99,20 +93,12 @@ export function AccountForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Business name"
-            readOnly={!canEditBusiness}
-            className={`${inputClass} min-w-56 flex-1 read-only:bg-muted`}
+            className={`${inputClass} min-w-56 flex-1`}
           />
-          {canEditBusiness && (
-            <Button type="submit" disabled={isPending || name.trim() === orgName}>
-              {isPending ? "Saving…" : "Save name"}
-            </Button>
-          )}
+          <Button type="submit" disabled={isPending || name.trim() === orgName}>
+            {isPending ? "Saving…" : "Save name"}
+          </Button>
         </form>
-        {!canEditBusiness && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ask an account owner or admin to change the business name.
-          </p>
-        )}
       </section>
 
       {/* Password */}
