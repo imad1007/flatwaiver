@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -120,35 +121,41 @@ export function AppShell({
 
   const accountMenu = (
     <DropdownMenuContent align="end" className="w-60">
-      <DropdownMenuLabel className="flex flex-col gap-0.5">
-        <span className="truncate font-semibold">{orgName}</span>
-        <span className="truncate text-xs font-normal text-muted-foreground">
-          {email}
-        </span>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem render={<Link href="/settings/team" />}>
-        <Users className="size-4" />
-        Team
-      </DropdownMenuItem>
-      <DropdownMenuItem render={<Link href="/settings/billing" />}>
-        <CreditCard className="size-4" />
-        Billing
-      </DropdownMenuItem>
-      {isAdmin && (
-        <>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link href="/admin" />}>
-            <Shield className="size-4" />
-            Admin panel
-          </DropdownMenuItem>
-        </>
-      )}
-      <DropdownMenuSeparator />
-      <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
-        <LogOut className="size-4" />
-        Sign out
-      </DropdownMenuItem>
+      <DropdownMenuGroup>
+        <DropdownMenuLabel className="flex flex-col gap-0.5">
+          <span className="truncate font-semibold">{orgName}</span>
+          <span className="truncate text-xs font-normal text-muted-foreground">
+            {email}
+          </span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/settings/account" />}>
+          <Settings className="size-4" />
+          Account settings
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/settings/team" />}>
+          <Users className="size-4" />
+          Team
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/settings/billing" />}>
+          <CreditCard className="size-4" />
+          Billing
+        </DropdownMenuItem>
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/admin" />}>
+              <Shield className="size-4" />
+              Admin panel
+            </DropdownMenuItem>
+          </>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+          <LogOut className="size-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
     </DropdownMenuContent>
   );
 
@@ -326,7 +333,7 @@ export function AppShell({
 
               {/* Account */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
+                <DropdownMenuTrigger aria-label="Account menu" className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
                   <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
                     {initialsFromEmail(email)}
                   </span>

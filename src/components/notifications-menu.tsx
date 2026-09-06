@@ -5,6 +5,7 @@ import { Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -39,26 +40,28 @@ export function NotificationsMenu({ items }: { items: NotificationItem[] }) {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {count === 0 ? (
-          <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-            You&apos;re all caught up.
-          </p>
-        ) : (
-          items.map((n) => (
-            <DropdownMenuItem
-              key={n.id}
-              render={<Link href={n.href} />}
-              className="flex-col items-start gap-0.5"
-            >
-              <span className="font-medium">{n.title}</span>
-              {n.description && (
-                <span className="text-xs text-muted-foreground">{n.description}</span>
-              )}
-            </DropdownMenuItem>
-          ))
-        )}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {count === 0 ? (
+            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+              You&apos;re all caught up.
+            </p>
+          ) : (
+            items.map((n) => (
+              <DropdownMenuItem
+                key={n.id}
+                render={<Link href={n.href} />}
+                className="flex-col items-start gap-0.5"
+              >
+                <span className="font-medium">{n.title}</span>
+                {n.description && (
+                  <span className="text-xs text-muted-foreground">{n.description}</span>
+                )}
+              </DropdownMenuItem>
+            ))
+          )}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
