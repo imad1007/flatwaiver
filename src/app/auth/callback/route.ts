@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeInternalPath } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
+import { authDestination } from "@/lib/auth-destination";
 
 export const runtime = "nodejs";
 
@@ -12,9 +13,9 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(new URL(safeNext, url.origin));
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.user) {
+      return NextResponse.redirect(new URL(authDestination(data.user.email, safeNext), url.origin));
     }
   }
 

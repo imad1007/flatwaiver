@@ -2,11 +2,13 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { fireSignupConversion } from "@/components/signup-conversion";
 import { APP } from "@/lib/config";
-import { Logo } from "@/components/logo";
+import { AuthShell, authInputClass, authButtonClass } from "@/components/auth-shell";
+import { AuthPassword } from "@/components/auth-password";
+import { ArrowRight, Loader2, MailCheck } from "lucide-react";
 import { AuthDivider, GoogleAuthButton } from "@/components/google-auth-button";
 import { safeInternalPath } from "@/lib/safe-redirect";
 
@@ -27,7 +29,6 @@ export default function SignupPage() {
 }
 
 function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = safeInternalPath(searchParams.get("next"));
   const invitedEmail = searchParams.get("email")?.trim() ?? "";
@@ -72,8 +73,7 @@ function SignupForm() {
       fireSignupConversion();
 
       if (data.session) {
-        router.push(next);
-        router.refresh();
+        window.location.assign(`/auth/continue?next=${encodeURIComponent(next)}`);
       } else {
         // Email confirmation required by project settings.
         setConfirmEmailSent(true);
@@ -87,8 +87,9 @@ function SignupForm() {
 
   if (confirmEmailSent) {
     return (
-      <AuthShell>
-        <h1 className="text-2xl font-bold">Check your email</h1>
+      <AuthShell signup>
+        <MailCheck className="mb-5 size-10 text-primary" />
+        <h1 className="text-3xl font-semibold tracking-tight">Check your email</h1>
         <p className="mt-4 text-muted-foreground">
           We sent a confirmation link to <strong>{email}</strong>. Click it to
           activate your account
@@ -99,8 +100,9 @@ function SignupForm() {
   }
 
   return (
-    <AuthShell>
-      <h1 className="text-2xl font-bold">
+    <AuthShell signup>
+      <p className="mb-2 text-sm font-medium text-primary">A simpler way to welcome customers</p>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
         {isInviteSignup ? "Join your team" : `Start your free ${APP.trialDays}-day trial`}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -116,11 +118,13 @@ function SignupForm() {
       </div>
       <AuthDivider />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5" aria-busy={submitting}>
         {!isInviteSignup && (
           <>
             <Field label="Business name">
               <input
+                autoComplete="organization"
+                name="business_name"
                 type="text"
                 required
                 value={businessName}
@@ -152,6 +156,8 @@ function SignupForm() {
 
         <Field label="Email">
           <input
+            autoComplete="email"
+            name="email"
             type="email"
             required
             readOnly={isInviteSignup}
@@ -162,26 +168,16 @@ function SignupForm() {
           />
         </Field>
 
-        <Field label="Password">
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-            placeholder="At least 8 characters"
-          />
-        </Field>
+        <AuthPassword value={password} onChange={setPassword} newPassword />
 
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className={authButtonClass}
         >
-          {submitting ? "Creating account…" : "Create account"}
+          {submitting ? <><Loader2 className="size-4 animate-spin" /> Creating account…</> : <>{isInviteSignup ? "Join your team" : "Create your account"}<ArrowRight className="size-4" /></>}
         </button>
       </form>
 
@@ -189,7 +185,7 @@ function SignupForm() {
         Already have an account?{" "}
         <Link
           href={`/login?next=${encodeURIComponent(next)}`}
-          className="underline"
+          className="font-medium text-primary hover:underline"
         >
           Log in
         </Link>
@@ -209,27 +205,13 @@ function SignupForm() {
   );
 }
 
-const inputClass =
-  "w-full rounded-md border border-input px-3 py-2 focus:border-ring focus:outline-none";
+const inputClass = authInputClass;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-foreground/90">{label}</span>
+      <span className="mb-2 block text-sm font-medium">{label}</span>
       {children}
     </label>
-  );
-}
-
-function AuthShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
-        <Link href="/" aria-label={`${APP.name} home`} className="inline-block">
-          <Logo />
-        </Link>
-        <div className="mt-8 rounded-xl border border-border p-8">{children}</div>
-      </div>
-    </main>
   );
 }

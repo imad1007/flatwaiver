@@ -51,7 +51,7 @@ export function GoogleAuthButton({
         type="button"
         onClick={handleClick}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-2.5 rounded-md border border-input bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-input bg-card px-4 py-3 text-sm font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
       >
         <GoogleGlyph />
         {busy ? "Redirecting…" : label}

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authDestination } from "@/lib/auth-destination";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -55,9 +56,10 @@ export default async function proxy(request: NextRequest) {
 
   if ((pathname === "/login" || pathname === "/signup") && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
+    const destination = authDestination(user.email, url.searchParams.get("next"));
+    const redirectResponse = NextResponse.redirect(new URL(destination, url.origin));
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
   }
 
   return response;
