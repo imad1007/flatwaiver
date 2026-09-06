@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOrgRole } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { generateApiKey } from "@/lib/api-keys";
+import { assertSafeWebhookUrl } from "@/lib/webhook-url";
 
 /** Create an API key. Returns the plaintext key ONCE — it can't be shown again. */
 export async function createApiKey(rawName: string) {
@@ -40,17 +41,22 @@ export async function createApiKey(rawName: string) {
 export async function revokeApiKey(keyId: string) {
   const caller = await requireOrgRole("admin");
   const admin = createAdminClient();
-  const { data: key } = await admin
+  const { data: key, error: lookupError } = await admin
     .from("api_keys")
     .select("id, org_id, name")
     .eq("id", keyId)
     .maybeSingle();
+  if (lookupError) throw new Error("Couldn't load the API key.");
   if (!key || key.org_id !== caller.orgId) throw new Error("Key not found.");
 
-  await admin
+  const { data: revokedKey, error: revokeError } = await admin
     .from("api_keys")
     .update({ revoked_at: new Date().toISOString() })
-    .eq("id", keyId);
+    .eq("id", keyId)
+    .eq("org_id", caller.orgId)
+    .select("id")
+    .maybeSingle();
+  if (revokeError || !revokedKey) throw new Error("Couldn't revoke the API key.");
   await logAudit({
     orgId: caller.orgId,
     actorId: caller.userId,
@@ -73,6 +79,13 @@ export async function addWebhook(rawUrl: string) {
     .startsWith("https://", "Webhook URLs must be https.")
     .max(2048)
     .parse(rawUrl);
+  try {
+    await assertSafeWebhookUrl(url);
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : "Webhook URL must be publicly reachable."
+    );
+  }
 
   const secret = `whsec_${randomBytes(24).toString("base64url")}`;
   const admin = createAdminClient();
@@ -99,14 +112,20 @@ export async function addWebhook(rawUrl: string) {
 export async function deleteWebhook(webhookId: string) {
   const caller = await requireOrgRole("admin");
   const admin = createAdminClient();
-  const { data: wh } = await admin
+  const { data: wh, error: lookupError } = await admin
     .from("webhook_endpoints")
     .select("id, org_id, url")
     .eq("id", webhookId)
     .maybeSingle();
+  if (lookupError) throw new Error("Couldn't load the webhook.");
   if (!wh || wh.org_id !== caller.orgId) throw new Error("Webhook not found.");
 
-  await admin.from("webhook_endpoints").delete().eq("id", webhookId);
+  const { error: deleteError, count } = await admin
+    .from("webhook_endpoints")
+    .delete({ count: "exact" })
+    .eq("id", webhookId)
+    .eq("org_id", caller.orgId);
+  if (deleteError || count !== 1) throw new Error("Couldn't delete the webhook.");
   await logAudit({
     orgId: caller.orgId,
     actorId: caller.userId,
@@ -122,14 +141,22 @@ export async function deleteWebhook(webhookId: string) {
 export async function toggleWebhook(webhookId: string, enabled: boolean) {
   const caller = await requireOrgRole("admin");
   const admin = createAdminClient();
-  const { data: wh } = await admin
+  const { data: wh, error: lookupError } = await admin
     .from("webhook_endpoints")
     .select("id, org_id")
     .eq("id", webhookId)
     .maybeSingle();
+  if (lookupError) throw new Error("Couldn't load the webhook.");
   if (!wh || wh.org_id !== caller.orgId) throw new Error("Webhook not found.");
 
-  await admin.from("webhook_endpoints").update({ enabled }).eq("id", webhookId);
+  const { data: updatedWebhook, error: updateError } = await admin
+    .from("webhook_endpoints")
+    .update({ enabled })
+    .eq("id", webhookId)
+    .eq("org_id", caller.orgId)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updatedWebhook) throw new Error("Couldn't update the webhook.");
   revalidatePath("/settings/developers");
   return { ok: true };
 }

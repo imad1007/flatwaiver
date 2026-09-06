@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { CheckinButton } from "@/components/checkin-button";
 import { EmptyState } from "@/components/empty-state";
+import { DataLoadError } from "@/components/data-load-error";
+import { getOrgCaller } from "@/lib/auth";
+import { roleAtLeast } from "@/lib/permissions";
 
 interface CheckinRow {
   id: string;
@@ -16,7 +20,10 @@ export default async function CheckinPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q: rawQ } = await searchParams;
-  const q = rawQ?.trim() ?? "";
+  const q = rawQ?.trim().slice(0, 100) ?? "";
+  const caller = await getOrgCaller();
+  if (!caller) redirect("/login");
+  const canCheckIn = roleAtLeast(caller.role, "staff");
 
   const supabase = await createClient();
 
@@ -31,7 +38,7 @@ export default async function CheckinPage({
     ? sigQuery.ilike("signer_name", `%${q}%`).limit(25)
     : sigQuery.gte("signed_at", todayStart.toISOString()).limit(200);
 
-  const [{ data: signatures }, checkinsResult, { data: templates }] = await Promise.all([
+  const [signaturesResult, checkinsResult, templatesResult] = await Promise.all([
     sigQuery,
     supabase
       .from("checkins")
@@ -61,7 +68,12 @@ export default async function CheckinPage({
       </div>
     );
   }
+  if (signaturesResult.error || checkinsResult.error || templatesResult.error) {
+    return <DataLoadError retryHref={q ? `/checkin?q=${encodeURIComponent(q)}` : "/checkin"} />;
+  }
 
+  const signatures = signaturesResult.data;
+  const templates = templatesResult.data;
   const checkins = (checkinsResult.data ?? []) as CheckinRow[];
   const latestCheckin = new Map<string, CheckinRow>();
   for (const c of checkins) {
@@ -125,14 +137,15 @@ export default async function CheckinPage({
           }
         />
       ) : (
-        <div className="mt-3 overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-left text-sm">
+        <div className="mt-3 overflow-x-auto rounded-xl border border-border overscroll-x-contain">
+          <table className="min-w-[720px] w-full text-left text-sm">
+            <caption className="sr-only">Signed waivers available for front-desk check-in</caption>
             <thead className="border-b border-border bg-muted/50 text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Signer</th>
-                <th className="px-4 py-3 font-medium">Waiver</th>
-                <th className="px-4 py-3 font-medium">Signed</th>
-                <th className="px-4 py-3 font-medium">Check-in</th>
+                <th scope="col" className="px-4 py-3 font-medium">Signer</th>
+                <th scope="col" className="px-4 py-3 font-medium">Waiver</th>
+                <th scope="col" className="px-4 py-3 font-medium">Signed</th>
+                <th scope="col" className="px-4 py-3 font-medium">Check-in</th>
               </tr>
             </thead>
             <tbody>
@@ -177,6 +190,7 @@ export default async function CheckinPage({
                         signedWaiverId={s.id}
                         checkinId={checkin?.id}
                         checkedInAt={checkin?.checked_in_at}
+                        canCheckIn={canCheckIn}
                       />
                     </td>
                   </tr>

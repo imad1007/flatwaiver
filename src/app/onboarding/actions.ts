@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireOrgRole } from "@/lib/auth";
 import {
   DEFAULT_CONSENT_TEXT,
   subscriptionIsUsable,
@@ -28,29 +28,20 @@ export async function saveBusinessName(rawName: string) {
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
   const name = parsed.data;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated.");
+  const caller = await requireOrgRole("owner");
 
-  if (user.email && name.toLowerCase() === user.email.trim().toLowerCase()) {
+  if (name.toLowerCase() === caller.email.trim().toLowerCase()) {
     throw new Error("Please enter your business's name, not your email address.");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("org_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) throw new Error("No profile found for your account.");
-
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from("organizations")
     .update({ name })
-    .eq("id", profile.org_id);
-  if (error) throw new Error("Couldn't save your business name. Please try again.");
+    .eq("id", caller.orgId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) throw new Error("Couldn't save your business name. Please try again.");
 
   // Refresh the (app) layout so the gate re-reads the new name and the
   // sidebar/PDF header pick it up immediately.
@@ -91,7 +82,7 @@ function buildDraft(name: string, text: string): DraftContent {
  * - a starter id  → seed a draft from that starter → editor
  * - "blank"       → seed a minimal draft → editor
  * - "upload"      → the AI-import flow (/waivers/new)
- * Failures degrade to the dashboard rather than trapping the user in onboarding.
+ * Recoverable failures remain in the wizard with the user's choices intact.
  */
 export async function completeOnboarding(input: {
   businessName: string;
@@ -102,34 +93,32 @@ export async function completeOnboarding(input: {
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const name = parsed.data;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not authenticated." };
-  if (user.email && name.toLowerCase() === user.email.trim().toLowerCase()) {
+  const caller = await requireOrgRole("owner");
+  if (name.toLowerCase() === caller.email.trim().toLowerCase()) {
     return { ok: false, error: "Please enter your business's name, not your email address." };
   }
-
-  const { data: profile } = await supabase.from("profiles").select("org_id").single();
-  if (!profile) return { ok: false, error: "No profile found for your account." };
 
   const admin = createAdminClient();
 
   // Save the business name + brand color (merge color into the branding jsonb so
   // any existing logo_path is preserved).
-  const { data: org } = await admin
+  const { data: org, error: orgReadError } = await admin
     .from("organizations")
     .select("branding")
-    .eq("id", profile.org_id)
+    .eq("id", caller.orgId)
     .single();
+  if (orgReadError || !org) {
+    return { ok: false, error: "Couldn't load your setup. Please try again." };
+  }
   const color = HEX.test(input.color) ? input.color : "#4F46E5";
   const branding = { ...((org?.branding as Record<string, unknown>) ?? {}), color };
-  const { error: orgErr } = await admin
+  const { data: updatedOrg, error: orgErr } = await admin
     .from("organizations")
     .update({ name, branding })
-    .eq("id", profile.org_id);
-  if (orgErr) return { ok: false, error: "Couldn't save your setup. Please try again." };
+    .eq("id", caller.orgId)
+    .select("id")
+    .maybeSingle();
+  if (orgErr || !updatedOrg) return { ok: false, error: "Couldn't save your setup. Please try again." };
 
   revalidatePath("/", "layout");
 
@@ -143,11 +132,12 @@ export async function completeOnboarding(input: {
 
   // Creating a template needs a usable (trialing/active) subscription — onboarding
   // users are trialing. If somehow not, drop them at the dashboard.
-  const { data: sub } = await admin
+  const { data: sub, error: subError } = await admin
     .from("subscriptions")
     .select("status")
-    .eq("org_id", profile.org_id)
+    .eq("org_id", caller.orgId)
     .maybeSingle();
+  if (subError) return { ok: false, error: "Couldn't verify your trial. Please try again." };
   if (!subscriptionIsUsable(sub?.status)) {
     return { ok: true, redirectTo: "/dashboard" };
   }
@@ -159,7 +149,7 @@ export async function completeOnboarding(input: {
   const { data: template, error: tErr } = await admin
     .from("waiver_templates")
     .insert({
-      org_id: profile.org_id,
+      org_id: caller.orgId,
       slug: makeSlug(draftName),
       name: draftName,
       status: "draft",
@@ -168,7 +158,7 @@ export async function completeOnboarding(input: {
     .select("id")
     .single();
   if (tErr || !template) {
-    return { ok: true, redirectTo: "/dashboard" };
+    return { ok: false, error: "Your setup was saved, but we couldn't create the first waiver. Please try again." };
   }
 
   return { ok: true, redirectTo: `/waivers/${template.id}` };

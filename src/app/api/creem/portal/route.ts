@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getOrgCaller } from "@/lib/auth";
 import { canManageBilling } from "@/lib/permissions";
 import { createCreemPortalUrl } from "@/lib/creem";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,15 @@ export const runtime = "nodejs";
  * response contract as the Stripe portal route: `{ url }` to redirect to.
  */
 export async function POST() {
-  const caller = await getOrgCaller();
+  let caller: Awaited<ReturnType<typeof getOrgCaller>>;
+  try {
+    caller = await getOrgCaller();
+  } catch {
+    return NextResponse.json(
+      { error: "We couldn't verify your account. Please try again." },
+      { status: 503 }
+    );
+  }
   if (!caller) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
@@ -22,11 +30,17 @@ export async function POST() {
     );
   }
 
-  const supabase = await createClient();
-  const { data: sub } = await supabase
+  const { data: sub, error: subError } = await createAdminClient()
     .from("subscriptions")
     .select("creem_customer_id")
+    .eq("org_id", caller.orgId)
     .maybeSingle();
+  if (subError) {
+    return NextResponse.json(
+      { error: "We couldn't verify your billing profile. Please try again." },
+      { status: 503 }
+    );
+  }
   if (!sub?.creem_customer_id) {
     return NextResponse.json(
       { error: "No billing profile yet — subscribe first." },
@@ -34,7 +48,16 @@ export async function POST() {
     );
   }
 
-  const url = await createCreemPortalUrl(sub.creem_customer_id);
+  let url: string | null;
+  try {
+    url = await createCreemPortalUrl(sub.creem_customer_id);
+  } catch (error) {
+    console.error("Creem portal failed", error);
+    return NextResponse.json(
+      { error: "Couldn't open the billing portal. Try again shortly." },
+      { status: 502 }
+    );
+  }
   if (!url) {
     return NextResponse.json(
       { error: "Couldn't open the billing portal. Try again shortly." },

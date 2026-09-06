@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/empty-state";
+import { DataLoadError } from "@/components/data-load-error";
 import { Button } from "@/components/ui/button";
 import type { WaiverTemplate } from "@/lib/types";
 
@@ -13,7 +14,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default async function WaiversPage() {
   const supabase = await createClient();
-  const { data: templates } = await supabase
+  const { data: templates, error } = await supabase
     .from("waiver_templates")
     .select("*")
     .order("updated_at", { ascending: false });
@@ -32,7 +33,14 @@ export default async function WaiversPage() {
         </Link>
       </div>
 
-      {list.length === 0 ? (
+      {error ? (
+        <DataLoadError
+          className="mt-8"
+          retryHref="/waivers"
+          title="We couldn't load your waivers"
+          description="Your waivers are still safe. Try loading the list again."
+        />
+      ) : list.length === 0 ? (
         <EmptyState
           className="mt-8"
           icon={FileUp}
@@ -45,7 +53,35 @@ export default async function WaiversPage() {
           }
         />
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-border">
+        <>
+        <div className="mt-6 space-y-3 md:hidden">
+          {list.map((t) => (
+            <article key={t.id} className="rounded-xl border border-border bg-card p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <Link href={`/waivers/${t.id}`} className="font-semibold hover:underline">
+                  {t.name}
+                </Link>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[t.status] ?? ""}`}
+                >
+                  {t.status}
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">
+                  Updated {new Date(t.updated_at).toLocaleDateString()}
+                </span>
+                <Link
+                  href={t.status === "published" ? `/waivers/${t.id}/share` : `/waivers/${t.id}`}
+                  className="font-semibold underline"
+                >
+                  {t.status === "published" ? "Share" : "Open"}
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="mt-6 hidden overflow-hidden rounded-xl border border-border md:block">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-muted/50 text-muted-foreground">
               <tr>
@@ -88,6 +124,7 @@ export default async function WaiversPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

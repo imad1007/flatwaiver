@@ -17,7 +17,10 @@ export function SettingsTabs({ className }: { className?: string }) {
 
   return (
     <nav
-      className={cn("flex gap-1 border-b border-border", className)}
+      className={cn(
+        "flex max-w-full snap-x snap-mandatory gap-1 overflow-x-auto border-b border-border overscroll-x-contain",
+        className
+      )}
       aria-label="Settings sections"
     >
       {TABS.map((tab) => {
@@ -26,8 +29,9 @@ export function SettingsTabs({ className }: { className?: string }) {
           <Link
             key={tab.href}
             href={tab.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              "-mb-px shrink-0 snap-start border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
               active
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"

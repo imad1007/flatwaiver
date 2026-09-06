@@ -1,15 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOrgRole } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { contentSha256 } from "@/lib/canonical";
-import { draftContentSchema } from "@/lib/waiver-schema";
-import { sendSigningInviteEmail, sendResignReminderEmail } from "@/lib/email";
+import {
+  draftContentSchema,
+  draftHasMeaningfulContent,
+} from "@/lib/waiver-schema";
+import { sendSigningInviteEmail } from "@/lib/email";
+import { deliverRenewalReminder } from "@/lib/renewal-delivery";
 import { expiryState } from "@/lib/expiry";
 import { APP } from "@/lib/config";
 import {
@@ -20,10 +23,15 @@ import {
 
 async function requireUsableSubscription() {
   const supabase = await createClient();
-  const { data: sub } = await supabase
+  const { data: sub, error } = await supabase
     .from("subscriptions")
     .select("status")
     .maybeSingle();
+  if (error) {
+    throw new Error(
+      "We couldn't verify your subscription. Nothing was changed; try again.",
+    );
+  }
   if (!subscriptionIsUsable(sub?.status)) {
     throw new Error(
       "Your subscription is inactive. Subscribe to create or publish waivers — your existing signed waivers remain fully accessible."
@@ -81,7 +89,7 @@ export async function createTemplateFromText(formData: FormData) {
     .single();
   if (error) throw error;
 
-  redirect(`/waivers/${template.id}`);
+  return { templateId: template.id };
 }
 
 /** Save the working draft (blocks, fields, consent, minor mode, name). */
@@ -90,15 +98,17 @@ export async function saveDraft(templateId: string, rawDraft: unknown, name: str
   const draft = draftContentSchema.parse(rawDraft);
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: savedTemplate, error } = await supabase
     .from("waiver_templates")
     .update({
       name: name.trim() || draft.title,
       draft_content: draft,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", templateId);
-  if (error) throw error;
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !savedTemplate) throw new Error("Couldn't save the draft.");
 
   revalidatePath(`/waivers/${templateId}`);
   return { ok: true };
@@ -112,45 +122,36 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
   await requireOrgRole("staff");
   const draft = draftContentSchema.parse(rawDraft);
   await requireUsableSubscription();
+  if (!draftHasMeaningfulContent(draft)) {
+    throw new Error("Add your waiver text before publishing.");
+  }
 
   const supabase = await createClient();
 
   // Persist the draft first so what's published is exactly what's saved.
   await saveDraft(templateId, draft, name);
 
-  const { data: latest } = await supabase
-    .from("template_versions")
-    .select("version_number")
-    .eq("template_id", templateId)
-    .order("version_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const nextVersion = (latest?.version_number ?? 0) + 1;
-
-  const { data: version, error: verError } = await supabase
-    .from("template_versions")
-    .insert({
-      template_id: templateId,
-      version_number: nextVersion,
-      body: draft.blocks,
-      fields: draft.fields,
-      consent_text: draft.consent_text,
-      minor_mode: draft.minor_mode,
-      content_sha256: contentSha256(draft.blocks, draft.fields, draft.consent_text),
-    })
-    .select("id, version_number")
-    .single();
-  if (verError) throw verError;
-
-  const { error: tplError } = await supabase
-    .from("waiver_templates")
-    .update({
-      current_version_id: version.id,
-      status: "published",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", templateId);
-  if (tplError) throw tplError;
+  const { data: versions, error: publishError } = await supabase.rpc(
+    "publish_template_version",
+    {
+      p_template_id: templateId,
+      p_body: draft.blocks,
+      p_fields: draft.fields,
+      p_consent_text: draft.consent_text,
+      p_minor_mode: draft.minor_mode,
+      p_content_sha256: contentSha256(
+        draft.blocks,
+        draft.fields,
+        draft.consent_text,
+      ),
+    },
+  );
+  const version = Array.isArray(versions) ? versions[0] : null;
+  if (publishError || !version) {
+    throw new Error(
+      "Your draft was saved, but publishing failed. Nothing partial went live; try again.",
+    );
+  }
 
   revalidatePath(`/waivers/${templateId}`);
   revalidatePath("/waivers");
@@ -163,6 +164,7 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
  */
 export async function sendSigningLink(templateId: string, rawEmail: string) {
   await requireOrgRole("staff");
+  await requireUsableSubscription();
   const email = z.string().trim().email().max(320).parse(rawEmail);
 
   const supabase = await createClient();
@@ -196,11 +198,13 @@ export async function sendSigningLink(templateId: string, rawEmail: string) {
 export async function archiveTemplate(templateId: string) {
   await requireOrgRole("staff");
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: archivedTemplate, error } = await supabase
     .from("waiver_templates")
     .update({ status: "archived", updated_at: new Date().toISOString() })
-    .eq("id", templateId);
-  if (error) throw error;
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !archivedTemplate) throw new Error("Couldn't archive the waiver.");
   revalidatePath("/waivers");
   revalidatePath(`/waivers/${templateId}`);
 }
@@ -210,20 +214,23 @@ export async function unarchiveTemplate(templateId: string) {
   await requireOrgRole("staff");
   await requireUsableSubscription();
   const supabase = await createClient();
-  const { data: tpl } = await supabase
+  const { data: tpl, error: lookupError } = await supabase
     .from("waiver_templates")
     .select("current_version_id")
     .eq("id", templateId)
-    .single();
+    .maybeSingle();
+  if (lookupError || !tpl) throw new Error("Waiver not found.");
 
-  const { error } = await supabase
+  const { data: restoredTemplate, error } = await supabase
     .from("waiver_templates")
     .update({
       status: tpl?.current_version_id ? "published" : "draft",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", templateId);
-  if (error) throw error;
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !restoredTemplate) throw new Error("Couldn't restore the waiver.");
   revalidatePath("/waivers");
   revalidatePath(`/waivers/${templateId}`);
 }
@@ -241,11 +248,13 @@ export async function setWaiverExpiry(templateId: string, rawMonths: number | nu
     .parse(rawMonths);
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updatedTemplate, error } = await supabase
     .from("waiver_templates")
     .update({ expiry_months: months, updated_at: new Date().toISOString() })
-    .eq("id", templateId);
-  if (error) throw new Error("Couldn't save the renewal setting.");
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updatedTemplate) throw new Error("Couldn't save the renewal setting.");
 
   revalidatePath(`/waivers/${templateId}`);
   revalidatePath("/signatures/renewals");
@@ -258,11 +267,13 @@ export async function setPhotoMode(templateId: string, rawMode: string) {
   const mode = z.enum(["off", "optional", "required"]).parse(rawMode);
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updatedTemplate, error } = await supabase
     .from("waiver_templates")
     .update({ photo_mode: mode, updated_at: new Date().toISOString() })
-    .eq("id", templateId);
-  if (error) throw new Error("Couldn't save the photo setting.");
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updatedTemplate) throw new Error("Couldn't save the photo setting.");
 
   revalidatePath(`/waivers/${templateId}`);
   return { ok: true };
@@ -277,49 +288,49 @@ export async function sendResignReminder(signedWaiverId: string) {
   const caller = await requireOrgRole("staff");
   const admin = createAdminClient();
 
-  const { data: sig } = await admin
+  const { data: sig, error: sigError } = await admin
     .from("signed_waivers")
     .select("id, org_id, template_id, signer_name, signer_email, signed_at")
     .eq("id", signedWaiverId)
     .maybeSingle();
+  if (sigError) throw new Error("Couldn't load the signature. Please try again.");
   if (!sig || sig.org_id !== caller.orgId) throw new Error("Signature not found.");
   if (!sig.signer_email) throw new Error("That signer has no email on file.");
 
-  const { data: tpl } = await admin
+  const { data: tpl, error: templateError } = await admin
     .from("waiver_templates")
     .select("name, slug, expiry_months")
     .eq("id", sig.template_id)
     .single();
+  if (templateError || !tpl) throw new Error("Couldn't load the waiver. Please try again.");
   const state = expiryState(sig.signed_at, tpl?.expiry_months);
   if (state !== "expiring" && state !== "expired") {
     throw new Error("This waiver isn't due for renewal yet.");
   }
 
-  const { data: org } = await admin
+  const { data: org, error: orgError } = await admin
     .from("organizations")
     .select("name")
     .eq("id", caller.orgId)
     .single();
+  if (orgError || !org) throw new Error("Couldn't load your organization. Please try again.");
 
   const base = APP.url?.replace(/\/$/, "") ?? "";
-  await sendResignReminderEmail({
-    to: sig.signer_email,
+  const delivery = await deliverRenewalReminder({
+    orgId: caller.orgId,
+    signedWaiverId: sig.id,
+    signerEmail: sig.signer_email,
     signerName: sig.signer_name,
-    waiverName: tpl?.name ?? "your waiver",
-    orgName: org?.name ?? APP.name,
-    signingUrl: `${base}/w/${tpl?.slug ?? ""}`,
+    waiverName: tpl.name,
+    orgName: org.name,
+    signingUrl: `${base}/w/${tpl.slug}`,
     expired: state === "expired",
   });
 
-  await admin.from("signature_reminders").upsert(
-    {
-      org_id: caller.orgId,
-      signed_waiver_id: sig.id,
-      kind: "resign",
-      sent_at: new Date().toISOString(),
-    },
-    { onConflict: "signed_waiver_id,kind" }
-  );
+  if (delivery.duplicate) {
+    revalidatePath("/signatures/renewals");
+    return { ok: true, duplicate: true };
+  }
 
   await logAudit({
     orgId: caller.orgId,

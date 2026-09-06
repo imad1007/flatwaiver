@@ -43,3 +43,13 @@ export const draftContentSchema = z.object({
   minor_mode: z.enum(["allowed", "disallowed"]),
   warnings: z.array(z.string()).optional(),
 });
+
+export function draftHasMeaningfulContent(
+  draft: z.infer<typeof draftContentSchema>,
+): boolean {
+  return draft.blocks.some((block) =>
+    block.type === "list"
+      ? block.items.some((item) => item.trim().length > 0)
+      : block.text.trim().length > 0,
+  );
+}

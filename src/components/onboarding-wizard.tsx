@@ -11,6 +11,7 @@ import {
   SPECIAL_STARTERS,
   STARTER_TEMPLATES,
 } from "@/lib/starter-templates";
+import { trackProductEvent } from "@/lib/product-analytics";
 
 const PRESET_COLORS = [
   "#1F2937", // slate
@@ -56,17 +57,33 @@ export function OnboardingWizard({
   const [selected, setSelected] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState(defaultBusinessName);
   const [color, setColor] = useState(defaultColor);
+  const [error, setError] = useState<string | null>(null);
 
   const effectiveColor = HEX.test(color) ? color : "#4F46E5";
 
   function finish(starterId: string, name: string) {
+    setError(null);
     startTransition(async () => {
-      const res = await completeOnboarding({ businessName: name, color, starterId });
-      if (res.ok) {
-        router.push(res.redirectTo);
-        router.refresh();
-      } else {
-        toast.error(res.error);
+      try {
+        const res = await completeOnboarding({ businessName: name, color, starterId });
+        if (res.ok) {
+          trackProductEvent("onboarding_completed", {
+            method:
+              starterId === "skip" || starterId === "blank" || starterId === "upload"
+                ? starterId
+                : "starter_template",
+          });
+          router.push(res.redirectTo);
+          router.refresh();
+        } else {
+          setError(res.error);
+          toast.error(res.error);
+        }
+      } catch {
+        const message =
+          "We couldn't finish setup. Check your connection and try again; your choices are still here.";
+        setError(message);
+        toast.error(message);
       }
     });
   }
@@ -94,6 +111,15 @@ export function OnboardingWizard({
         <span className="h-1 rounded-full bg-primary" />
         <span className={cn("h-1 rounded-full", step === 2 ? "bg-primary" : "bg-border")} />
       </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
 
       {step === 1 ? (
         <div className="mt-8">

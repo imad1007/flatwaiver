@@ -17,6 +17,26 @@ export interface RenewalItem {
   remindedAt: string | null;
 }
 
+const PAGE_SIZE = 1000;
+const IN_FILTER_CHUNK_SIZE = 100;
+
+type RenewalTemplateRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  slug: string;
+  expiry_months: number | null;
+};
+
+type RenewalSignatureRow = {
+  id: string;
+  org_id: string;
+  template_id: string;
+  signer_name: string;
+  signer_email: string | null;
+  signed_at: string;
+};
+
 /**
  * Renewals due (expiring or expired) for one org — or every org when orgId is
  * null (the cron path). Dedupes to each signer's LATEST signature per template,
@@ -26,24 +46,44 @@ export interface RenewalItem {
 export async function findRenewalsDue(orgId: string | null): Promise<RenewalItem[]> {
   const admin = createAdminClient();
 
-  let tq = admin
-    .from("waiver_templates")
-    .select("id, org_id, name, slug, expiry_months")
-    .not("expiry_months", "is", null);
-  if (orgId) tq = tq.eq("org_id", orgId);
-  const { data: templates } = await tq;
-  if (!templates || templates.length === 0) return [];
+  const templates: RenewalTemplateRow[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    let query = admin
+      .from("waiver_templates")
+      .select("id, org_id, name, slug, expiry_months")
+      .not("expiry_months", "is", null)
+      .order("id")
+      .range(from, from + PAGE_SIZE - 1);
+    if (orgId) query = query.eq("org_id", orgId);
+    const { data, error } = await query;
+    if (error) throw new Error(`Couldn't load renewal-enabled waivers: ${error.message}`);
+    const page = (data ?? []) as RenewalTemplateRow[];
+    templates.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  if (templates.length === 0) return [];
 
   const tplById = new Map(templates.map((t) => [t.id, t]));
   const templateIds = templates.map((t) => t.id);
 
-  const { data: sigs } = await admin
-    .from("signed_waivers")
-    .select("id, org_id, template_id, signer_name, signer_email, signed_at")
-    .in("template_id", templateIds)
-    .order("signed_at", { ascending: false })
-    .limit(5000);
-  if (!sigs || sigs.length === 0) return [];
+  const sigs: RenewalSignatureRow[] = [];
+  for (let chunkStart = 0; chunkStart < templateIds.length; chunkStart += IN_FILTER_CHUNK_SIZE) {
+    const ids = templateIds.slice(chunkStart, chunkStart + IN_FILTER_CHUNK_SIZE);
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await admin
+        .from("signed_waivers")
+        .select("id, org_id, template_id, signer_name, signer_email, signed_at")
+        .in("template_id", ids)
+        .order("signed_at", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw new Error(`Couldn't load signatures for renewals: ${error.message}`);
+      const page = (data ?? []) as RenewalSignatureRow[];
+      sigs.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+  }
+  if (sigs.length === 0) return [];
+  sigs.sort((a, b) => b.signed_at.localeCompare(a.signed_at));
 
   // Rows are newest-first, so the first time we see an identity is its latest.
   const seen = new Set<string>();
@@ -63,16 +103,19 @@ export async function findRenewalsDue(orgId: string | null): Promise<RenewalItem
   });
   if (due.length === 0) return [];
 
-  const { data: reminders } = await admin
-    .from("signature_reminders")
-    .select("signed_waiver_id, sent_at")
-    .eq("kind", "resign")
-    .in(
-      "signed_waiver_id",
-      due.map((s) => s.id)
-    );
+  const reminders: { signed_waiver_id: string; sent_at: string }[] = [];
+  const dueIds = due.map((s) => s.id);
+  for (let start = 0; start < dueIds.length; start += IN_FILTER_CHUNK_SIZE) {
+    const { data, error } = await admin
+      .from("signature_reminders")
+      .select("signed_waiver_id, sent_at")
+      .eq("kind", "resign")
+      .in("signed_waiver_id", dueIds.slice(start, start + IN_FILTER_CHUNK_SIZE));
+    if (error) throw new Error(`Couldn't load renewal reminders: ${error.message}`);
+    reminders.push(...((data ?? []) as typeof reminders));
+  }
   const remindedById = new Map(
-    (reminders ?? []).map((r) => [r.signed_waiver_id, r.sent_at])
+    reminders.map((r) => [r.signed_waiver_id, r.sent_at])
   );
 
   return due

@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { GettingStarted, type GuideStep } from "@/components/getting-started";
 import { SignaturesChart, type DayCount } from "@/components/signatures-chart";
 import { Button } from "@/components/ui/button";
+import { DataLoadError } from "@/components/data-load-error";
 
 const CHART_DAYS = 30;
 
@@ -19,15 +20,7 @@ export default async function DashboardPage() {
   chartStart.setUTCHours(0, 0, 0, 0);
   chartStart.setUTCDate(chartStart.getUTCDate() - (CHART_DAYS - 1));
 
-  const [
-    { count: signedThisMonth },
-    { count: totalSigned },
-    { count: flaggedThisMonth },
-    { data: recent },
-    { data: templates },
-    { data: recentWindow },
-    { data: org },
-  ] = await Promise.all([
+  const results = await Promise.all([
     supabase
       .from("signed_waivers")
       .select("id", { count: "exact", head: true })
@@ -52,8 +45,40 @@ export default async function DashboardPage() {
     supabase.from("organizations").select("branding").maybeSingle(),
   ]);
 
+  if (results.some((result) => result.error)) {
+    console.error(
+      "Dashboard data load failed",
+      results.filter((result) => result.error).map((result) => result.error)
+    );
+    return (
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <DataLoadError
+          className="mt-6"
+          retryHref="/dashboard"
+          title="We couldn't load your dashboard"
+          description="Your account data is still safe. Try loading the dashboard again."
+        />
+      </div>
+    );
+  }
+
+  const [
+    { count: signedThisMonth },
+    { count: totalSigned },
+    { count: flaggedThisMonth },
+    { data: recent },
+    { data: templates },
+    { data: recentWindow },
+    { data: org },
+  ] = results;
+
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
   const publishedCount = (templates ?? []).filter((t) => t.status === "published").length;
+  const firstDraft = (templates ?? []).find((template) => template.status === "draft");
+  const firstPublished = (templates ?? []).find(
+    (template) => template.status === "published",
+  );
 
   // First-run getting-started checklist — reflects real progress, hides when done.
   const hasTemplate = (templates ?? []).length > 0;
@@ -71,7 +96,7 @@ export default async function DashboardPage() {
       key: "publish",
       title: "Review & publish it",
       description: "Check the clauses and publish — that locks the exact wording to every signature.",
-      href: "/waivers",
+      href: firstDraft ? `/waivers/${firstDraft.id}` : "/waivers",
       cta: "Review & publish",
       done: publishedCount > 0,
     },
@@ -87,7 +112,9 @@ export default async function DashboardPage() {
       key: "collect",
       title: "Collect your first signature",
       description: "Share the link, print the QR code, or open kiosk mode at the front desk.",
-      href: "/waivers",
+      href: firstPublished
+        ? `/waivers/${firstPublished.id}/share`
+        : "/waivers",
       cta: "Get signing link",
       done: (totalSigned ?? 0) > 0,
     },
@@ -189,14 +216,51 @@ export default async function DashboardPage() {
             title="Your waiver is live — now share it"
             description="Send the link, print the QR code, or open kiosk mode. Signatures land here the moment someone signs."
             action={
-              <Button size="lg" render={<Link href="/waivers" />}>
+              <Button
+                size="lg"
+                render={
+                  <Link
+                    href={
+                      firstPublished
+                        ? `/waivers/${firstPublished.id}/share`
+                        : "/waivers"
+                    }
+                  />
+                }
+              >
                 Get your signing link
               </Button>
             }
           />
         )
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+        <>
+        <div className="mt-4 space-y-3 md:hidden">
+          {recent.map((s) => (
+            <Link
+              key={s.id}
+              href={`/signatures/${s.id}`}
+              className="block rounded-xl border border-border bg-card p-4 shadow-card"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="font-semibold">{s.signer_name}</span>
+                {s.flagged && (
+                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                    Flagged
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {templateNames.get(s.template_id) ?? "Waiver"}
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span className="capitalize">{s.signing_channel}</span>
+                <time dateTime={s.signed_at}>{new Date(s.signed_at).toLocaleString()}</time>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4 hidden overflow-hidden rounded-xl border border-border md:block">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-muted/50 text-muted-foreground">
               <tr>
@@ -234,6 +298,7 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

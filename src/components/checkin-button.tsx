@@ -11,11 +11,13 @@ export function CheckinButton({
   signedWaiverId,
   checkinId,
   checkedInAt,
+  canCheckIn,
 }: {
   signedWaiverId: string;
   /** When set, this signer is already checked in (button becomes undo). */
   checkinId?: string;
   checkedInAt?: string;
+  canCheckIn: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -31,25 +33,31 @@ export function CheckinButton({
               })
             : "Checked in"}
         </span>
-        <button
-          disabled={isPending}
-          onClick={() =>
-            startTransition(async () => {
-              try {
-                await undoCheckIn(checkinId);
-              } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Undo failed.");
-              }
-            })
-          }
-          aria-label="Undo check-in"
-          title="Undo check-in"
-          className="text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-50"
-        >
-          <Undo2 className="size-3.5" />
-        </button>
+        {canCheckIn && (
+          <button
+            disabled={isPending}
+            onClick={() =>
+              startTransition(async () => {
+                try {
+                  await undoCheckIn(checkinId);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Undo failed.");
+                }
+              })
+            }
+            aria-label="Undo check-in"
+            title="Undo check-in"
+            className="text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-50"
+          >
+            <Undo2 className="size-3.5" />
+          </button>
+        )}
       </span>
     );
+  }
+
+  if (!canCheckIn) {
+    return <span className="text-xs text-muted-foreground">Not checked in</span>;
   }
 
   return (

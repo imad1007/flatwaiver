@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { APP } from "@/lib/config";
 import { Logo } from "@/components/logo";
 import { AuthDivider, GoogleAuthButton } from "@/components/google-auth-button";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 export default function LoginPage() {
   return (
@@ -19,7 +20,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
+  const next = safeInternalPath(searchParams.get("next"));
 
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [email, setEmail] = useState("");
@@ -32,33 +33,38 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    if (mode === "password") {
-      const { error: err } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (err) {
-        setError(err.message);
+      if (mode === "password") {
+        const { error: err } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (err) {
+          setError(err.message);
+          setSubmitting(false);
+          return;
+        }
+        router.push(next);
+        router.refresh();
+      } else {
+        const { error: err } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          },
+        });
+        if (err) {
+          setError(err.message);
+          setSubmitting(false);
+          return;
+        }
+        setMagicSent(true);
         setSubmitting(false);
-        return;
       }
-      router.push(next);
-      router.refresh();
-    } else {
-      const { error: err } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-        },
-      });
-      if (err) {
-        setError(err.message);
-        setSubmitting(false);
-        return;
-      }
-      setMagicSent(true);
+    } catch {
+      setError("Could not sign in. Check your connection and try again.");
       setSubmitting(false);
     }
   }
@@ -128,7 +134,7 @@ function LoginForm() {
                 </label>
               )}
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
               <button
                 type="submit"

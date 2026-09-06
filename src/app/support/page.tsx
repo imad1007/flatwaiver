@@ -4,6 +4,7 @@ import { Mail } from "lucide-react";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
 import { createClient } from "@/lib/supabase/server";
 import { APP } from "@/lib/config";
+import { SupportForm } from "@/components/support-form";
 
 export const metadata: Metadata = {
   title: `Support & FAQ — help with ${APP.name}`,
@@ -89,6 +90,11 @@ export default async function SupportPage() {
   const mailto = `mailto:${APP.supportEmail}?subject=${encodeURIComponent(
     `${APP.name} support request`
   )}`;
+  const formConfigured = Boolean(
+    process.env.RESEND_API_KEY &&
+      process.env.TURNSTILE_SECRET_KEY &&
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  );
 
   return (
     <>
@@ -106,12 +112,13 @@ export default async function SupportPage() {
 
         {/* Contact */}
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+          {formConfigured && <SupportForm defaultEmail={user?.email ?? ""} />}
           <a
             href={mailto}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className={`${formConfigured ? "mt-5 border border-input bg-background text-foreground hover:border-ring" : "bg-primary text-primary-foreground hover:bg-primary/90"} inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold transition-colors`}
           >
             <Mail className="size-4" />
-            Email {APP.supportEmail}
+            {formConfigured ? "Prefer email? Write directly" : `Email ${APP.supportEmail}`}
           </a>
           {user?.email && (
             <p className="mt-4 text-xs text-muted-foreground/70">

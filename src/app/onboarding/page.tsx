@@ -8,6 +8,7 @@ import { businessNameMissing } from "@/lib/types";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { Logo } from "@/components/logo";
 import { APP } from "@/lib/config";
+import { DataLoadError } from "@/components/data-load-error";
 
 export const metadata: Metadata = {
   title: `Finish setting up — ${APP.name}`,
@@ -26,21 +27,29 @@ export default async function OnboardingPage() {
   await ensureBootstrapped(user);
 
   const admin = createAdminClient();
-  const { data: profile } = await admin
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("org_id")
     .eq("id", user.id)
     .single();
-  const { data: org } = profile
+  const orgResult = profile
     ? await admin
         .from("organizations")
         .select("name, branding")
         .eq("id", profile.org_id)
         .single()
-    : { data: null };
+    : { data: null, error: null };
+  if (profileError || !profile || orgResult.error || !orgResult.data) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-6 py-12">
+        <DataLoadError retryHref="/onboarding" />
+      </main>
+    );
+  }
+  const org = orgResult.data;
 
   // Already has a real business name → never show this screen.
-  if (!businessNameMissing(org?.name, user.email)) redirect("/dashboard");
+  if (!businessNameMissing(org.name, user.email)) redirect("/dashboard");
 
   // Greet with the Google-provided personal name when we have one (email
   // signups won't), and use it to pre-fill a sensible default org name.
@@ -49,7 +58,7 @@ export default async function OnboardingPage() {
   const firstName = fullName.split(/\s+/)[0] || null;
   const defaultBusinessName = fullName ? `${fullName}'s Organization` : "My Organization";
 
-  const branding = (org?.branding ?? null) as { color?: string } | null;
+  const branding = (org.branding ?? null) as { color?: string } | null;
   const defaultColor = branding?.color ?? "#4F46E5";
 
   return (

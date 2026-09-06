@@ -1,14 +1,30 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileUp, PenLine, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { createTemplateFromText } from "../actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { trackProductEvent } from "@/lib/product-analytics";
+
+const SCRATCH_BACKUP_KEY = "flatwaiver:new-waiver:scratch";
 
 export default function NewWaiverPage() {
   const [path, setPath] = useState<"upload" | "scratch" | null>(null);
+
+  useEffect(() => {
+    let timeout: number | undefined;
+    try {
+      if (window.sessionStorage.getItem(SCRATCH_BACKUP_KEY)) {
+        timeout = window.setTimeout(() => setPath("scratch"), 0);
+      }
+    } catch {
+      // The creation choices remain usable when tab storage is unavailable.
+    }
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -25,13 +41,19 @@ export default function NewWaiverPage() {
             title="Upload existing waiver"
             badge="AI converts it"
             body="PDF, a photo or scan, or a Word doc — the waiver you already use, converted into a signable form with every clause preserved exactly."
-            onClick={() => setPath("upload")}
+            onClick={() => {
+              trackProductEvent("waiver_creation_method_selected", { method: "upload" });
+              setPath("upload");
+            }}
           />
           <ChoiceCard
             icon={PenLine}
             title="Start from scratch"
             body="Paste your waiver text (or start empty) and build the form yourself in the editor."
-            onClick={() => setPath("scratch")}
+            onClick={() => {
+              trackProductEvent("waiver_creation_method_selected", { method: "scratch" });
+              setPath("scratch");
+            }}
           />
         </div>
       )}
@@ -86,9 +108,15 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "working" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (status === "working") return;
     const file = fileRef.current?.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
@@ -97,14 +125,20 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
     }
     setStatus("working");
     setError(null);
+    trackProductEvent("waiver_import_started", {
+      file_type: file.type || "unknown",
+      size_mb_bucket: Math.max(1, Math.ceil(file.size / (1024 * 1024))),
+    });
 
     const formData = new FormData();
     formData.set("file", file);
     formData.set("name", name || file.name.replace(/\.[^.]+$/, ""));
 
-    const res = await fetch("/api/ai-import", { method: "POST", body: formData });
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
+    try {
+      const res = await fetch("/api/ai-import", { method: "POST", body: formData });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        trackProductEvent("waiver_import_failed", { reason: `http_${res.status}` });
       setError(
         body?.error ??
           "Conversion failed. You can paste your waiver text instead — use “Start from scratch.”"
@@ -112,8 +146,31 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
       setStatus("error");
       return;
     }
-    const { templateId } = await res.json();
-    router.push(`/waivers/${templateId}`);
+      const { templateId, recovered, warning } = await res.json();
+      if (typeof templateId !== "string" || !templateId) {
+        trackProductEvent("waiver_import_failed", { reason: "invalid_response" });
+        setError("The conversion finished without creating a draft. Please try again.");
+        setStatus("error");
+        return;
+      }
+      if (recovered === true) {
+        trackProductEvent("waiver_import_failed", { reason: "recovery_draft" });
+        toast.warning(
+          typeof warning === "string"
+            ? warning
+            : "Automatic conversion did not finish, but your original file and a recovery draft were saved.",
+        );
+      } else {
+        trackProductEvent("waiver_import_completed");
+      }
+      router.push(`/waivers/${templateId}`);
+    } catch {
+      trackProductEvent("waiver_import_failed", { reason: "network" });
+      setError(
+        "We couldn't reach the conversion service. Check your connection and try again; your file is still selected."
+      );
+      setStatus("error");
+    }
   }
 
   return (
@@ -126,6 +183,7 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={200}
           placeholder="e.g. Adult Liability Waiver"
           className={inputClass}
         />
@@ -149,7 +207,14 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
       </label>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <div
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
+        >
+          {error}
+        </div>
       )}
 
       <Button type="submit" size="lg" disabled={status === "working"}>
@@ -165,14 +230,64 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
 }
 
 function FromTextForm({ onBack }: { onBack: () => void }) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    let timeout: number | undefined;
+    try {
+      const raw = window.sessionStorage.getItem(SCRATCH_BACKUP_KEY);
+      if (!raw) return;
+      const backup = JSON.parse(raw) as { name?: unknown; text?: unknown };
+      timeout = window.setTimeout(() => {
+        if (typeof backup.name === "string") setName(backup.name);
+        if (typeof backup.text === "string") setText(backup.text);
+      }, 0);
+    } catch {
+      // Ignore malformed or unavailable tab storage.
+    }
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!name && !text) return;
+    const timeout = window.setTimeout(() => {
+      try {
+        window.sessionStorage.setItem(
+          SCRATCH_BACKUP_KEY,
+          JSON.stringify({ name, text }),
+        );
+      } catch {
+        // The in-page form still retains input when storage is unavailable.
+      }
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [name, text]);
 
   return (
     <form
       action={async (formData) => {
+        if (submitting) return;
         setSubmitting(true);
+        setError(null);
         try {
-          await createTemplateFromText(formData);
+          const result = await createTemplateFromText(formData);
+          try {
+            window.sessionStorage.removeItem(SCRATCH_BACKUP_KEY);
+          } catch {
+            // Draft creation already succeeded; storage cleanup is best-effort.
+          }
+          trackProductEvent("waiver_draft_created", { method: "scratch" });
+          router.push(`/waivers/${result.templateId}`);
+        } catch (cause) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "We couldn't create the draft. Please try again; your text is still here."
+          );
         } finally {
           setSubmitting(false);
         }
@@ -186,6 +301,9 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
         <input
           name="name"
           type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={200}
           required
           placeholder="e.g. Adult Liability Waiver"
           className={inputClass}
@@ -197,11 +315,19 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
         <textarea
           name="text"
           required
+          value={text}
+          onChange={(event) => setText(event.target.value)}
           rows={14}
           placeholder="Paste your full waiver text. Blank lines separate paragraphs."
           className={cn(inputClass, "font-mono text-sm")}
         />
       </label>
+
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? "Creating…" : "Create draft"}

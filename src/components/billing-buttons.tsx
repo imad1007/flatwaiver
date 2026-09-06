@@ -1,6 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+export function BillingActivationNotice({
+  active,
+  checkoutId,
+}: {
+  active: boolean;
+  checkoutId?: string;
+}) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (active) return;
+    const interval = window.setInterval(() => router.refresh(), 2_500);
+    const stop = window.setTimeout(() => window.clearInterval(interval), 15_000);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(stop);
+    };
+  }, [active, router]);
+
+  return (
+    <div
+      role="status"
+      className="mt-4 rounded-md border border-success/30 bg-success/10 p-4 text-sm text-success"
+    >
+      {active
+        ? "Payment confirmed—your subscription is active."
+        : "Checkout returned successfully. We're waiting for secure confirmation from the billing provider; this page will refresh automatically."}
+      {checkoutId && (
+        <span className="mt-1 block text-xs text-success/80">Reference: {checkoutId}</span>
+      )}
+    </div>
+  );
+}
 
 export function BillingButton({
   endpoint,
@@ -29,6 +64,8 @@ export function BillingButton({
         return;
       }
       window.location.href = body.url;
+    } catch {
+      setError("Couldn't reach billing. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -47,7 +84,11 @@ export function BillingButton({
       >
         {busy ? "One moment…" : label}
       </button>
-      {error && <span className="ml-3 text-sm text-destructive">{error}</span>}
+      {error && (
+        <span role="alert" className="ml-3 text-sm text-destructive">
+          {error}
+        </span>
+      )}
     </span>
   );
 }

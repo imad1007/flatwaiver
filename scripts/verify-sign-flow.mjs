@@ -13,6 +13,9 @@
  *   - "Yes" + empty detail    → rejected server-side (simulates client bypass)
  *   - "Yes" + detail filled   → accepted; detail persisted, hashed, in PDF
  *
+ * Part C covers the minor / guardian evidence path: incomplete guardian data is
+ * rejected with no row, while a complete submission is stored in the row and PDF.
+ *
  * Setup: if the target waiver's current version lacks the medical detail
  * field, a NEW version is published with it appended (append-only — existing
  * versions and signed rows are never touched).
@@ -20,7 +23,7 @@
  * Guardrails (same as seed-demo):
  *   - Refuses to run unless ALLOW_DEV_SEED=true in .env.local
  *   - Refuses to run when NODE_ENV=production
- *   - Each run appends TWO rows to the demo org's signed_waivers (append-only,
+ *   - Each run appends THREE rows to the demo org's signed_waivers (append-only,
  *     cannot be deleted) — dev projects only.
  *
  * Requirements: `npm run seed:demo` has been run (uses the demo-gym waiver)
@@ -99,7 +102,7 @@ function assert(ok, passMsg, failMsg) {
 // ── Setup: ensure the waiver pairs the medical field with a detail field ────
 
 const [template] = await sbGet(
-  `waiver_templates?select=id,slug,current_version_id&slug=eq.${SLUG}&status=eq.published`
+  `waiver_templates?select=id,org_id,slug,current_version_id&slug=eq.${SLUG}&status=eq.published`
 );
 if (!template) fail(`No published template "${SLUG}" — run \`npm run seed:demo\` first.`);
 
@@ -140,13 +143,14 @@ const SIGNATURE_PNG =
 
 const runId = Date.now();
 
-async function submit(name, fieldValues) {
+async function submit(name, fieldValues, overrides = {}) {
   let res;
   try {
     res = await fetch(`${BASE_URL}/api/sign/${SLUG}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        submissionId: crypto.randomUUID(),
         turnstileToken: "dev-dummy-token",
         signerName: name,
         isMinor: false,
@@ -154,6 +158,7 @@ async function submit(name, fieldValues) {
         signatureDataUrl: SIGNATURE_PNG,
         consentGiven: true,
         channel: "link",
+        ...overrides,
       }),
     });
   } catch {
@@ -164,7 +169,9 @@ async function submit(name, fieldValues) {
 
 async function fetchRecord(signerName) {
   const [row] = await sbGet(
-    `signed_waivers?select=id,field_values,flagged,pdf_path,pdf_sha256` +
+    `signed_waivers?select=id,template_id,template_version_id,field_values,flagged,` +
+      `is_minor,guardian_name,guardian_relationship,signature_path,` +
+      `guardian_signature_path,pdf_path,pdf_sha256,consent_text_snapshot,signing_channel` +
       `&signer_name=eq.${encodeURIComponent(signerName)}`
   );
   if (!row) fail(`No signed_waivers row found for "${signerName}".`);
@@ -176,19 +183,70 @@ async function fetchRecord(signerName) {
   return { row, pdf, pdfText: extractPdfText(pdf) };
 }
 
+function assertEvidenceEnvelope(record, expectedVersion) {
+  assert(
+    record.row.template_id === template.id &&
+      record.row.template_version_id === expectedVersion.id,
+    `row pins template version ${expectedVersion.version_number}`,
+    `row did not pin expected template/version: ${JSON.stringify(record.row)}`
+  );
+  assert(
+    record.row.consent_text_snapshot === expectedVersion.consent_text,
+    "row snapshots the exact published consent text",
+    "consent snapshot differs from the published version"
+  );
+  assert(
+    record.row.signature_path.startsWith(`${template.org_id}/${record.row.id}/`) &&
+      record.row.pdf_path.startsWith(`${template.org_id}/${record.row.id}/`),
+    "private storage paths are organization- and record-prefixed",
+    `unexpected storage paths: ${record.row.signature_path}, ${record.row.pdf_path}`
+  );
+  assert(
+    record.row.signing_channel === "link",
+    'row preserves the "link" signing channel',
+    `unexpected signing channel: ${record.row.signing_channel}`
+  );
+}
+
 // ── State 1 — "No", detail empty → accepted, record/hash/PDF correct ────────
 
 console.log(`\n— State 1: "No" + no detail (${SLUG} via ${BASE_URL}) —`);
 const noName = `SignFlow No ${runId}`;
 const phoneSentinel = `555-${String(runId).slice(-7)}`;
-const res1 = await submit(noName, {
-  signer_email: "sign-flow-check@example.com",
-  phone: phoneSentinel,
-  [MEDICAL_KEY]: "No",
-});
+const idempotencyId = crypto.randomUUID();
+const res1 = await submit(
+  noName,
+  {
+    signer_email: "sign-flow-check@example.com",
+    phone: phoneSentinel,
+    [MEDICAL_KEY]: "No",
+  },
+  { submissionId: idempotencyId }
+);
 assert(res1.status === 200, "accepted (200)", `expected 200, got ${res1.status}: ${JSON.stringify(res1.body)}`);
 
 const s1 = await fetchRecord(noName);
+assertEvidenceEnvelope(s1, version);
+const retry1 = await submit(
+  noName,
+  {
+    signer_email: "sign-flow-check@example.com",
+    phone: phoneSentinel,
+    [MEDICAL_KEY]: "No",
+  },
+  { submissionId: idempotencyId }
+);
+assert(
+  retry1.status === 200 && retry1.body?.duplicate === true,
+  "retrying a committed submission returns idempotent success",
+  `idempotent retry failed: ${retry1.status} ${JSON.stringify(retry1.body)}`
+);
+const idempotentRows = await sbGet(`signed_waivers?select=id&id=eq.${idempotencyId}`);
+assert(
+  idempotentRows.length === 1,
+  "idempotent retry leaves exactly one immutable record",
+  `expected one row for ${idempotencyId}, found ${idempotentRows.length}`
+);
 assert(
   s1.row.field_values[MEDICAL_KEY] === "No" && !(MEDICAL_DETAIL_KEY in s1.row.field_values),
   'row stores medical_condition="No" with no detail key (legitimately empty ≠ dropped)',
@@ -242,6 +300,7 @@ const res3 = await submit(yesName, {
 assert(res3.status === 200, "accepted (200)", `expected 200, got ${res3.status}: ${JSON.stringify(res3.body)}`);
 
 const s3 = await fetchRecord(yesName);
+assertEvidenceEnvelope(s3, version);
 assert(
   s3.row.field_values[MEDICAL_KEY] === "Yes" &&
     s3.row.field_values[MEDICAL_DETAIL_KEY] === detailSentinel,
@@ -264,6 +323,70 @@ assert(
   s3.pdfText.includes(detailSentinel),
   "PDF renders the detail text — covered by the audit hash",
   "detail sentinel not found in state-3 PDF text"
+);
+
+// Part C: prove the advertised minor flow rejects incomplete evidence and
+// preserves a complete guardian record in both storage and the signed PDF.
+console.log("\n--- Part C: minor / guardian evidence ---");
+const incompleteMinorName = `SignFlow Minor Bypass ${runId}`;
+const res4 = await submit(
+  incompleteMinorName,
+  { signer_email: "sign-flow-check@example.com", [MEDICAL_KEY]: "No" },
+  { isMinor: true }
+);
+assert(
+  res4.status === 400,
+  "minor submission without guardian evidence is rejected",
+  `expected 400, got ${res4.status}: ${JSON.stringify(res4.body)}`
+);
+const minorGhost = await sbGet(
+  `signed_waivers?select=id&signer_name=eq.${encodeURIComponent(incompleteMinorName)}`
+);
+assert(
+  minorGhost.length === 0,
+  "no row was written for incomplete guardian evidence",
+  "incomplete minor submission still wrote a row"
+);
+
+const minorName = `SignFlow Minor ${runId}`;
+const guardianName = `Guardian ${runId}`;
+const guardianRelationship = "Parent";
+const res5 = await submit(
+  minorName,
+  { signer_email: "sign-flow-check@example.com", [MEDICAL_KEY]: "No" },
+  {
+    isMinor: true,
+    guardianName,
+    guardianRelationship,
+    guardianSignatureDataUrl: SIGNATURE_PNG,
+  }
+);
+assert(
+  res5.status === 200,
+  "complete minor submission accepted (200)",
+  `expected 200, got ${res5.status}: ${JSON.stringify(res5.body)}`
+);
+const s5 = await fetchRecord(minorName);
+assertEvidenceEnvelope(s5, version);
+assert(
+  s5.row.is_minor === true &&
+    s5.row.guardian_name === guardianName &&
+    s5.row.guardian_relationship === guardianRelationship,
+  "row preserves the minor flag and exact guardian identity",
+  `unexpected guardian data: ${JSON.stringify(s5.row)}`
+);
+assert(
+  s5.row.guardian_signature_path ===
+    `${template.org_id}/${s5.row.id}/guardian-signature.png`,
+  "guardian signature uses the organization- and record-prefixed private path",
+  `unexpected guardian signature path: ${s5.row.guardian_signature_path}`
+);
+assert(
+  s5.pdfText.includes("Minor participant") &&
+    s5.pdfText.includes(guardianName) &&
+    s5.pdfText.includes(guardianRelationship),
+  "PDF renders the minor and guardian evidence inside the hashed bytes",
+  "minor PDF text is missing guardian evidence"
 );
 
 console.log(

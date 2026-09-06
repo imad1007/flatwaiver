@@ -1,6 +1,6 @@
 # FlatWaiver
 
-Flat-rate digital waiver SaaS: **unlimited waivers, $39/month, flat.** Upload the
+Flat-rate digital waiver SaaS: **unlimited waivers, $19/month, flat.** Upload the
 PDF waiver you already use → AI converts it to a signable digital form → live
 signing link + QR in under 5 minutes.
 
@@ -11,7 +11,7 @@ the product is a one-line change.
 
 - **Next.js (App Router, TypeScript)** on Vercel
 - **Supabase** — Postgres + Auth (password + magic link) + private Storage
-- **Stripe** — one $39/mo subscription (Checkout + Customer Portal + webhooks)
+- **Stripe** — one $19/mo subscription (Checkout + Customer Portal + webhooks)
 - **Resend** — transactional email
 - **Anthropic API** — PDF → structured waiver conversion (`claude-sonnet-4-6`, temp 0)
 - **@react-pdf/renderer** — signed-PDF generation (Node runtime only)
@@ -37,7 +37,7 @@ the product is a one-line change.
    immutability triggers, and the three private storage buckets
    (`uploads`, `signatures`, `signed-pdfs`).
 2. **Env vars** — copy `.env.example` to `.env.local` and fill everything in.
-3. **Stripe** — create one recurring $39/mo price, put its id in `STRIPE_PRICE_ID`.
+3. **Stripe** — create one recurring $19/mo price, put its id in `STRIPE_PRICE_ID`.
    Point a webhook at `POST /api/stripe/webhook` with events
    `checkout.session.completed`, `customer.subscription.updated`,
    `customer.subscription.deleted`; put the signing secret in `STRIPE_WEBHOOK_SECRET`.

@@ -142,10 +142,19 @@ export async function POST(request: Request) {
   }
 
   // Gating: creating templates requires a usable subscription.
-  const { data: sub } = await supabase
+  const { data: sub, error: subscriptionError } = await supabase
     .from("subscriptions")
     .select("status")
     .maybeSingle();
+  if (subscriptionError) {
+    return NextResponse.json(
+      {
+        error:
+          "We couldn't verify your subscription. Your file was not uploaded; try again.",
+      },
+      { status: 503 },
+    );
+  }
   if (!subscriptionIsUsable(sub?.status)) {
     return NextResponse.json(
       { error: "Your subscription is inactive. Subscribe to create new waivers." },
@@ -156,7 +165,7 @@ export async function POST(request: Request) {
   // File
   const formData = await request.formData();
   const file = formData.get("file");
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 200);
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
   }
@@ -176,6 +185,58 @@ export async function POST(request: Request) {
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
 
+  // Persist the private source and a recoverable draft before invoking AI.
+  // A timeout or unusable response must never force the customer to re-upload.
+  const admin = createAdminClient();
+  const sourcePath = `${profile.org_id}/${crypto.randomUUID()}.${type.ext}`;
+  const { error: uploadError } = await admin.storage
+    .from("uploads")
+    .upload(sourcePath, fileBuffer, { contentType: type.mime });
+  if (uploadError) {
+    return NextResponse.json({ error: "Failed to store the uploaded file." }, { status: 500 });
+  }
+
+  const fallbackTitle = (
+    name || file.name.replace(/\.[^.]+$/, "") || "Imported waiver"
+  ).slice(0, 200);
+  const fallbackWarning =
+    "Automatic conversion did not finish. Your original file is saved and this draft is ready for manual review.";
+  const fallbackDraft: DraftContent = {
+    title: fallbackTitle,
+    blocks: [{ type: "paragraph", text: "" }],
+    fields: [
+      { key: "signer_email", type: "email", label: "Email", required: true },
+    ],
+    consent_text: DEFAULT_CONSENT_TEXT,
+    minor_mode: "allowed",
+    warnings: [fallbackWarning],
+  };
+  const { data: template, error: fallbackError } = await supabase
+    .from("waiver_templates")
+    .insert({
+      org_id: profile.org_id,
+      slug: makeSlug(fallbackTitle),
+      name: fallbackTitle,
+      status: "draft",
+      source_pdf_path: sourcePath,
+      draft_content: fallbackDraft,
+    })
+    .select("id")
+    .single();
+  if (fallbackError || !template) {
+    await cleanupUncommittedUpload(admin, sourcePath);
+    return NextResponse.json({ error: "Failed to create a recovery draft." }, { status: 500 });
+  }
+  const templateId = template.id;
+
+  function recoveryResponse(message: string) {
+    return NextResponse.json({
+      templateId,
+      recovered: true,
+      warning: message,
+    });
+  }
+
   // Build the Claude content block for this file type. .docx has no native
   // block, so extract its text first; if that yields nothing, bail early.
   let userContent: Anthropic.ContentBlockParam[];
@@ -184,18 +245,13 @@ export async function POST(request: Request) {
     try {
       text = (await mammoth.extractRawText({ buffer: fileBuffer })).value.trim();
     } catch {
-      return NextResponse.json(
-        { error: "Couldn't read that Word file. Save it as PDF and try again." },
-        { status: 422 }
+      return recoveryResponse(
+        "We couldn't read that Word file automatically. Your original is saved; add the waiver text manually or upload a PDF in a new draft.",
       );
     }
     if (text.length < 20) {
-      return NextResponse.json(
-        {
-          error:
-            "That Word file has no extractable text (it may be scanned images). Export it as a PDF and try again.",
-        },
-        { status: 422 }
+      return recoveryResponse(
+        "That Word file has no extractable text. Your original is saved; add the text manually or upload a PDF in a new draft.",
       );
     }
     userContent = [{ type: "text", text: `Waiver document text:\n\n${text}` }];
@@ -219,16 +275,6 @@ export async function POST(request: Request) {
     ];
   }
 
-  // Store the original upload (uploads bucket, service role — buckets private).
-  const admin = createAdminClient();
-  const sourcePath = `${profile.org_id}/${crypto.randomUUID()}.${type.ext}`;
-  const { error: uploadError } = await admin.storage
-    .from("uploads")
-    .upload(sourcePath, fileBuffer, { contentType: type.mime });
-  if (uploadError) {
-    return NextResponse.json({ error: "Failed to store the uploaded file." }, { status: 500 });
-  }
-
   // Convert with Claude (retry once on malformed JSON).
   let result: z.infer<typeof aiResultSchema> | null = null;
   try {
@@ -237,12 +283,8 @@ export async function POST(request: Request) {
     try {
       result = await convertDocument(userContent, true);
     } catch {
-      return NextResponse.json(
-        {
-          error:
-            "AI conversion failed after two attempts. Use “Start from scratch” and paste your waiver instead.",
-        },
-        { status: 422 }
+      return recoveryResponse(
+        "AI conversion failed after two attempts. Your original is saved and a manual-review draft is ready.",
       );
     }
   }
@@ -258,23 +300,41 @@ export async function POST(request: Request) {
     warnings: result.warnings,
   };
 
-  const { data: template, error: insertError } = await supabase
+  const { data: convertedTemplate, error: updateError } = await supabase
     .from("waiver_templates")
-    .insert({
-      org_id: profile.org_id,
-      slug: makeSlug(draft.title),
+    .update({
       name: draft.title,
-      status: "draft",
-      source_pdf_path: sourcePath,
       draft_content: draft,
+      updated_at: new Date().toISOString(),
     })
+    .eq("id", templateId)
     .select("id")
-    .single();
-  if (insertError) {
-    return NextResponse.json({ error: "Failed to create draft." }, { status: 500 });
+    .maybeSingle();
+  if (updateError || !convertedTemplate) {
+    return recoveryResponse(
+      "Conversion finished, but the converted text could not be saved. Your original is saved and a manual-review draft is ready.",
+    );
   }
 
-  return NextResponse.json({ templateId: template.id, warnings: result.warnings });
+  return NextResponse.json({ templateId, warnings: result.warnings });
+}
+
+/**
+ * Remove the request's newly uploaded source only when no waiver template row
+ * references it. Once draft insertion succeeds this helper is never called.
+ */
+async function cleanupUncommittedUpload(
+  admin: ReturnType<typeof createAdminClient>,
+  sourcePath: string
+) {
+  try {
+    const { error } = await admin.storage.from("uploads").remove([sourcePath]);
+    if (error) {
+      console.error("Failed to clean up uncommitted waiver upload", error);
+    }
+  } catch (error) {
+    console.error("Failed to clean up uncommitted waiver upload", error);
+  }
 }
 
 async function convertDocument(

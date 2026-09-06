@@ -7,6 +7,7 @@ import { findRenewalsDue } from "@/lib/renewals";
 import { EmptyState } from "@/components/empty-state";
 import { RenewalsTable } from "@/components/renewals-table";
 import { canManageTemplates } from "@/lib/permissions";
+import { DataLoadError } from "@/components/data-load-error";
 
 export default async function RenewalsPage() {
   const caller = await getOrgCaller();
@@ -14,13 +15,22 @@ export default async function RenewalsPage() {
 
   // Any templates with a renewal window at all?
   const admin = createAdminClient();
-  const { count: withExpiry } = await admin
+  const { count: withExpiry, error: expiryCountError } = await admin
     .from("waiver_templates")
     .select("id", { count: "exact", head: true })
     .eq("org_id", caller.orgId)
     .not("expiry_months", "is", null);
+  if (expiryCountError) {
+    console.error("Renewal-enabled waiver count failed", expiryCountError);
+  }
 
-  const items = await findRenewalsDue(caller.orgId);
+  let items: Awaited<ReturnType<typeof findRenewalsDue>> | null;
+  try {
+    items = await findRenewalsDue(caller.orgId);
+  } catch (error) {
+    console.error("Renewals data load failed", error);
+    items = null;
+  }
 
   return (
     <div>
@@ -36,7 +46,14 @@ export default async function RenewalsPage() {
         </Link>
       </div>
 
-      {(withExpiry ?? 0) === 0 ? (
+      {expiryCountError || items === null ? (
+        <DataLoadError
+          className="mt-8"
+          retryHref="/signatures/renewals"
+          title="We couldn't load renewals"
+          description="No reminders were changed. Try loading the renewal list again."
+        />
+      ) : (withExpiry ?? 0) === 0 ? (
         <EmptyState
           className="mt-8"
           icon={RefreshCw}

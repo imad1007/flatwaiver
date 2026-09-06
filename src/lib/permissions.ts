@@ -18,7 +18,7 @@ const RANK: Record<Role, number> = { viewer: 0, staff: 1, admin: 2, owner: 3 };
 export function normalizeRole(raw: string | null | undefined): Role {
   return raw === "owner" || raw === "admin" || raw === "staff" || raw === "viewer"
     ? raw
-    : "staff";
+    : "viewer";
 }
 
 /** True when `role` is at least as privileged as `min`. */
@@ -33,6 +33,10 @@ export function canManageTeam(role: Role): boolean {
 }
 /** Change the plan / open the billing portal. */
 export function canManageBilling(role: Role): boolean {
+  return roleAtLeast(role, "admin");
+}
+/** Change organization identity, logo, and signing-page colors. */
+export function canManageBranding(role: Role): boolean {
   return roleAtLeast(role, "admin");
 }
 /** Create, edit, publish, and archive waiver templates. */

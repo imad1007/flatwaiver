@@ -134,6 +134,13 @@ function ApiKeys({ apiBaseUrl, keys }: { apiBaseUrl: string; keys: KeyRow[] }) {
         . Base URL:{" "}
         <code className="rounded bg-muted px-1 py-0.5 text-xs">{apiBaseUrl}</code>
       </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Signature lists return up to 200 records with{" "}
+        <code className="rounded bg-muted px-1 py-0.5">has_more</code> and{" "}
+        <code className="rounded bg-muted px-1 py-0.5">next_cursor</code>. Pass the
+        returned value as <code className="rounded bg-muted px-1 py-0.5">?cursor=</code>
+        to continue without skipping records.
+      </p>
 
       <form onSubmit={create} className="mt-3 flex flex-wrap items-center gap-2">
         <input

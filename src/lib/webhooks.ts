@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertSafeWebhookUrl } from "@/lib/webhook-url";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -60,19 +61,25 @@ async function deliver(
   let error: string | null = null;
 
   try {
+    const safeUrl = await assertSafeWebhookUrl(ep.url);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
-    const res = await fetch(ep.url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-FlatWaiver-Event": event,
-        "X-FlatWaiver-Signature": `sha256=${signature}`,
-      },
-      body,
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
+    let res: Response;
+    try {
+      res = await fetch(safeUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-FlatWaiver-Event": event,
+          "X-FlatWaiver-Signature": `sha256=${signature}`,
+        },
+        body,
+        signal: controller.signal,
+        redirect: "manual",
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     statusCode = res.status;
     ok = res.ok;
   } catch (e) {

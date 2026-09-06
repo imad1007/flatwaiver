@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FileDownloadButton } from "@/components/file-download-button";
+import { DataLoadError } from "@/components/data-load-error";
 import type { SignedWaiver } from "@/lib/types";
 
 export default async function SignatureDetailPage({
@@ -13,15 +14,31 @@ export default async function SignatureDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data } = await supabase
+  const { data, error: signatureError } = await supabase
     .from("signed_waivers")
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  if (signatureError) {
+    console.error("Signature detail load failed", signatureError);
+    return (
+      <div className="mx-auto max-w-3xl">
+        <Link href="/signatures" className="text-sm text-muted-foreground hover:underline">
+          â† Signatures
+        </Link>
+        <DataLoadError
+          className="mt-4"
+          retryHref={`/signatures/${id}`}
+          title="We couldn't load this signed waiver"
+          description="The record is still safe. Try loading it again before assuming it is missing."
+        />
+      </div>
+    );
+  }
   if (!data) notFound();
   const sig = data as SignedWaiver;
 
-  const [{ data: template }, { data: version }] = await Promise.all([
+  const [templateResult, versionResult] = await Promise.all([
     supabase
       .from("waiver_templates")
       .select("name")
@@ -33,17 +50,28 @@ export default async function SignatureDetailPage({
       .eq("id", sig.template_version_id)
       .maybeSingle(),
   ]);
+  const template = templateResult.data;
+  const version = versionResult.data;
+  const evidenceMetadataError = Boolean(templateResult.error || versionResult.error);
+  if (evidenceMetadataError) {
+    console.error("Signature evidence metadata load failed", {
+      template: templateResult.error,
+      version: versionResult.error,
+    });
+  }
 
   const fieldEntries = Object.entries(sig.field_values ?? {});
 
   // Captured photo (if any) via a short-lived signed URL from the private bucket.
   let photoUrl: string | null = null;
+  let photoLoadFailed = false;
   if (sig.photo_path) {
     const admin = createAdminClient();
-    const { data: signed } = await admin.storage
+    const { data: signed, error } = await admin.storage
       .from("signatures")
       .createSignedUrl(sig.photo_path, 10 * 60);
     photoUrl = signed?.signedUrl ?? null;
+    photoLoadFailed = Boolean(error || !photoUrl);
   }
 
   return (
@@ -73,6 +101,15 @@ export default async function SignatureDetailPage({
           label="Download signed PDF"
         />
       </div>
+
+      {evidenceMetadataError && (
+        <DataLoadError
+          className="mt-4"
+          retryHref={`/signatures/${id}`}
+          title="Some waiver evidence details couldn't be loaded"
+          description="The signed PDF and record remain available. Reload before relying on the version details shown below."
+        />
+      )}
 
       {sig.flagged && (
         <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
@@ -122,6 +159,14 @@ export default async function SignatureDetailPage({
             className="mt-4 max-h-80 rounded-lg border border-border object-contain"
           />
         </section>
+      )}
+      {sig.photo_path && photoLoadFailed && (
+        <DataLoadError
+          className="mt-6"
+          retryHref={`/signatures/${id}`}
+          title="The captured photo couldn't be loaded"
+          description="The stored photo was not changed. Try requesting it again."
+        />
       )}
 
       {/* Audit block */}

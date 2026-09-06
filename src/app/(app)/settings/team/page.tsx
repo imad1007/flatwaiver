@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrgCaller } from "@/lib/auth";
 import { TeamManager } from "@/components/team-manager";
 import { AuditLog } from "@/components/audit-log";
+import { DataLoadError } from "@/components/data-load-error";
 import { canManageTeam, normalizeRole } from "@/lib/permissions";
 import type { AuditLogEntry } from "@/lib/types";
 
@@ -11,7 +12,7 @@ export default async function TeamPage() {
   if (!caller) redirect("/login");
 
   const admin = createAdminClient();
-  const [{ data: members }, { data: invites }, { data: log }] = await Promise.all([
+  const [membersResult, invitesResult, logResult] = await Promise.all([
     admin
       .from("profiles")
       .select("id, email, role, created_at")
@@ -30,6 +31,25 @@ export default async function TeamPage() {
       .order("created_at", { ascending: false })
       .limit(20),
   ]);
+  const loadFailed = Boolean(
+    membersResult.error ||
+      invitesResult.error ||
+      (canManageTeam(caller.role) && logResult.error)
+  );
+
+  if (loadFailed) {
+    return (
+      <DataLoadError
+        title="We couldn't load your team"
+        description="No team information was changed. Try loading this page again."
+        retryHref="/settings/team"
+      />
+    );
+  }
+
+  const members = membersResult.data;
+  const invites = invitesResult.data;
+  const log = logResult.data;
 
   return (
     <div className="space-y-8">

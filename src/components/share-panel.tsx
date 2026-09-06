@@ -120,10 +120,25 @@ function CopyRow({
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    toast.success(`${label} copied`);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        copyWithTextArea(value);
+      }
+      setCopied(true);
+      toast.success(`${label} copied`);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      try {
+        copyWithTextArea(value);
+        setCopied(true);
+        toast.success(`${label} copied`);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        toast.error(`Couldn't copy the ${label.toLowerCase()}. Select the link and copy it manually.`);
+      }
+    }
   }
 
   return (
@@ -141,6 +156,19 @@ function CopyRow({
       </Button>
     </div>
   );
+}
+
+function copyWithTextArea(value: string) {
+  const textArea = document.createElement("textarea");
+  textArea.value = value;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.appendChild(textArea);
+  textArea.select();
+  const copied = document.execCommand("copy");
+  textArea.remove();
+  if (!copied) throw new Error("Copy command failed");
 }
 
 /** Full share page panel (share route). */

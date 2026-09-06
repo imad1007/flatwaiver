@@ -23,11 +23,12 @@ export async function getOrgCaller(): Promise<OrgCaller | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("org_id, role, email")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+  if (profileError) throw new Error("Couldn't load your account. Please try again.");
   if (!profile) return null;
 
   return {
@@ -63,11 +64,12 @@ export async function getSessionContext(): Promise<SessionContext | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+  if (profileError) throw new Error("Couldn't load your account. Please try again.");
   if (!profile) return null;
 
   return { userId: user.id, email: user.email ?? profile.email, profile };
@@ -75,6 +77,7 @@ export async function getSessionContext(): Promise<SessionContext | null> {
 
 export async function getOrgSubscription(): Promise<Subscription | null> {
   const supabase = await createClient();
-  const { data } = await supabase.from("subscriptions").select("*").single();
+  const { data, error } = await supabase.from("subscriptions").select("*").maybeSingle();
+  if (error) throw new Error("Couldn't load your subscription. Please try again.");
   return data ?? null;
 }

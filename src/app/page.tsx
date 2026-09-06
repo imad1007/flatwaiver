@@ -32,6 +32,10 @@ import { Button } from "@/components/ui/button";
 import { formatPostDate } from "@/lib/blog";
 import { getAllBlogListItems, type BlogListItem } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
+import {
+  COMPETITOR_PRICING_VERIFIED_ON,
+  PUBLISHED_COMPETITOR_PRICING,
+} from "@/lib/competitor-pricing";
 
 // ISR so newly published posts flow into the homepage "Guides" section (and
 // their homepage backlink) without a redeploy.
@@ -51,17 +55,26 @@ const INDUSTRIES = [
 ];
 
 const STATS = [
-  { value: "$19", label: "per month. Flat, forever." },
+  { value: `$${APP.priceMonthlyUsd}`, label: "per month. Flat, forever." },
   { value: "∞", label: "waivers, templates & storage" },
   { value: "< 5 min", label: "from PDF to live signing link" },
   { value: "14 days", label: "free trial, no card required" },
 ];
 
 const COMPARISON = [
-  { name: "Smartwaiver", price: "$19–$155 by volume", thousand: 155, display: "$155/mo" },
-  { name: "WaiverForever", price: "$19.99–$129 by volume", thousand: 129, display: "$129/mo" },
-  { name: "WaiverFile", price: "$15–$199 by volume", thousand: 104, display: "~$104/mo" },
-  { name: APP.name, price: "$19 flat", thousand: 19, display: "$19/mo", us: true },
+  ...PUBLISHED_COMPETITOR_PRICING.map((competitor) => ({
+    name: competitor.name,
+    price: competitor.priceSummary,
+    display: competitor.thousandSummary,
+    us: false,
+  })),
+  {
+    name: APP.name,
+    price: `$${APP.priceMonthlyUsd} flat`,
+    thousand: APP.priceMonthlyUsd,
+    display: `$${APP.priceMonthlyUsd}/mo`,
+    us: true,
+  },
 ];
 
 const BENTO = [
@@ -107,7 +120,7 @@ const FAQS = [
   },
   {
     q: "Really unlimited?",
-    a: "Yes. Flat $19/month for unlimited signed waivers, templates, and storage. Fair-use applies only to abuse (e.g., automated spam).",
+    a: `Yes. Flat $${APP.priceMonthlyUsd}/month for unlimited signed waivers, templates, and storage. Fair-use applies only to abuse (e.g., automated spam).`,
   },
   {
     q: "What happens to my data if I cancel?",
@@ -290,7 +303,7 @@ function Hero() {
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Unlimited waivers.
             <br />
-            $19/month.{" "}
+            ${APP.priceMonthlyUsd}/month.{" "}
             <span className="relative whitespace-nowrap text-brand-600 dark:text-brand-300">
               Flat.
               <svg
@@ -458,8 +471,8 @@ function Comparison() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="The math"
-          title="Everyone else charges by volume. We don't."
-          sub="Drag the slider to your monthly volume and watch what everyone else charges:"
+          title="Flat pricing stays predictable as volume grows."
+          sub="Compare our flat price with published monthly plans that cover your waiver volume."
         />
 
         <div className="mt-12 grid items-end gap-10 lg:grid-cols-2">
@@ -496,9 +509,26 @@ function Comparison() {
                   ))}
                 </tbody>
               </table>
-              <p className="px-5 pb-4 pt-2 text-xs text-muted-foreground/70">
-                Competitor prices from public pricing pages, July 2026.
-              </p>
+              <div className="space-y-2 px-5 pb-4 pt-2 text-xs text-muted-foreground/70">
+                <p>
+                  Public monthly prices checked {COMPETITOR_PRICING_VERIFIED_ON}.
+                  Plans and features differ; taxes, discounts, add-ons, and
+                  overages are excluded.
+                </p>
+                <p className="flex flex-wrap gap-x-3 gap-y-1">
+                  {PUBLISHED_COMPETITOR_PRICING.map((competitor) => (
+                    <a
+                      key={competitor.name}
+                      href={competitor.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      {competitor.name} source
+                    </a>
+                  ))}
+                </p>
+              </div>
             </div>
           </Reveal>
         </div>
@@ -884,7 +914,7 @@ function FinalCta() {
       </div>
       <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
         <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          Unlimited waivers. $19/month. Flat.
+          Unlimited waivers. ${APP.priceMonthlyUsd}/month. Flat.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg text-brand-100/80">
           Your first waiver can be live before your coffee gets cold.

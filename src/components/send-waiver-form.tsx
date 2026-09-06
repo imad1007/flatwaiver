@@ -9,19 +9,23 @@ import { Button } from "@/components/ui/button";
 /** Share page: email a customer the signing link directly. */
 export function SendWaiverForm({ templateId }: { templateId: string }) {
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const to = email.trim();
     if (!to) return;
+    setError(null);
     startTransition(async () => {
       try {
         await sendSigningLink(templateId, to);
         toast.success(`Signing link sent to ${to}`);
         setEmail("");
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't send the email.");
+        const message = err instanceof Error ? err.message : "Couldn't send the email.";
+        setError(message);
+        toast.error(message);
       }
     });
   }
@@ -37,6 +41,7 @@ export function SendWaiverForm({ templateId }: { templateId: string }) {
         <input
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="customer@example.com"
@@ -48,6 +53,11 @@ export function SendWaiverForm({ templateId }: { templateId: string }) {
           {isPending ? "Sending…" : "Send link"}
         </Button>
       </form>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {error} Your email address is still here so you can try again.
+        </p>
+      )}
     </div>
   );
 }

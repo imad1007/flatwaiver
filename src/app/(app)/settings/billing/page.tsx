@@ -1,50 +1,46 @@
-import { createClient } from "@/lib/supabase/server";
-import { BillingButton } from "@/components/billing-buttons";
+import { redirect } from "next/navigation";
+import { BillingActivationNotice, BillingButton } from "@/components/billing-buttons";
+import { DataLoadError } from "@/components/data-load-error";
+import { getOrgCaller } from "@/lib/auth";
 import { APP } from "@/lib/config";
+import { creemConfigured } from "@/lib/creem";
 import { daysLeftUntil } from "@/lib/dates";
+import { canManageBilling } from "@/lib/permissions";
+import { createClient } from "@/lib/supabase/server";
 import type { Subscription } from "@/lib/types";
 
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    checkout?: string;
-    // Creem appends these to the success URL — for confirmation display only.
-    // Access is granted by the webhook, never by these params.
-    checkout_id?: string;
-    customer_id?: string;
-    subscription_id?: string;
-  }>;
+  searchParams: Promise<{ checkout?: string; checkout_id?: string }>;
 }) {
-  const { checkout, checkout_id } = await searchParams;
+  const { checkout, checkout_id: checkoutId } = await searchParams;
+  const caller = await getOrgCaller();
+  if (!caller) redirect("/login");
+
   const supabase = await createClient();
-  const { data } = await supabase.from("subscriptions").select("*").maybeSingle();
-  const sub = (data ?? null) as Subscription | null;
+  const { data, error } = await supabase.from("subscriptions").select("*").maybeSingle();
+  if (error || !data) return <DataLoadError retryHref="/settings/billing" />;
 
-  const status = sub?.status ?? "trialing";
-  const trialDaysLeft = sub?.trial_ends_at ? daysLeftUntil(sub.trial_ends_at) : 0;
-
-  // Server-side: is Creem wired up? Drives whether we show the subscribe button.
-  const billingConfigured = Boolean(
-    process.env.CREEM_API_KEY && process.env.CREEM_PRODUCT_ID
-  );
+  const sub = data as Subscription;
+  const status = sub.status;
+  const trialDaysLeft = sub.trial_ends_at ? daysLeftUntil(sub.trial_ends_at) : 0;
+  const canManage = canManageBilling(caller.role);
+  const checkoutConfigured = creemConfigured();
+  const portalEndpoint = sub.creem_customer_id
+    ? ("/api/creem/portal" as const)
+    : sub.stripe_customer_id && process.env.STRIPE_SECRET_KEY
+      ? ("/api/stripe/portal" as const)
+      : null;
 
   return (
     <div>
       {checkout === "success" && (
-        <div className="mt-4 rounded-md border border-success/30 bg-success/10 p-4 text-sm text-success">
-          Thanks — your subscription is being activated. (It may take a few
-          seconds to reflect here.)
-          {checkout_id && (
-            <span className="mt-1 block text-xs text-success/80">
-              Reference: {checkout_id}
-            </span>
-          )}
-        </div>
+        <BillingActivationNotice active={status === "active"} checkoutId={checkoutId} />
       )}
       {checkout === "canceled" && (
-        <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
-          Checkout canceled — no charge was made.
+        <div role="status" className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+          Checkout canceled—no charge was made.
         </div>
       )}
 
@@ -59,28 +55,19 @@ export default async function BillingPage({
         </p>
 
         <div className="mt-6">
-          {!billingConfigured && status !== "active" && (
+          {!checkoutConfigured && status !== "active" && canManage && (
             <p className="mb-4 text-sm text-muted-foreground">
-              Billing isn&apos;t configured yet (missing Creem keys). Your trial
-              keeps working in the meantime.
+              Billing is temporarily unavailable. Your trial keeps working in the meantime.
             </p>
           )}
 
           {status === "trialing" && (
             <>
               <p className="mb-4 text-sm">
-                You&apos;re on a free trial —{" "}
-                <strong>
-                  {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining
-                </strong>
-                . No card on file.
+                You&apos;re on a free trial—<strong>{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining</strong>. No card on file.
               </p>
-              {billingConfigured && (
-                <BillingButton
-                  endpoint="/api/creem/checkout"
-                  label={`Subscribe — $${APP.priceMonthlyUsd}/mo`}
-                  primary
-                />
+              {checkoutConfigured && canManage && (
+                <BillingButton endpoint="/api/creem/checkout" label={`Subscribe—$${APP.priceMonthlyUsd}/mo`} primary />
               )}
             </>
           )}
@@ -89,16 +76,15 @@ export default async function BillingPage({
             <>
               <p className="mb-4 text-sm">
                 Subscription <strong className="text-success">active</strong>
-                {sub?.current_period_end && (
-                  <>
-                    {" "}
-                    · renews {new Date(sub.current_period_end).toLocaleDateString()}
-                  </>
-                )}
-                .
+                {sub.current_period_end && <> · renews {new Date(sub.current_period_end).toLocaleDateString()}</>}.
               </p>
-              {sub?.creem_customer_id && (
-                <BillingButton endpoint="/api/creem/portal" label="Manage subscription" />
+              {portalEndpoint && canManage && (
+                <BillingButton endpoint={portalEndpoint} label="Manage subscription" />
+              )}
+              {!portalEndpoint && canManage && (
+                <p className="text-sm text-muted-foreground">
+                  The billing portal is temporarily unavailable. Your subscription remains active.
+                </p>
               )}
             </>
           )}
@@ -106,29 +92,23 @@ export default async function BillingPage({
           {(status === "past_due" || status === "canceled") && (
             <>
               <p className="mb-4 text-sm">
-                Your subscription is{" "}
-                <strong className="text-amber-700">
-                  {status === "past_due" ? "past due" : "canceled"}
-                </strong>
-                . New signatures are paused until billing is fixed.
+                Your subscription is <strong className="text-amber-700">{status === "past_due" ? "past due" : "canceled"}</strong>. New signatures are paused until billing is fixed.
               </p>
-              <div className="flex flex-wrap gap-3">
-                {sub?.creem_customer_id && (
-                  <BillingButton
-                    endpoint="/api/creem/portal"
-                    label="Fix billing"
-                    primary
-                  />
-                )}
-                {billingConfigured && (
-                  <BillingButton
-                    endpoint="/api/creem/checkout"
-                    label={`Resubscribe — $${APP.priceMonthlyUsd}/mo`}
-                    primary={!sub?.creem_customer_id}
-                  />
-                )}
-              </div>
+              {canManage && (
+                <div className="flex flex-wrap gap-3">
+                  {portalEndpoint && <BillingButton endpoint={portalEndpoint} label="Fix billing" primary />}
+                  {checkoutConfigured && (
+                    <BillingButton endpoint="/api/creem/checkout" label={`Resubscribe—$${APP.priceMonthlyUsd}/mo`} primary={!portalEndpoint} />
+                  )}
+                </div>
+              )}
             </>
+          )}
+
+          {!canManage && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Ask an account owner or admin to manage billing.
+            </p>
           )}
         </div>
       </section>

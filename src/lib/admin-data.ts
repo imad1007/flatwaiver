@@ -50,6 +50,15 @@ export interface AdminOverview {
   };
 }
 
+export interface AdminActivationFunnel {
+  ready: boolean;
+  totalOrgs: number;
+  publishedOrgs: number;
+  signedOrgs: number;
+  medianHoursToPublish: number | null;
+  medianHoursToSignature: number | null;
+}
+
 interface OverviewRow {
   org_id: string;
   name: string;
@@ -134,6 +143,41 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   stats.estMrrUsd = stats.active * APP.priceMonthlyUsd;
 
   return { ready: true, rows, stats };
+}
+
+export async function getAdminActivationFunnel(): Promise<AdminActivationFunnel> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("admin_activation_funnel")
+    .select("*")
+    .single();
+  if (error) {
+    if (isMissingTableError(error)) {
+      return {
+        ready: false,
+        totalOrgs: 0,
+        publishedOrgs: 0,
+        signedOrgs: 0,
+        medianHoursToPublish: null,
+        medianHoursToSignature: null,
+      };
+    }
+    throw error;
+  }
+  return {
+    ready: true,
+    totalOrgs: Number(data.total_orgs),
+    publishedOrgs: Number(data.published_orgs),
+    signedOrgs: Number(data.signed_orgs),
+    medianHoursToPublish:
+      data.median_hours_to_publish === null
+        ? null
+        : Number(data.median_hours_to_publish),
+    medianHoursToSignature:
+      data.median_hours_to_signature === null
+        ? null
+        : Number(data.median_hours_to_signature),
+  };
 }
 
 function emptyStats(): AdminOverview["stats"] {

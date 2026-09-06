@@ -22,10 +22,12 @@ const PRESET_COLORS = [
 export function BrandingForm({
   initialColor,
   logoUrl,
+  canEdit,
   className,
 }: {
   initialColor: string;
   logoUrl: string | null;
+  canEdit: boolean;
   className?: string;
 }) {
   const router = useRouter();
@@ -94,13 +96,14 @@ export function BrandingForm({
               type="file"
               name="logo"
               accept="image/png,image/jpeg,image/webp"
+              disabled={!canEdit}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 setLogoPreview(file ? URL.createObjectURL(file) : null);
               }}
               className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:border-ring"
             />
-            {logoUrl && (
+            {logoUrl && canEdit && (
               <button
                 type="button"
                 onClick={handleRemoveLogo}
@@ -125,6 +128,7 @@ export function BrandingForm({
             <button
               key={preset}
               type="button"
+              disabled={!canEdit}
               onClick={() => setColor(preset)}
               aria-label={`Use ${preset}`}
               className={cn(
@@ -137,6 +141,7 @@ export function BrandingForm({
           <input
             type="text"
             name="color"
+            readOnly={!canEdit}
             value={color}
             onChange={(e) => setColor(e.target.value)}
             placeholder="#4F46E5"
@@ -168,9 +173,15 @@ export function BrandingForm({
         </div>
       </section>
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Saving…" : "Save branding"}
-      </Button>
+      {canEdit ? (
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving…" : "Save branding"}
+        </Button>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Ask an account owner or admin to update branding.
+        </p>
+      )}
     </form>
   );
 }

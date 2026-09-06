@@ -1,37 +1,31 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgCaller } from "@/lib/auth";
 import { BrandingForm } from "@/components/branding-form";
+import { DataLoadError } from "@/components/data-load-error";
+import { canManageBranding } from "@/lib/permissions";
 import type { OrgBranding } from "@/lib/types";
 
 export default async function BrandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("org_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) redirect("/login");
+  const caller = await getOrgCaller();
+  if (!caller) redirect("/login");
 
   const admin = createAdminClient();
-  const { data: org } = await admin
+  const { data: org, error: orgError } = await admin
     .from("organizations")
     .select("branding")
-    .eq("id", profile.org_id)
+    .eq("id", caller.orgId)
     .single();
+  if (orgError || !org) return <DataLoadError retryHref="/settings/branding" />;
   const branding = (org?.branding as OrgBranding) ?? {};
 
   let logoUrl: string | null = null;
   if (branding.logo_path) {
-    const { data } = await admin.storage
+    const { data, error } = await admin.storage
       .from("uploads")
       .createSignedUrl(branding.logo_path, 10 * 60);
-    logoUrl = data?.signedUrl ?? null;
+    if (error || !data?.signedUrl) return <DataLoadError retryHref="/settings/branding" />;
+    logoUrl = data.signedUrl;
   }
 
   return (
@@ -45,6 +39,7 @@ export default async function BrandingPage() {
         className="mt-6"
         initialColor={branding.color ?? ""}
         logoUrl={logoUrl}
+        canEdit={canManageBranding(caller.role)}
       />
     </div>
   );

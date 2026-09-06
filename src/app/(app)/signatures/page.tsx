@@ -3,11 +3,14 @@ import { FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { DataLoadError } from "@/components/data-load-error";
+import { SignatureExportButtons } from "@/components/signature-export-buttons";
 
 const PAGE_SIZE = 50;
 
 interface SearchParams {
   q?: string;
+  email?: string;
   from?: string;
   to?: string;
   template?: string;
@@ -22,6 +25,7 @@ export default async function SignaturesPage({
 }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
+  const email = params.email?.trim() ?? "";
   const from = params.from ?? "";
   const to = params.to ?? "";
   const templateFilter = params.template ?? "";
@@ -30,7 +34,7 @@ export default async function SignaturesPage({
 
   const supabase = await createClient();
 
-  const { data: templates } = await supabase
+  const { data: templates, error: templatesError } = await supabase
     .from("waiver_templates")
     .select("id, name")
     .order("name");
@@ -45,23 +49,39 @@ export default async function SignaturesPage({
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   if (q) query = query.ilike("signer_name", `%${q}%`);
+  if (email) query = query.ilike("signer_email", `%${email}%`);
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
   if (templateFilter) query = query.eq("template_id", templateFilter);
   if (flaggedOnly) query = query.eq("flagged", true);
 
-  const { data: rows, count } = await query;
+  const { data: rows, count, error: signaturesError } = await query;
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const exportQuery = new URLSearchParams();
   if (q) exportQuery.set("q", q);
+  if (email) exportQuery.set("email", email);
   if (from) exportQuery.set("from", from);
   if (to) exportQuery.set("to", to);
   if (templateFilter) exportQuery.set("template", templateFilter);
   if (flaggedOnly) exportQuery.set("flagged", "1");
 
-  const hasFilters = Boolean(q || from || to || templateFilter || flaggedOnly);
+  const hasFilters = Boolean(q || email || from || to || templateFilter || flaggedOnly);
+
+  if (signaturesError || templatesError) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold">Signatures</h1>
+        <DataLoadError
+          className="mt-6"
+          retryHref="/signatures"
+          title="We couldn't load your signatures"
+          description="Your records are still safe. Try loading the list and waiver filters again."
+        />
+      </div>
+    );
+  }
 
   // Zero signatures ever (not just a filtered miss): a designed first-run
   // moment instead of an empty toolbar and table.
@@ -95,19 +115,7 @@ export default async function SignaturesPage({
           >
             Renewals
           </Link>
-          <a
-            href={`/api/signatures/export?${exportQuery.toString()}`}
-            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
-          >
-            Export CSV
-          </a>
-          <a
-            href={`/api/signatures/export-pdfs?${exportQuery.toString()}`}
-            title="Downloads every matching signed PDF in one ZIP (up to 500 per batch)"
-            className="rounded-md border border-input px-4 py-2 text-sm font-semibold hover:border-ring"
-          >
-            Download PDFs (ZIP)
-          </a>
+          <SignatureExportButtons query={exportQuery.toString()} />
         </div>
       </div>
 
@@ -122,6 +130,20 @@ export default async function SignaturesPage({
             name="q"
             defaultValue={q}
             placeholder="Search names…"
+            className="rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">
+            Signer email
+          </span>
+          <input
+            type="search"
+            inputMode="email"
+            name="email"
+            defaultValue={email}
+            placeholder="Search emailsâ€¦"
+            autoComplete="off"
             className="rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
           />
         </label>
@@ -174,7 +196,7 @@ export default async function SignaturesPage({
         >
           Filter
         </button>
-        {(q || from || to || templateFilter || flaggedOnly) && (
+        {(q || email || from || to || templateFilter || flaggedOnly) && (
           <Link href="/signatures" className="text-sm text-muted-foreground underline">
             Clear
           </Link>
@@ -186,7 +208,67 @@ export default async function SignaturesPage({
         {count ?? 0} signature{(count ?? 0) === 1 ? "" : "s"}
       </p>
 
-      <div className="mt-2 overflow-hidden rounded-xl border border-border">
+      {/* Mobile results: keep the key evidence scannable without squeezing a
+          six-column table into a phone viewport. */}
+      <div className="mt-2 space-y-3 md:hidden">
+        {(rows ?? []).length === 0 ? (
+          <div className="rounded-xl border border-border px-4 py-10 text-center text-sm text-muted-foreground/70">
+            No signatures match these filters.
+          </div>
+        ) : (
+          (rows ?? []).map((s) => (
+            <Link
+              key={s.id}
+              href={`/signatures/${s.id}`}
+              className={`block rounded-xl border p-4 transition-colors hover:border-ring ${
+                s.flagged
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : "border-border bg-card"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{s.signer_name}</p>
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                    {s.signer_email ?? "No email provided"}
+                  </p>
+                </div>
+                {s.flagged && (
+                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                    Flagged
+                  </span>
+                )}
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-3 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">Waiver</dt>
+                  <dd className="mt-0.5 truncate font-medium">
+                    {templateNames.get(s.template_id) ?? "Unknown waiver"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Signed</dt>
+                  <dd className="mt-0.5 font-medium">
+                    {new Date(s.signed_at).toLocaleString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Channel</dt>
+                  <dd className="mt-0.5 capitalize font-medium">{s.signing_channel}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Participant</dt>
+                  <dd className="mt-0.5 font-medium">
+                    {s.is_minor ? "Minor" : "Adult"}
+                  </dd>
+                </div>
+              </dl>
+            </Link>
+          ))
+        )}
+      </div>
+
+      <div className="mt-2 hidden overflow-hidden rounded-xl border border-border md:block">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border bg-muted/50 text-muted-foreground">
             <tr>
@@ -271,6 +353,7 @@ export default async function SignaturesPage({
 function buildPageHref(params: SearchParams, page: number): string {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
+  if (params.email) qs.set("email", params.email);
   if (params.from) qs.set("from", params.from);
   if (params.to) qs.set("to", params.to);
   if (params.template) qs.set("template", params.template);

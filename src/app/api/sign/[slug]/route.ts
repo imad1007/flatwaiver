@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
+import { getPublishedWaiverBySlug, PublicWaiverLoadError } from "@/lib/public-waiver";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { renderSignedPdf } from "@/lib/pdf/waiver-pdf";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/lib/email";
 import { dispatchWebhooks } from "@/lib/webhooks";
 import { APP } from "@/lib/config";
+import { isRealIsoDate } from "@/lib/signing-validation";
 import {
   evaluateFlags,
   medicalAnswerIsYes,
@@ -24,18 +25,25 @@ export const maxDuration = 60;
 
 const RATE_LIMIT_PER_MINUTE = 5;
 const MAX_SIGNATURE_BYTES = 1024 * 1024; // 1 MB per signature PNG
+const MAX_SIGNATURE_DATA_URL_LENGTH =
+  "data:image/png;base64,".length + Math.ceil(MAX_SIGNATURE_BYTES / 3) * 4;
 
 const basePayloadSchema = z.object({
+  submissionId: z.string().uuid().optional(),
   turnstileToken: z.string().min(1),
-  signerName: z.string().trim().min(2).max(200),
+  signerName: z.string().trim().min(1).max(200),
   isMinor: z.boolean(),
-  guardianName: z.string().trim().min(2).max(200).optional(),
+  guardianName: z.string().trim().min(1).max(200).optional(),
   guardianRelationship: z.string().trim().min(2).max(100).optional(),
   fieldValues: z.record(z.string(), z.union([z.string().max(2000), z.boolean()])),
-  signatureDataUrl: z.string().startsWith("data:image/png;base64,"),
+  signatureDataUrl: z
+    .string()
+    .startsWith("data:image/png;base64,")
+    .max(MAX_SIGNATURE_DATA_URL_LENGTH),
   guardianSignatureDataUrl: z
     .string()
     .startsWith("data:image/png;base64,")
+    .max(MAX_SIGNATURE_DATA_URL_LENGTH)
     .optional(),
   consentGiven: z.literal(true),
   channel: z.enum(["link", "kiosk", "qr"]),
@@ -90,21 +98,61 @@ export async function POST(
 
   const admin = createAdminClient();
 
+  // A client keeps one UUID across retries. If the first request committed but
+  // its response was lost, return that success instead of creating a second
+  // immutable record. Older clients remain supported through the optional ID.
+  if (payload.submissionId) {
+    const { data: existing, error: existingError } = await admin
+      .from("signed_waivers")
+      .select("template_id")
+      .eq("id", payload.submissionId)
+      .maybeSingle();
+    if (existingError) {
+      return jsonError("Couldn't verify submission status. Please try again.", 503);
+    }
+    if (existing) {
+      const { data: existingTemplate, error: templateLookupError } = await admin
+        .from("waiver_templates")
+        .select("slug")
+        .eq("id", existing.template_id)
+        .maybeSingle();
+      if (templateLookupError) {
+        return jsonError("Couldn't verify submission status. Please try again.", 503);
+      }
+      if (existingTemplate?.slug === slug) {
+        return NextResponse.json({ ok: true, duplicate: true });
+      }
+      return jsonError("Submission identifier conflict. Refresh and try again.", 409);
+    }
+  }
+
   // 2. Rate limit: max 5 submissions per IP per minute
   if (clientIp) {
     const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
-    const { count } = await admin
+    const { count, error: rateLimitError } = await admin
       .from("signed_waivers")
       .select("id", { count: "exact", head: true })
       .eq("ip", clientIp)
       .gte("signed_at", oneMinuteAgo);
+    if (rateLimitError) {
+      console.error("Signing rate-limit check failed", rateLimitError);
+      return jsonError("Couldn't verify submission limits. Please retry.", 503);
+    }
     if ((count ?? 0) >= RATE_LIMIT_PER_MINUTE) {
       return jsonError("Too many submissions. Please wait a minute.", 429);
     }
   }
 
   // 3. Resolve template — must be published; capture current version NOW.
-  const waiver = await getPublishedWaiverBySlug(slug);
+  let waiver;
+  try {
+    waiver = await getPublishedWaiverBySlug(slug);
+  } catch (error) {
+    if (error instanceof PublicWaiverLoadError) {
+      return jsonError("The waiver service is temporarily unavailable. Please try again.", 503);
+    }
+    throw error;
+  }
   if (!waiver) {
     return jsonError("This waiver is no longer available.", 404);
   }
@@ -137,6 +185,9 @@ export async function POST(
   if (waiver.photoMode === "required" && !payload.photoDataUrl) {
     return jsonError("A photo is required to sign this waiver.", 400);
   }
+  if (waiver.photoMode === "off" && payload.photoDataUrl) {
+    return jsonError("This waiver does not accept photo uploads.", 400);
+  }
 
   // Decode signature PNGs
   const signaturePng = decodePngDataUrl(payload.signatureDataUrl);
@@ -147,18 +198,26 @@ export async function POST(
   if (payload.guardianSignatureDataUrl && !guardianPng) {
     return jsonError("Invalid guardian signature image.", 400);
   }
+  const photoBuf = payload.photoDataUrl
+    ? decodeJpegDataUrl(payload.photoDataUrl)
+    : null;
+  if (payload.photoDataUrl && !photoBuf) {
+    return jsonError("Invalid photo image.", 400);
+  }
 
   const signedAt = new Date();
   const signedAtIso = signedAt.toISOString();
-  const recordId = crypto.randomUUID();
+  const recordId = payload.submissionId ?? crypto.randomUUID();
   const basePath = `${waiver.orgId}/${recordId}`;
 
   // 5. Upload signature PNG(s)
   const signaturePath = `${basePath}/signature.png`;
+  const uncommittedSignaturePaths: string[] = [];
   const { error: sigUploadError } = await admin.storage
     .from("signatures")
     .upload(signaturePath, signaturePng, { contentType: "image/png" });
   if (sigUploadError) return jsonError("Failed to store signature.", 500);
+  uncommittedSignaturePaths.push(signaturePath);
 
   let guardianSignaturePath: string | null = null;
   if (guardianPng) {
@@ -166,19 +225,25 @@ export async function POST(
     const { error } = await admin.storage
       .from("signatures")
       .upload(guardianSignaturePath, guardianPng, { contentType: "image/png" });
-    if (error) return jsonError("Failed to store guardian signature.", 500);
+    if (error) {
+      await cleanupUncommittedFiles(admin, uncommittedSignaturePaths);
+      return jsonError("Failed to store guardian signature.", 500);
+    }
+    uncommittedSignaturePaths.push(guardianSignaturePath);
   }
 
   // Optional captured photo/ID (private, org-prefixed, alongside the signature).
   let photoPath: string | null = null;
-  if (payload.photoDataUrl) {
-    const photoBuf = decodeJpegDataUrl(payload.photoDataUrl);
-    if (!photoBuf) return jsonError("Invalid photo image.", 400);
+  if (photoBuf) {
     photoPath = `${basePath}/photo.jpg`;
     const { error } = await admin.storage
       .from("signatures")
       .upload(photoPath, photoBuf, { contentType: "image/jpeg" });
-    if (error) return jsonError("Failed to store photo.", 500);
+    if (error) {
+      await cleanupUncommittedFiles(admin, uncommittedSignaturePaths);
+      return jsonError("Failed to store photo.", 500);
+    }
+    uncommittedSignaturePaths.push(photoPath);
   }
 
   // Derive email / DOB from field values by type
@@ -240,6 +305,7 @@ export async function POST(
     }));
   } catch (err) {
     console.error("PDF render failed", err);
+    await cleanupUncommittedFiles(admin, uncommittedSignaturePaths);
     return jsonError("Failed to generate the signed document.", 500);
   }
 
@@ -248,7 +314,10 @@ export async function POST(
   const { error: pdfUploadError } = await admin.storage
     .from("signed-pdfs")
     .upload(pdfPath, pdf, { contentType: "application/pdf" });
-  if (pdfUploadError) return jsonError("Failed to store signed document.", 500);
+  if (pdfUploadError) {
+    await cleanupUncommittedFiles(admin, uncommittedSignaturePaths);
+    return jsonError("Failed to store signed document.", 500);
+  }
 
   const flagged = evaluateFlags(version.fields, payload.fieldValues);
 
@@ -280,7 +349,36 @@ export async function POST(
   });
   if (insertError) {
     console.error("signed_waivers insert failed", insertError);
-    return jsonError("Failed to record the signature.", 500);
+
+    // The database may have committed even when the client reports an error
+    // (for example, if the response was lost). Reconcile by the idempotency ID
+    // before deciding these files are safe to remove.
+    const { data: reconciled, error: reconcileError } = await admin
+      .from("signed_waivers")
+      .select("org_id, template_id")
+      .eq("id", recordId)
+      .maybeSingle();
+
+    if (reconcileError) {
+      console.error("signed_waivers reconciliation failed", reconcileError);
+      return jsonError(
+        "Couldn't confirm whether the signature was recorded. Please retry.",
+        503
+      );
+    }
+    if (reconciled) {
+      if (
+        reconciled.org_id !== waiver.orgId ||
+        reconciled.template_id !== waiver.templateId
+      ) {
+        return jsonError("Submission identifier conflict. Refresh and try again.", 409);
+      }
+      // The append-only record exists, so its evidence must remain untouched.
+      // Continue with best-effort notifications and return success.
+    } else {
+      await cleanupUncommittedFiles(admin, uncommittedSignaturePaths, [pdfPath]);
+      return jsonError("Failed to record the signature.", 500);
+    }
   }
 
   // Outbound webhooks (best-effort; never fails the signature).
@@ -343,6 +441,35 @@ function nonEmptyString(v: string | boolean | undefined): string | null {
   return typeof v === "string" && v.trim() !== "" ? v.trim() : null;
 }
 
+/**
+ * Remove only artifacts created by the current request after proving its
+ * database row does not exist. Committed or uncertain evidence is never
+ * regenerated or cleaned up here.
+ */
+async function cleanupUncommittedFiles(
+  admin: ReturnType<typeof createAdminClient>,
+  signaturePaths: string[],
+  pdfPaths: string[] = []
+) {
+  const removals: PromiseLike<{ error: unknown }>[] = [];
+  if (signaturePaths.length > 0) {
+    removals.push(admin.storage.from("signatures").remove(signaturePaths));
+  }
+  if (pdfPaths.length > 0) {
+    removals.push(admin.storage.from("signed-pdfs").remove(pdfPaths));
+  }
+
+  const results = await Promise.allSettled(removals);
+  for (const result of results) {
+    if (result.status === "rejected" || result.value.error) {
+      console.error(
+        "Failed to clean up uncommitted signing artifacts",
+        result.status === "rejected" ? result.reason : result.value.error
+      );
+    }
+  }
+}
+
 /** Validate submitted values against the version's field definitions. */
 function validateFieldValues(
   fields: WaiverField[],
@@ -376,7 +503,7 @@ function validateFieldValues(
         break;
       case "date":
       case "date_of_birth":
-        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+        if (typeof value !== "string" || !isRealIsoDate(value))
           return `"${field.label}" must be a valid date.`;
         break;
       case "select":

@@ -13,9 +13,11 @@ const inputClass =
 export function AccountForm({
   email,
   orgName,
+  canEditBusiness,
 }: {
   email: string;
   orgName: string;
+  canEditBusiness: boolean;
 }) {
   const [name, setName] = useState(orgName);
   const [isPending, startTransition] = useTransition();
@@ -49,16 +51,21 @@ export function AccountForm({
       return;
     }
     setSavingPassword(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    setSavingPassword(false);
-    if (error) {
-      setPasswordError(error.message);
-      return;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setPasswordError(error.message);
+        return;
+      }
+      setPassword("");
+      setPasswordConfirm("");
+      toast.success("Password updated");
+    } catch {
+      setPasswordError("Couldn't update your password. Check your connection and try again.");
+    } finally {
+      setSavingPassword(false);
     }
-    setPassword("");
-    setPasswordConfirm("");
-    toast.success("Password updated");
   }
 
   return (
@@ -92,12 +99,20 @@ export function AccountForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Business name"
-            className={`${inputClass} min-w-56 flex-1`}
+            readOnly={!canEditBusiness}
+            className={`${inputClass} min-w-56 flex-1 read-only:bg-muted`}
           />
-          <Button type="submit" disabled={isPending || name.trim() === orgName}>
-            {isPending ? "Saving…" : "Save name"}
-          </Button>
+          {canEditBusiness && (
+            <Button type="submit" disabled={isPending || name.trim() === orgName}>
+              {isPending ? "Saving…" : "Save name"}
+            </Button>
+          )}
         </form>
+        {!canEditBusiness && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Ask an account owner or admin to change the business name.
+          </p>
+        )}
       </section>
 
       {/* Password */}

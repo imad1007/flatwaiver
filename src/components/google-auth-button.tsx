@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 /**
  * Google OAuth sign-in / sign-up. Redirects to Google, which returns to
@@ -12,9 +13,11 @@ import { createClient } from "@/lib/supabase/client";
 export function GoogleAuthButton({
   label = "Continue with Google",
   next = "/dashboard",
+  emailHint,
 }: {
   label?: string;
   next?: string;
+  emailHint?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,15 +25,21 @@ export function GoogleAuthButton({
   async function handleClick() {
     setBusy(true);
     setError(null);
-    const supabase = createClient();
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    if (oauthError) {
+    try {
+      const supabase = createClient();
+      const safeNext = safeInternalPath(next);
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+          queryParams: emailHint ? { login_hint: emailHint } : undefined,
+        },
+      });
+      if (!oauthError) return;
       setError(oauthError.message);
+    } catch {
+      setError("Could not connect to Google. Check your connection and try again.");
+    } finally {
       setBusy(false);
     }
     // On success the browser navigates to Google; no need to reset state.
@@ -47,7 +56,7 @@ export function GoogleAuthButton({
         <GoogleGlyph />
         {busy ? "Redirecting…" : label}
       </button>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const waiver = await getPublishedWaiverBySlug(slug);
+  const waiver = await getPublishedWaiverBySlug(slug).catch(() => null);
   return {
     title: waiver ? `${waiver.name} — Kiosk` : "Waiver not found",
     robots: { index: false },
@@ -22,19 +22,19 @@ export default async function KioskPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const waiver = await getPublishedWaiverBySlug(slug);
+  let waiver;
+  try {
+    waiver = await getPublishedWaiverBySlug(slug);
+  } catch {
+    return (
+      <KioskUnavailable message="The waiver service is temporarily unavailable. Check your connection and try again." retry />
+    );
+  }
 
   if (!waiver || !waiver.acceptingSignatures) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-2xl font-bold">Waiver unavailable</h1>
-        <p className="mt-3 max-w-md text-muted-foreground">
-          {!waiver
-            ? "This waiver link doesn't exist or is no longer active."
-            : "This business's waiver collection is paused."}
-        </p>
-      </main>
-    );
+    return <KioskUnavailable message={!waiver
+      ? "This waiver link doesn't exist or is no longer active."
+      : "This business's waiver collection is paused."} />;
   }
 
   const brandStyle = waiver.branding.color
@@ -69,6 +69,20 @@ export default async function KioskPage({
         photoMode={waiver.photoMode}
         kiosk
       />
+    </main>
+  );
+}
+
+function KioskUnavailable({ message, retry = false }: { message: string; retry?: boolean }) {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-2xl font-bold">Waiver unavailable</h1>
+      <p className="mt-3 max-w-md text-muted-foreground">{message}</p>
+      {retry && (
+        <a href="" className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+          Try again
+        </a>
+      )}
     </main>
   );
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { Creem } from "creem";
 import { APP } from "@/lib/config";
+import { billingOfferMismatches } from "@/lib/billing-offer";
 import type { SubscriptionStatus } from "@/lib/types";
 
 /**
@@ -28,8 +29,31 @@ function client(): Creem {
   });
 }
 
+export class CreemConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CreemConfigurationError";
+  }
+}
+
+async function assertCheckoutProductMatchesOffer(
+  creem: Creem,
+  productId: string
+): Promise<void> {
+  const product = await creem.products.get(productId);
+  const mismatches = billingOfferMismatches(product, APP.priceMonthlyUsd);
+
+  if (mismatches.length > 0) {
+    throw new CreemConfigurationError(
+      `CREEM_PRODUCT_ID ${productId} conflicts with the public offer: ${mismatches.join(
+        "; "
+      )}`
+    );
+  }
+}
+
 /**
- * Create a hosted checkout for the single $19/mo product and return its URL.
+ * Create a hosted checkout for the single flat-rate product and return its URL.
  * org_id rides along as checkout metadata so the webhook can map the resulting
  * subscription back to the org. Returns null if billing isn't configured.
  */
@@ -40,8 +64,11 @@ export async function createCreemCheckoutUrl(opts: {
   const productId = process.env.CREEM_PRODUCT_ID;
   if (!productId || !process.env.CREEM_API_KEY) return null;
 
+  const creem = client();
+  await assertCheckoutProductMatchesOffer(creem, productId);
+
   const successUrl = `${APP.url}/settings/billing?checkout=success`;
-  const checkout = await client().checkouts.create({
+  const checkout = await creem.checkouts.create({
     productId,
     successUrl,
     metadata: { org_id: opts.orgId },

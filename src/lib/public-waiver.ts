@@ -27,6 +27,13 @@ export interface PublicWaiver {
   acceptingSignatures: boolean;
 }
 
+export class PublicWaiverLoadError extends Error {
+  constructor() {
+    super("The waiver service is temporarily unavailable.");
+    this.name = "PublicWaiverLoadError";
+  }
+}
+
 /**
  * Resolve a public signing page by slug via the service role.
  * Only published templates with a current version resolve.
@@ -37,15 +44,16 @@ export async function getPublishedWaiverBySlug(
 ): Promise<PublicWaiver | null> {
   const admin = createAdminClient();
 
-  const { data: template } = await admin
+  const { data: template, error: templateError } = await admin
     .from("waiver_templates")
     .select("id, org_id, name, slug, status, current_version_id, photo_mode")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
+  if (templateError) throw new PublicWaiverLoadError();
   if (!template || !template.current_version_id) return null;
 
-  const [{ data: version }, { data: org }, { data: sub }] = await Promise.all([
+  const [versionResult, orgResult, subResult] = await Promise.all([
     admin
       .from("template_versions")
       .select("*")
@@ -62,7 +70,13 @@ export async function getPublishedWaiverBySlug(
       .eq("org_id", template.org_id)
       .maybeSingle(),
   ]);
-  if (!version) return null;
+  if (versionResult.error || orgResult.error || subResult.error) {
+    throw new PublicWaiverLoadError();
+  }
+  const version = versionResult.data;
+  const org = orgResult.data;
+  const sub = subResult.data;
+  if (!version || !org || !sub) throw new PublicWaiverLoadError();
 
   // Branding: validated color + signed logo URL (long enough for a slow read)
   const rawBranding = (org?.branding as OrgBranding | null) ?? {};
@@ -72,16 +86,17 @@ export async function getPublishedWaiverBySlug(
       : null;
   let logoUrl: string | null = null;
   if (rawBranding.logo_path) {
-    const { data } = await admin.storage
+    const { data, error } = await admin.storage
       .from("uploads")
       .createSignedUrl(rawBranding.logo_path, 60 * 60);
+    if (error) console.error("Public waiver logo URL failed", error);
     logoUrl = data?.signedUrl ?? null;
   }
 
   return {
     templateId: template.id,
     orgId: template.org_id,
-    orgName: org?.name ?? "",
+    orgName: org.name,
     name: template.name,
     slug: template.slug,
     version: version as TemplateVersion,

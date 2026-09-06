@@ -23,15 +23,16 @@ export function RenewalsTable({
   canManage: boolean;
 }) {
   return (
-    <div className="mt-6 overflow-hidden rounded-xl border border-border">
-      <table className="w-full text-left text-sm">
+    <div className="mt-6 overflow-x-auto rounded-xl border border-border overscroll-x-contain">
+      <table className="min-w-[720px] w-full text-left text-sm">
+        <caption className="sr-only">Signers whose waivers are expiring or expired</caption>
         <thead className="border-b border-border bg-muted/50 text-muted-foreground">
           <tr>
-            <th className="px-4 py-3 font-medium">Signer</th>
-            <th className="px-4 py-3 font-medium">Waiver</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Expires</th>
-            {canManage && <th className="px-4 py-3 font-medium">Reminder</th>}
+            <th scope="col" className="px-4 py-3 font-medium">Signer</th>
+            <th scope="col" className="px-4 py-3 font-medium">Waiver</th>
+            <th scope="col" className="px-4 py-3 font-medium">Status</th>
+            <th scope="col" className="px-4 py-3 font-medium">Expires</th>
+            {canManage && <th scope="col" className="px-4 py-3 font-medium">Reminder</th>}
           </tr>
         </thead>
         <tbody>
@@ -51,9 +52,13 @@ function Row({ row, canManage }: { row: RenewalRow; canManage: boolean }) {
   function send() {
     start(async () => {
       try {
-        await sendResignReminder(row.signedWaiverId);
+        const result = await sendResignReminder(row.signedWaiverId);
         setRemindedAt(new Date().toISOString());
-        toast.success(`Reminder sent to ${row.signerEmail}`);
+        if (result.duplicate) {
+          toast.info(`A reminder was already sent to ${row.signerEmail}`);
+        } else {
+          toast.success(`Reminder sent to ${row.signerEmail}`);
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Couldn't send the reminder.");
       }

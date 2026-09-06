@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CreditCard,
   FileSignature,
+  Headset,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -19,12 +20,13 @@ import {
   Sparkles,
   UserRound,
   Users,
+  Zap,
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 import { APP } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +38,10 @@ import {
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  NotificationsMenu,
+  type NotificationItem,
+} from "@/components/notifications-menu";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -72,12 +78,14 @@ export function AppShell({
   email,
   orgName,
   isAdmin = false,
+  notifications = [],
   banner,
   children,
 }: {
   email: string;
   orgName: string;
   isAdmin?: boolean;
+  notifications?: NotificationItem[];
   banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -257,8 +265,8 @@ export function AppShell({
               </SheetContent>
             </Sheet>
 
-            {/* Breadcrumbs */}
-            <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+            {/* Breadcrumbs (left) */}
+            <nav aria-label="Breadcrumb" className="min-w-0 shrink">
               <ol className="flex items-center gap-1.5 truncate text-sm">
                 {crumbs.map((crumb, i) => (
                   <li key={i} className="flex items-center gap-1.5">
@@ -277,12 +285,15 @@ export function AppShell({
               </ol>
             </nav>
 
+            {/* Trial / billing pill — centered in the nav on desktop */}
+            <div className="hidden min-w-0 flex-1 justify-center sm:flex">{banner}</div>
+
             {/* Right cluster */}
-            <div className="flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-0.5">
               {/* Search */}
               <button
                 onClick={() => setPaletteOpen(true)}
-                className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 hover:text-foreground sm:flex"
+                className="mr-1 hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/50 hover:text-foreground lg:flex"
               >
                 <Search className="size-3.5" />
                 Search…
@@ -290,28 +301,30 @@ export function AppShell({
                   ⌘K
                 </kbd>
               </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sm:hidden"
-                onClick={() => setPaletteOpen(true)}
-                aria-label="Search"
-              >
-                <Search className="size-4" />
-              </Button>
 
-              {/* Help */}
+              {/* Support */}
               <Link
                 href="/support"
-                aria-label="Help & support"
-                title="Help & support"
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon" }),
-                  "text-muted-foreground hover:text-foreground"
-                )}
+                aria-label="Support"
+                title="Support"
+                className="hidden size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:inline-flex"
               >
-                <LifeBuoy className="size-4.5" />
+                <Headset className="size-4.5" />
               </Link>
+
+              {/* Quick actions */}
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Quick actions"
+                title="Quick actions (⌘K)"
+                className="hidden size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:inline-flex"
+              >
+                <Zap className="size-4.5" />
+              </button>
+
+              {/* Notifications */}
+              <NotificationsMenu items={notifications} />
 
               {/* Theme */}
               <ThemeToggle />
@@ -328,7 +341,8 @@ export function AppShell({
               </DropdownMenu>
             </div>
           </div>
-          {banner}
+          {/* Trial / billing pill — below the bar on mobile */}
+          <div className="px-2 sm:hidden">{banner}</div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">

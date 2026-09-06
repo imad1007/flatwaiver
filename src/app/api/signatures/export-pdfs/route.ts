@@ -33,6 +33,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q")?.trim() ?? "";
+  const email = url.searchParams.get("email")?.trim() ?? "";
   const from = url.searchParams.get("from") ?? "";
   const to = url.searchParams.get("to") ?? "";
   const template = url.searchParams.get("template") ?? "";
@@ -45,6 +46,7 @@ export async function GET(request: Request) {
     .range(0, MAX_FILES); // one extra row to detect overflow
 
   if (q) query = query.ilike("signer_name", `%${q}%`);
+  if (email) query = query.ilike("signer_email", `%${email}%`);
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
   if (template) query = query.eq("template_id", template);
@@ -76,9 +78,21 @@ export async function GET(request: Request) {
   const usedNames = new Set<string>();
 
   for (const row of rows) {
-    if (!row.pdf_path.startsWith(`${profile.org_id}/`)) continue;
-    const { data: blob } = await admin.storage.from("signed-pdfs").download(row.pdf_path);
-    if (!blob) continue; // skip unfetchable files rather than failing the batch
+    if (!row.pdf_path.startsWith(`${profile.org_id}/`)) {
+      return NextResponse.json(
+        { error: "Could not assemble a complete PDF export. No archive was generated." },
+        { status: 500 }
+      );
+    }
+    const { data: blob, error: downloadError } = await admin.storage
+      .from("signed-pdfs")
+      .download(row.pdf_path);
+    if (downloadError || !blob) {
+      return NextResponse.json(
+        { error: "Could not assemble a complete PDF export. No archive was generated." },
+        { status: 500 }
+      );
+    }
 
     const date = row.signed_at.slice(0, 10);
     const safeName = row.signer_name.replace(/[^\p{L}\p{N} _.-]/gu, "").slice(0, 60).trim() || "signer";

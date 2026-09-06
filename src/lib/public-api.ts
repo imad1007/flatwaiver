@@ -26,3 +26,13 @@ export function shapeSignature(row: PublicSignatureRow) {
     signed_at: row.signed_at,
   };
 }
+
+export function shapeCursorPage<T extends { id: string }>(rows: T[], limit: number) {
+  const hasMore = rows.length > limit;
+  const data = hasMore ? rows.slice(0, limit) : rows;
+  return {
+    data,
+    hasMore,
+    nextCursor: hasMore ? data.at(-1)?.id ?? null : null,
+  };
+}

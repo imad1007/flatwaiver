@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ import {
 } from "@/app/(app)/waivers/actions";
 import { BlockView, FieldInput } from "@/components/waiver-render";
 import { ShareLinks } from "@/components/share-panel";
+import { FileDownloadButton } from "@/components/file-download-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -63,6 +64,8 @@ import {
   type WaiverTemplate,
 } from "@/lib/types";
 import { APP } from "@/lib/config";
+import { trackProductEvent } from "@/lib/product-analytics";
+import { draftContentSchema } from "@/lib/waiver-schema";
 
 type VersionSummary = Pick<
   TemplateVersion,
@@ -76,6 +79,12 @@ interface BlockItem {
 interface FieldItem {
   id: string;
   field: WaiverField;
+}
+
+interface DraftRecovery {
+  draft: DraftContent;
+  name: string;
+  savedAt: string;
 }
 
 const FIELD_TYPE_OPTIONS: { value: FieldType; label: string }[] = [
@@ -120,11 +129,94 @@ export function WaiverEditor({
   const [{ blocks, fields }, setItems] = useState(() => toItems(initial));
   const [consentText, setConsentText] = useState(initial.consent_text);
   const [minorMode, setMinorMode] = useState(initial.minor_mode);
-  const [warnings] = useState(initial.warnings ?? []);
+  const [warnings, setWarnings] = useState(initial.warnings ?? []);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [recovery, setRecovery] = useState<DraftRecovery | null>(null);
+  const recoveryChecked = useRef(false);
+  const recoveryKey = `flatwaiver:draft:${template.id}`;
+  const currentDraft = useMemo<DraftContent>(
+    () => ({
+      title: name.trim() || template.name,
+      blocks: blocks.map((b) => b.block),
+      fields: fields.map((f) => f.field),
+      consent_text: consentText,
+      minor_mode: minorMode,
+      warnings: warnings.length ? warnings : undefined,
+    }),
+    [blocks, consentText, fields, minorMode, name, template.name, warnings]
+  );
+  const currentFingerprint = JSON.stringify(currentDraft);
+  const [savedFingerprint, setSavedFingerprint] = useState(() =>
+    JSON.stringify({
+      ...initial,
+      title: template.name.trim() || initial.title,
+      warnings: warnings.length ? warnings : undefined,
+    })
+  );
+  const hasUnsavedChanges = currentFingerprint !== savedFingerprint;
+
+  useEffect(() => {
+    let timeout: number | undefined;
+    try {
+      const raw = window.sessionStorage.getItem(recoveryKey);
+      if (raw) {
+        const candidate = JSON.parse(raw) as Partial<DraftRecovery>;
+        const parsedDraft = draftContentSchema.safeParse(candidate.draft);
+        if (
+          parsedDraft.success &&
+          typeof candidate.name === "string" &&
+          typeof candidate.savedAt === "string" &&
+          JSON.stringify(parsedDraft.data) !== savedFingerprint
+        ) {
+          timeout = window.setTimeout(
+            () =>
+              setRecovery({
+                draft: parsedDraft.data,
+                name: candidate.name as string,
+                savedAt: candidate.savedAt as string,
+              }),
+            0,
+          );
+        } else {
+          window.sessionStorage.removeItem(recoveryKey);
+        }
+      }
+    } catch {
+      // Ignore malformed or unavailable tab storage.
+    } finally {
+      recoveryChecked.current = true;
+    }
+    return () => window.clearTimeout(timeout);
+  }, [recoveryKey, savedFingerprint]);
+
+  useEffect(() => {
+    if (!recoveryChecked.current || !hasUnsavedChanges) return;
+    const timeout = window.setTimeout(() => {
+      const backup: DraftRecovery = {
+        draft: currentDraft,
+        name,
+        savedAt: new Date().toISOString(),
+      };
+      try {
+        window.sessionStorage.setItem(recoveryKey, JSON.stringify(backup));
+      } catch {
+        // Server persistence remains available when tab storage is unavailable.
+      }
+    }, 400);
+    return () => window.clearTimeout(timeout);
+  }, [currentDraft, hasUnsavedChanges, name, recoveryKey]);
+
+  useEffect(() => {
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -136,20 +228,49 @@ export function WaiverEditor({
     setItems((s) => ({ ...s, fields: updater(s.fields) }));
 
   function buildDraft(): DraftContent {
-    return {
-      title: name.trim() || template.name,
-      blocks: blocks.map((b) => b.block),
-      fields: fields.map((f) => f.field),
-      consent_text: consentText,
-      minor_mode: minorMode,
-      warnings: warnings.length ? warnings : undefined,
-    };
+    return currentDraft;
+  }
+
+  function clearRecovery() {
+    try {
+      window.sessionStorage.removeItem(recoveryKey);
+    } catch {
+      // Nothing else is required when tab storage is unavailable.
+    }
+    setRecovery(null);
+  }
+
+  function restoreRecovery() {
+    if (!recovery) return;
+    setName(recovery.name);
+    setItems(toItems(recovery.draft));
+    setConsentText(recovery.draft.consent_text);
+    setMinorMode(recovery.draft.minor_mode);
+    setWarnings(recovery.draft.warnings ?? []);
+    setRecovery(null);
+    toast.success("Recovered your unsaved changes");
+  }
+
+  function confirmDiscard(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (
+      hasUnsavedChanges &&
+      !window.confirm("Leave without saving your changes?")
+    ) {
+      event.preventDefault();
+    }
   }
 
   function handleSave() {
     startTransition(async () => {
       try {
-        await saveDraft(template.id, buildDraft(), name);
+        const draft = buildDraft();
+        await saveDraft(template.id, draft, name);
+        setSavedFingerprint(JSON.stringify(draft));
+        clearRecovery();
+        trackProductEvent("waiver_draft_saved", {
+          block_count: draft.blocks.length,
+          field_count: draft.fields.length,
+        });
         toast.success("Draft saved");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Couldn't save the draft.");
@@ -160,7 +281,15 @@ export function WaiverEditor({
   function handlePublish() {
     startTransition(async () => {
       try {
-        const result = await publishTemplate(template.id, buildDraft(), name);
+        const draft = buildDraft();
+        const result = await publishTemplate(template.id, draft, name);
+        setSavedFingerprint(JSON.stringify(draft));
+        clearRecovery();
+        trackProductEvent("waiver_published", {
+          version_number: result.versionNumber,
+          block_count: draft.blocks.length,
+          field_count: draft.fields.length,
+        });
         setPublishOpen(false);
         setPublishedVersion(result.versionNumber);
         router.refresh();
@@ -204,6 +333,7 @@ export function WaiverEditor({
         <div className="min-w-0">
           <Link
             href="/waivers"
+            onClick={confirmDiscard}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3.5" />
@@ -224,7 +354,16 @@ export function WaiverEditor({
         </div>
         <div className="flex items-center gap-2">
           {template.status === "published" && (
-            <Button variant="ghost" size="sm" render={<Link href={`/waivers/${template.id}/share`} />}>
+            <Button
+              variant="ghost"
+              size="sm"
+              render={
+                <Link
+                  href={`/waivers/${template.id}/share`}
+                  onClick={confirmDiscard}
+                />
+              }
+            >
               Share
             </Button>
           )}
@@ -234,6 +373,28 @@ export function WaiverEditor({
           </Button>
         </div>
       </div>
+
+      {recovery && (
+        <div
+          role="status"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-info/30 bg-info/10 px-4 py-3"
+        >
+          <div>
+            <p className="text-sm font-semibold">Unsaved changes are available</p>
+            <p className="text-xs text-muted-foreground">
+              This tab kept a backup from {new Date(recovery.savedAt).toLocaleString()}.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={clearRecovery}>
+              Discard backup
+            </Button>
+            <Button size="sm" onClick={restoreRecovery}>
+              Restore changes
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Legal-responsibility disclaimer + conversion warnings */}
       <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-sm text-foreground/80">
@@ -252,6 +413,21 @@ export function WaiverEditor({
               <li key={i}>{w}</li>
             ))}
           </ul>
+        </div>
+      )}
+      {template.source_pdf_path && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold">Original source file</p>
+            <p className="text-xs text-muted-foreground">
+              Open the private upload while checking the converted or recovered draft.
+            </p>
+          </div>
+          <FileDownloadButton
+            bucket="uploads"
+            path={template.source_pdf_path}
+            label="Open original file"
+          />
         </div>
       )}
 
@@ -457,9 +633,17 @@ export function WaiverEditor({
                   variant="outline"
                   onClick={() =>
                     startTransition(async () => {
-                      await unarchiveTemplate(template.id);
-                      toast.success("Waiver restored");
-                      router.refresh();
+                      try {
+                        await unarchiveTemplate(template.id);
+                        toast.success("Waiver restored");
+                        router.refresh();
+                      } catch (error) {
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Couldn't restore the waiver. Please try again."
+                        );
+                      }
                     })
                   }
                   disabled={isPending}
@@ -482,9 +666,17 @@ export function WaiverEditor({
                       )
                     )
                       startTransition(async () => {
-                        await archiveTemplate(template.id);
-                        toast.success("Waiver archived");
-                        router.refresh();
+                        try {
+                          await archiveTemplate(template.id);
+                          toast.success("Waiver archived");
+                          router.refresh();
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : "Couldn't archive the waiver. Please try again."
+                          );
+                        }
                       });
                   }}
                   disabled={isPending}
@@ -547,10 +739,10 @@ export function WaiverEditor({
       {/* Sticky save bar */}
       <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            Unsaved changes apply on save.
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {hasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
           </p>
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button onClick={handleSave} disabled={isPending || !hasUnsavedChanges}>
             {isPending ? "Saving…" : "Save changes"}
           </Button>
         </div>

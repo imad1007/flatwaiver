@@ -18,6 +18,12 @@ function resendClient(): Resend | null {
   return key ? new Resend(key) : null;
 }
 
+function assertEmailAccepted(result: { error: { message: string } | null }): void {
+  if (result.error) {
+    throw new Error(`Email provider rejected the message: ${result.error.message}`);
+  }
+}
+
 /** Signer copy: link to their signed PDF (7-day signed URL). */
 export async function sendSignerCopyEmail(opts: {
   to: string;
@@ -29,7 +35,7 @@ export async function sendSignerCopyEmail(opts: {
   const resend = resendClient();
   if (!resend) return;
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
       subject: `Your signed waiver — ${opts.waiverName}`,
@@ -41,6 +47,7 @@ export async function sendSignerCopyEmail(opts: {
         <p>— ${APP.name}</p>
       `,
     });
+    assertEmailAccepted(result);
   } catch (err) {
     console.error("sendSignerCopyEmail failed", err);
   }
@@ -57,7 +64,7 @@ export async function sendOwnerNotificationEmail(opts: {
   const resend = resendClient();
   if (!resend) return;
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
       subject: `New signature: ${opts.signerName} — ${opts.waiverName}`,
@@ -67,6 +74,7 @@ export async function sendOwnerNotificationEmail(opts: {
         <p>— ${APP.name}</p>
       `,
     });
+    assertEmailAccepted(result);
   } catch (err) {
     console.error("sendOwnerNotificationEmail failed", err);
   }
@@ -80,13 +88,14 @@ export async function sendResignReminderEmail(opts: {
   orgName: string;
   signingUrl: string;
   expired: boolean;
+  idempotencyKey: string;
 }) {
   const resend = resendClient();
   if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
   const lead = opts.expired
     ? `your signed waiver has expired`
     : `your signed waiver is about to expire`;
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: FROM,
     to: opts.to,
     subject: `Time to renew your waiver — ${opts.waiverName}`,
@@ -98,7 +107,8 @@ export async function sendResignReminderEmail(opts: {
       on any phone or computer.</p>
       <p>— ${escapeHtml(opts.orgName)}, via ${APP.name}</p>
     `,
-  });
+  }, { idempotencyKey: opts.idempotencyKey });
+  assertEmailAccepted(result);
 }
 
 /** Team invite: an admin invites a teammate to join the org's account. */
@@ -111,7 +121,7 @@ export async function sendTeamInviteEmail(opts: {
 }) {
   const resend = resendClient();
   if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: FROM,
     to: opts.to,
     subject: `You're invited to ${opts.orgName} on ${APP.name}`,
@@ -127,6 +137,35 @@ export async function sendTeamInviteEmail(opts: {
       <p>— ${APP.name}</p>
     `,
   });
+  assertEmailAccepted(result);
+}
+
+/** Customer support request accepted by the email provider. */
+export async function sendSupportRequestEmail(opts: {
+  fromEmail: string;
+  name?: string;
+  topic: string;
+  message: string;
+  accountEmail?: string | null;
+}): Promise<string | null> {
+  const resend = resendClient();
+  if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
+  const result = await resend.emails.send({
+    from: FROM,
+    to: APP.supportEmail,
+    replyTo: opts.fromEmail,
+    subject: `[Support] ${opts.topic}`,
+    html: `
+      <p><strong>From:</strong> ${escapeHtml(opts.name || "Not provided")}
+      &lt;${escapeHtml(opts.fromEmail)}&gt;</p>
+      <p><strong>Topic:</strong> ${escapeHtml(opts.topic)}</p>
+      ${opts.accountEmail ? `<p><strong>Signed-in account:</strong> ${escapeHtml(opts.accountEmail)}</p>` : ""}
+      <hr />
+      <p>${escapeHtml(opts.message).replace(/\n/g, "<br />")}</p>
+    `,
+  });
+  assertEmailAccepted(result);
+  return result.data?.id ?? null;
 }
 
 /** Flagged-signature alert: a screening answer matched a configured flag. */
@@ -140,7 +179,7 @@ export async function sendFlaggedSignatureEmail(opts: {
   const resend = resendClient();
   if (!resend) return;
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
       subject: `⚠️ Flagged signature: ${opts.signerName} — ${opts.waiverName}`,
@@ -152,6 +191,7 @@ export async function sendFlaggedSignatureEmail(opts: {
         <p>— ${APP.name}</p>
       `,
     });
+    assertEmailAccepted(result);
   } catch (err) {
     console.error("sendFlaggedSignatureEmail failed", err);
   }
@@ -166,7 +206,7 @@ export async function sendSigningInviteEmail(opts: {
 }) {
   const resend = resendClient();
   if (!resend) throw new Error("Email isn't configured (missing RESEND_API_KEY).");
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: FROM,
     to: opts.to,
     subject: `${opts.orgName} needs your signature — ${opts.waiverName}`,
@@ -180,6 +220,7 @@ export async function sendSigningInviteEmail(opts: {
       <p>— ${escapeHtml(opts.orgName)}, via ${APP.name}</p>
     `,
   });
+  assertEmailAccepted(result);
 }
 
 function escapeHtml(s: string): string {

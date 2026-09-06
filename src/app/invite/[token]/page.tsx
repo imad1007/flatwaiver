@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { DataLoadError } from "@/components/data-load-error";
 import { ROLE_LABEL, normalizeRole } from "@/lib/permissions";
 
 export const runtime = "nodejs";
@@ -33,28 +34,28 @@ export default async function InvitePage({
   const { token } = await params;
   const admin = createAdminClient();
 
-  const { data: invite } = await admin
+  const { data: invite, error: inviteError } = await admin
     .from("invitations")
     .select("email, role, expires_at, accepted_at, org_id")
     .eq("token", token)
     .maybeSingle();
 
-  const org = invite
-    ? (
-        await admin
-          .from("organizations")
-          .select("name")
-          .eq("id", invite.org_id)
-          .single()
-      ).data
-    : null;
+  const orgResult = invite
+    ? await admin
+        .from("organizations")
+        .select("name")
+        .eq("id", invite.org_id)
+        .single()
+    : { data: null, error: null };
+  const org = orgResult.data;
+  const loadFailed = Boolean(inviteError || orgResult.error);
 
   const invalid =
     !invite || invite.accepted_at !== null || isPast(invite.expires_at);
 
   // If already signed in with the invited address, send them into the app —
   // bootstrap enrolls them in the org on the way to the dashboard.
-  if (invite && !invalid) {
+  if (!loadFailed && invite && !invalid) {
     const supabase = await createClient();
     const {
       data: { user },
@@ -70,7 +71,14 @@ export default async function InvitePage({
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
       <Logo className="mb-8" />
       <div className="rounded-2xl border border-border p-6">
-        {invalid ? (
+        {loadFailed ? (
+          <DataLoadError
+            title="We couldn't load this invitation"
+            description="The invitation was not changed. Check your connection and try again."
+            retryHref={next}
+            className="border-0 bg-transparent p-0"
+          />
+        ) : invalid ? (
           <>
             <h1 className="text-xl font-bold">This invitation isn&apos;t valid</h1>
             <p className="mt-2 text-sm text-muted-foreground">

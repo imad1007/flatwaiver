@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireOrgRole } from "@/lib/auth";
 import type { OrgBranding } from "@/lib/types";
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -13,37 +13,29 @@ const LOGO_TYPES: Record<string, string> = {
 };
 
 async function requireOrgId(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated.");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("org_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) throw new Error("No profile.");
-  return profile.org_id;
+  return (await requireOrgRole("admin")).orgId;
 }
 
 async function getBranding(orgId: string): Promise<OrgBranding> {
   const admin = createAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("organizations")
     .select("branding")
     .eq("id", orgId)
     .single();
+  if (error || !data) throw new Error("Couldn't load your branding. Please try again.");
   return (data?.branding as OrgBranding) ?? {};
 }
 
 async function saveBranding(orgId: string, branding: OrgBranding) {
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data, error } = await admin
     .from("organizations")
     .update({ branding })
-    .eq("id", orgId);
-  if (error) throw error;
+    .eq("id", orgId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) throw new Error("Couldn't save your branding. Please try again.");
   revalidatePath("/settings/branding");
 }
 
@@ -51,6 +43,8 @@ async function saveBranding(orgId: string, branding: OrgBranding) {
 export async function updateBranding(formData: FormData) {
   const orgId = await requireOrgId();
   const branding = await getBranding(orgId);
+  const previousLogoPath = branding.logo_path;
+  let uploadedLogoPath: string | null = null;
 
   // Color
   const rawColor = String(formData.get("color") ?? "").trim();
@@ -71,12 +65,7 @@ export async function updateBranding(formData: FormData) {
     if (file.size > MAX_LOGO_BYTES) throw new Error("Logo must be 2 MB or smaller.");
 
     const admin = createAdminClient();
-    const path = `${orgId}/branding/logo.${ext}`;
-
-    // Replace any previous logo with a different extension.
-    if (branding.logo_path && branding.logo_path !== path) {
-      await admin.storage.from("uploads").remove([branding.logo_path]);
-    }
+    const path = `${orgId}/branding/${crypto.randomUUID()}.${ext}`;
     const { error } = await admin.storage
       .from("uploads")
       .upload(path, Buffer.from(await file.arrayBuffer()), {
@@ -85,9 +74,26 @@ export async function updateBranding(formData: FormData) {
       });
     if (error) throw new Error("Logo upload failed.");
     branding.logo_path = path;
+    uploadedLogoPath = path;
   }
 
-  await saveBranding(orgId, branding);
+  try {
+    await saveBranding(orgId, branding);
+  } catch (error) {
+    if (uploadedLogoPath) {
+      await createAdminClient().storage.from("uploads").remove([uploadedLogoPath]);
+    }
+    throw error;
+  }
+
+  // The organization now points to the new asset. Old-file cleanup is safe to
+  // retry later and must not turn a successful branding update into failure.
+  if (uploadedLogoPath && previousLogoPath) {
+    const { error } = await createAdminClient().storage
+      .from("uploads")
+      .remove([previousLogoPath]);
+    if (error) console.error("Old branding logo cleanup failed", error);
+  }
 }
 
 /** Remove the uploaded logo. */
@@ -95,9 +101,11 @@ export async function removeLogo() {
   const orgId = await requireOrgId();
   const branding = await getBranding(orgId);
   if (branding.logo_path) {
-    const admin = createAdminClient();
-    await admin.storage.from("uploads").remove([branding.logo_path]);
+    const oldLogoPath = branding.logo_path;
     delete branding.logo_path;
     await saveBranding(orgId, branding);
+    const admin = createAdminClient();
+    const { error } = await admin.storage.from("uploads").remove([oldLogoPath]);
+    if (error) console.error("Removed branding logo cleanup failed", error);
   }
 }

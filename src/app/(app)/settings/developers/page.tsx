@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { DevelopersManager } from "@/components/developers-manager";
 import { roleAtLeast } from "@/lib/permissions";
 import { APP } from "@/lib/config";
+import { DataLoadError } from "@/components/data-load-error";
 
 export default async function DevelopersPage() {
   const caller = await getOrgCaller();
@@ -21,7 +22,7 @@ export default async function DevelopersPage() {
   }
 
   const admin = createAdminClient();
-  const [{ data: keys }, { data: webhooks }, { data: deliveries }] = await Promise.all([
+  const results = await Promise.all([
     admin
       .from("api_keys")
       .select("id, name, prefix, created_at, last_used_at, revoked_at")
@@ -40,6 +41,24 @@ export default async function DevelopersPage() {
       .order("created_at", { ascending: false })
       .limit(10),
   ]);
+  if (results.some((result) => result.error)) {
+    console.error(
+      "Developer settings load failed",
+      results.filter((result) => result.error).map((result) => result.error)
+    );
+    return (
+      <div>
+        <h1 className="text-2xl font-bold">Developers</h1>
+        <DataLoadError
+          className="mt-6"
+          retryHref="/settings/developers"
+          title="We couldn't load your integrations"
+          description="Your API keys and webhook settings were not changed. Try loading them again."
+        />
+      </div>
+    );
+  }
+  const [{ data: keys }, { data: webhooks }, { data: deliveries }] = results;
 
   return (
     <DevelopersManager

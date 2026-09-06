@@ -9,7 +9,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const waiver = await getPublishedWaiverBySlug(slug);
+  const waiver = await getPublishedWaiverBySlug(slug).catch(() => null);
   return {
     title: waiver ? `${waiver.name} — ${waiver.orgName}` : "Waiver not found",
     robots: { index: false },
@@ -25,7 +25,12 @@ export default async function PublicSigningPage({
 }) {
   const { slug } = await params;
   const { tag } = await searchParams;
-  const waiver = await getPublishedWaiverBySlug(slug);
+  let waiver;
+  try {
+    waiver = await getPublishedWaiverBySlug(slug);
+  } catch {
+    return <NotAvailable message="The waiver service is temporarily unavailable. Check your connection and try again." retry />;
+  }
 
   if (!waiver) {
     return (
@@ -80,11 +85,16 @@ export default async function PublicSigningPage({
   );
 }
 
-function NotAvailable({ message }: { message: string }) {
+function NotAvailable({ message, retry = false }: { message: string; retry?: boolean }) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <h1 className="text-2xl font-bold">Waiver unavailable</h1>
       <p className="mt-3 max-w-md text-muted-foreground">{message}</p>
+      {retry && (
+        <a href="" className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+          Try again
+        </a>
+      )}
     </main>
   );
 }

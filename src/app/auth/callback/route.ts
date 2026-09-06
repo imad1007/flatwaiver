@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
+import { safeInternalPath } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-/** PKCE code exchange target for magic links and email confirmations. */
+/** PKCE code exchange target for magic links, email confirmations, and OAuth. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/dashboard";
-  const safeNext = next.startsWith("/") ? next : "/dashboard";
+  const safeNext = safeInternalPath(url.searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

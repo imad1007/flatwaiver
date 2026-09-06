@@ -159,6 +159,7 @@ function MemberRow({
   currentRole: Role;
 }) {
   const [pending, start] = useTransition();
+  const [selectedRole, setSelectedRole] = useState(member.role);
   const manage = canManageTeam(currentRole);
   // A row is editable only if the caller can manage the team, it isn't the
   // owner, it isn't the caller's own row, and (for admin targets) the caller is
@@ -170,11 +171,15 @@ function MemberRow({
     (member.role !== "admin" || currentRole === "owner");
 
   function onRole(next: string) {
+    const nextRole = next as Role;
+    const previousRole = selectedRole;
+    setSelectedRole(nextRole);
     start(async () => {
       try {
-        await changeMemberRole(member.id, next);
+        await changeMemberRole(member.id, nextRole);
         toast.success("Role updated");
       } catch (err) {
+        setSelectedRole(previousRole);
         toast.error(err instanceof Error ? err.message : "Couldn't update the role.");
       }
     });
@@ -202,7 +207,7 @@ function MemberRow({
       <div className="flex items-center gap-2">
         {editable ? (
           <select
-            defaultValue={member.role}
+            value={selectedRole}
             onChange={(e) => onRole(e.target.value)}
             disabled={pending}
             aria-label={`Role for ${member.email}`}

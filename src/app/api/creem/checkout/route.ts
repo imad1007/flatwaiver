@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getOrgCaller } from "@/lib/auth";
 import { canManageBilling } from "@/lib/permissions";
-import { createCreemCheckoutUrl } from "@/lib/creem";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  createCreemCheckoutUrl,
+  CreemConfigurationError,
+} from "@/lib/creem";
 
 export const runtime = "nodejs";
 
@@ -11,7 +15,15 @@ export const runtime = "nodejs";
  * granted here — the webhook is the source of truth once payment completes.
  */
 export async function POST() {
-  const caller = await getOrgCaller();
+  let caller: Awaited<ReturnType<typeof getOrgCaller>>;
+  try {
+    caller = await getOrgCaller();
+  } catch {
+    return NextResponse.json(
+      { error: "We couldn't verify your account. Please try again." },
+      { status: 503 }
+    );
+  }
   if (!caller) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
@@ -22,10 +34,47 @@ export async function POST() {
     );
   }
 
-  const url = await createCreemCheckoutUrl({
-    orgId: caller.orgId,
-    email: caller.email ?? null,
-  });
+  const { data: subscription, error: subscriptionError } = await createAdminClient()
+    .from("subscriptions")
+    .select("status")
+    .eq("org_id", caller.orgId)
+    .maybeSingle();
+  if (subscriptionError || !subscription) {
+    return NextResponse.json(
+      { error: "We couldn't verify your subscription. Please try again." },
+      { status: 503 }
+    );
+  }
+  if (subscription.status === "active") {
+    return NextResponse.json(
+      { error: "Your subscription is already active." },
+      { status: 409 }
+    );
+  }
+
+  let url: string | null;
+  try {
+    url = await createCreemCheckoutUrl({
+      orgId: caller.orgId,
+      email: caller.email ?? null,
+    });
+  } catch (error) {
+    if (error instanceof CreemConfigurationError) {
+      console.error("Creem checkout configuration mismatch", error.message);
+      return NextResponse.json(
+        {
+          error:
+            "Checkout is temporarily unavailable because billing configuration needs attention.",
+        },
+        { status: 503 }
+      );
+    }
+    console.error("Creem checkout failed", error);
+    return NextResponse.json(
+      { error: "Checkout couldn't be started. Please try again." },
+      { status: 502 }
+    );
+  }
   if (!url) {
     return NextResponse.json(
       { error: "Billing isn't configured yet. Your trial keeps working." },

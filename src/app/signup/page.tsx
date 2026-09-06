@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { fireSignupConversion } from "@/components/signup-conversion";
 import { APP } from "@/lib/config";
 import { Logo } from "@/components/logo";
 import { AuthDivider, GoogleAuthButton } from "@/components/google-auth-button";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 const VOLUME_BANDS = ["<100", "100-300", "300-1000", "1000+"] as const;
 const VOLUME_LABELS: Record<string, string> = {
@@ -18,8 +19,20 @@ const VOLUME_LABELS: Record<string, string> = {
 };
 
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const next = safeInternalPath(searchParams.get("next"));
+  const invitedEmail = searchParams.get("email")?.trim() ?? "";
+  const isInviteSignup = next.startsWith("/invite/") && Boolean(invitedEmail);
+  const [email, setEmail] = useState(invitedEmail);
   const [password, setPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [volumeBand, setVolumeBand] = useState("");
@@ -30,39 +43,44 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!volumeBand) {
+    if (!isInviteSignup && !volumeBand) {
       setError("Please select your monthly waiver volume.");
       return;
     }
     setSubmitting(true);
 
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          business_name: businessName,
-          waiver_volume_band: volumeBand,
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            business_name: businessName,
+            waiver_volume_band: volumeBand,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
-    });
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
-      setSubmitting(false);
-      return;
-    }
+      if (signUpError) {
+        setError(signUpError.message);
+        setSubmitting(false);
+        return;
+      }
 
-    fireSignupConversion();
+      fireSignupConversion();
 
-    if (data.session) {
-      router.push("/dashboard");
-      router.refresh();
-    } else {
-      // Email confirmation required by project settings.
-      setConfirmEmailSent(true);
+      if (data.session) {
+        router.push(next);
+        router.refresh();
+      } else {
+        // Email confirmation required by project settings.
+        setConfirmEmailSent(true);
+        setSubmitting(false);
+      }
+    } catch {
+      setError("Could not create your account. Check your connection and try again.");
       setSubmitting(false);
     }
   }
@@ -73,7 +91,8 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold">Check your email</h1>
         <p className="mt-4 text-muted-foreground">
           We sent a confirmation link to <strong>{email}</strong>. Click it to
-          activate your account and start your free trial.
+          activate your account
+          {isInviteSignup ? " and join your team." : " and start your free trial."}
         </p>
       </AuthShell>
     );
@@ -81,25 +100,35 @@ export default function SignupPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-2xl font-bold">Start your free {APP.trialDays}-day trial</h1>
-      <p className="mt-2 text-sm text-muted-foreground">No credit card required.</p>
+      <h1 className="text-2xl font-bold">
+        {isInviteSignup ? "Join your team" : `Start your free ${APP.trialDays}-day trial`}
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {isInviteSignup ? `Create an account as ${invitedEmail}.` : "No credit card required."}
+      </p>
 
       <div className="mt-6">
-        <GoogleAuthButton label="Sign up with Google" />
+        <GoogleAuthButton
+          label={isInviteSignup ? "Join with Google" : "Sign up with Google"}
+          next={next}
+          emailHint={isInviteSignup ? invitedEmail : undefined}
+        />
       </div>
       <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Business name">
-          <input
-            type="text"
-            required
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            className={inputClass}
-            placeholder="Summit Climbing Gym"
-          />
-        </Field>
+        {!isInviteSignup && (
+          <>
+            <Field label="Business name">
+              <input
+                type="text"
+                required
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                className={inputClass}
+                placeholder="Summit Climbing Gym"
+              />
+            </Field>
 
         <Field label="How many waivers do you collect per month?">
           <select
@@ -117,15 +146,18 @@ export default function SignupPage() {
               </option>
             ))}
           </select>
-        </Field>
+            </Field>
+          </>
+        )}
 
         <Field label="Email">
           <input
             type="email"
             required
+            readOnly={isInviteSignup}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
+            className={`${inputClass} read-only:bg-muted`}
             placeholder="you@business.com"
           />
         </Field>
@@ -142,7 +174,7 @@ export default function SignupPage() {
           />
         </Field>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
         <button
           type="submit"
@@ -155,7 +187,10 @@ export default function SignupPage() {
 
       <p className="mt-6 text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="underline">
+        <Link
+          href={`/login?next=${encodeURIComponent(next)}`}
+          className="underline"
+        >
           Log in
         </Link>
       </p>

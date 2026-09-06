@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SignatureCanvas,
@@ -74,6 +74,20 @@ export function SigningForm(props: SigningFormProps) {
   const signatureRef = useRef<SignatureCanvasHandle>(null);
   const guardianSignatureRef = useRef<SignatureCanvasHandle>(null);
   const medicalDetailRef = useRef<HTMLTextAreaElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const submissionIdRef = useRef<string | null>(null);
+  const kioskResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
+
+  useEffect(
+    () => () => {
+      if (kioskResetTimerRef.current) clearTimeout(kioskResetTimerRef.current);
+    },
+    []
+  );
 
   // Medical-condition conditional: active only when this version defines both
   // the condition field and its detail field (see lib/types.ts).
@@ -86,6 +100,10 @@ export function SigningForm(props: SigningFormProps) {
     medicalConditional && medicalAnswerIsYes(fieldValues[MEDICAL_CONDITION_KEY]);
 
   function resetForm() {
+    if (kioskResetTimerRef.current) {
+      clearTimeout(kioskResetTimerRef.current);
+      kioskResetTimerRef.current = null;
+    }
     setFieldValues({});
     setIsMinor(false);
     setGuardianName("");
@@ -96,9 +114,16 @@ export function SigningForm(props: SigningFormProps) {
     setMedicalDetailError(false);
     setKioskDone(false);
     setPhotoDataUrl(null);
+    submissionIdRef.current = null;
     setTurnstileReset((n) => n + 1);
     setFormKey((k) => k + 1);
     window.scrollTo({ top: 0 });
+  }
+
+  function armKioskPrivacyReset(delayMs = 3 * 60 * 1000) {
+    if (!props.kiosk) return;
+    if (kioskResetTimerRef.current) clearTimeout(kioskResetTimerRef.current);
+    kioskResetTimerRef.current = setTimeout(resetForm, delayMs);
   }
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -116,6 +141,7 @@ export function SigningForm(props: SigningFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
 
     // Medical-condition conditional: "yes" requires the detail box; when the
@@ -136,7 +162,7 @@ export function SigningForm(props: SigningFormProps) {
 
     const signatureDataUrl = signatureRef.current?.getDataUrl() ?? null;
     if (!signatureDataUrl) {
-      setError("Please draw your signature (a quick scribble isn't enough).");
+      setError("Please draw or type your signature.");
       return;
     }
     let guardianSignatureDataUrl: string | null = null;
@@ -161,45 +187,56 @@ export function SigningForm(props: SigningFormProps) {
     }
 
     setSubmitting(true);
-    const res = await fetch(`/api/sign/${props.slug}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        turnstileToken,
-        signerName: signerName.trim(),
-        isMinor,
-        guardianName: isMinor ? guardianName.trim() : undefined,
-        guardianRelationship: isMinor ? guardianRelationship.trim() : undefined,
-        fieldValues: submittedValues,
-        signatureDataUrl,
-        guardianSignatureDataUrl: guardianSignatureDataUrl ?? undefined,
-        consentGiven,
-        channel: props.channel,
-        tag: props.tag,
-        photoDataUrl: photoDataUrl ?? undefined,
-      }),
-    });
+    submissionIdRef.current ??= crypto.randomUUID();
+    try {
+      const res = await fetch(`/api/sign/${props.slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId: submissionIdRef.current,
+          turnstileToken,
+          signerName: signerName.trim(),
+          isMinor,
+          guardianName: isMinor ? guardianName.trim() : undefined,
+          guardianRelationship: isMinor ? guardianRelationship.trim() : undefined,
+          fieldValues: submittedValues,
+          signatureDataUrl,
+          guardianSignatureDataUrl: guardianSignatureDataUrl ?? undefined,
+          consentGiven,
+          channel: props.channel,
+          tag: props.tag,
+          photoDataUrl: photoDataUrl ?? undefined,
+        }),
+      });
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Something went wrong. Please try again.");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Something went wrong. Please try again.");
+        setTurnstileToken("");
+        setTurnstileReset((n) => n + 1);
+        return;
+      }
+
+      if (props.kiosk) {
+        setKioskDone(true);
+        armKioskPrivacyReset(5000);
+      } else {
+        router.push(`/w/${props.slug}/done`);
+      }
+    } catch {
+      setError(
+        "We couldn't reach the signing service. Check your connection and try again; your entries are still here."
+      );
+      setTurnstileToken("");
       setTurnstileReset((n) => n + 1);
+    } finally {
       setSubmitting(false);
-      return;
-    }
-
-    if (props.kiosk) {
-      setSubmitting(false);
-      setKioskDone(true);
-      setTimeout(resetForm, 5000);
-    } else {
-      router.push(`/w/${props.slug}/done`);
     }
   }
 
   if (kioskDone) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <div aria-live="polite" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <div className="text-6xl text-success">✓</div>
         <h2 className="mt-4 text-3xl font-bold">You&apos;re all set!</h2>
         <p className="mt-2 text-lg text-muted-foreground">
@@ -213,7 +250,28 @@ export function SigningForm(props: SigningFormProps) {
   }
 
   return (
-    <form key={formKey} onSubmit={handleSubmit} className="space-y-8">
+    <form
+      key={formKey}
+      onSubmit={handleSubmit}
+      onInput={() => armKioskPrivacyReset()}
+      onPointerDown={() => armKioskPrivacyReset()}
+      autoComplete={props.kiosk ? "off" : undefined}
+      className="space-y-8"
+    >
+      {props.kiosk && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+          <p className="text-muted-foreground">
+            Shared device: entries clear after 3 minutes without activity.
+          </p>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="font-semibold text-foreground underline underline-offset-4"
+          >
+            Clear form
+          </button>
+        </div>
+      )}
       {/* Waiver text */}
       <div className="space-y-4 rounded-xl border border-border bg-card p-5 leading-relaxed">
         {props.blocks.map((block, i) => (
@@ -303,6 +361,7 @@ export function SigningForm(props: SigningFormProps) {
                 <input
                   type="text"
                   required
+                  autoComplete={props.kiosk ? "off" : "name"}
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
                   className={signerInputClass}
@@ -358,13 +417,13 @@ export function SigningForm(props: SigningFormProps) {
               </button>
             </div>
           ) : (
-            <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm font-medium hover:border-ring">
+            <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm font-medium hover:border-ring focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
               <input
                 type="file"
                 accept="image/*"
                 capture="environment"
                 onChange={handlePhotoChange}
-                className="hidden"
+                className="sr-only"
               />
               {photoBusy ? "Processing…" : "Take / upload photo"}
             </label>
@@ -397,7 +456,7 @@ export function SigningForm(props: SigningFormProps) {
             required
             value={signerName}
             onChange={(e) => setSignerName(e.target.value)}
-            autoComplete="name"
+            autoComplete={props.kiosk ? "off" : "name"}
             className={signerInputClass}
           />
         </label>
@@ -407,14 +466,23 @@ export function SigningForm(props: SigningFormProps) {
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </p>
+        <div
+          id="signing-error"
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          aria-live="assertive"
+          className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
+        >
+          <p className="font-medium">We couldn&apos;t submit this waiver</p>
+          <p className="mt-1">{error}</p>
+        </div>
       )}
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || photoBusy}
+        aria-describedby={error ? "signing-error" : undefined}
         className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : "Sign waiver"}
