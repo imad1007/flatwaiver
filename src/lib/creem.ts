@@ -4,18 +4,15 @@ import { Creem } from "creem";
 import { APP } from "@/lib/config";
 import { billingOfferMismatches } from "@/lib/billing-offer";
 import type { SubscriptionStatus } from "@/lib/types";
+import { CreemConfigurationError, resolveCreemServer } from "@/lib/creem-environment";
+export { CreemConfigurationError } from "@/lib/creem-environment";
 
 /**
  * Creem billing (the active provider; Paddle removed, Stripe dormant).
  * Server-only — CREEM_API_KEY must never reach the client. Test vs live is
- * driven by CREEM_SERVER: "prod" hits the live API, anything else stays on the
- * test sandbox (verified against the SDK's ServerList — the value is "prod",
- * not "live").
+ * CREEM_SERVER explicitly selects prod or test. Invalid settings fail before
+ * sending a request; live/production aliases are normalized for the SDK.
  */
-
-function creemServer(): "test" | "prod" {
-  return process.env.CREEM_SERVER === "prod" ? "prod" : "test";
-}
 
 /** True when the keys needed to run checkout exist. */
 export function creemConfigured(): boolean {
@@ -24,16 +21,10 @@ export function creemConfigured(): boolean {
 
 function client(): Creem {
   return new Creem({
-    apiKey: process.env.CREEM_API_KEY!,
-    server: creemServer(),
+    apiKey: process.env.CREEM_API_KEY!.trim(),
+    server: resolveCreemServer(process.env.CREEM_SERVER, process.env.CREEM_API_KEY!.trim()),
+    timeoutMs: 15_000,
   });
-}
-
-export class CreemConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "CreemConfigurationError";
-  }
 }
 
 async function assertCheckoutProductMatchesOffer(

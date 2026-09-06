@@ -28,7 +28,7 @@ export async function getOrgCaller(): Promise<OrgCaller | null> {
     .select("org_id, role, email")
     .eq("id", user.id)
     .maybeSingle();
-  if (profileError) throw new Error("Couldn't load your account. Please try again.");
+  if (profileError) throw new Error("Couldn't load your account. Please try again.", { cause: profileError });
   if (!profile) return null;
 
   return {

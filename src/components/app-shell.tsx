@@ -38,6 +38,8 @@ import {
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NavigationHint } from "@/components/navigation-hint";
+import { PageTransition } from "@/components/page-transition";
 import {
   NotificationsMenu,
   type NotificationItem,
@@ -194,6 +196,7 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
+              onNavigate={() => setNavOpenAt(null)}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
@@ -214,6 +217,7 @@ export function AppShell({
                 )}
               />
               {item.label}
+              <NavigationHint />
             </Link>
           );
         })}
@@ -333,7 +337,11 @@ export function AppShell({
               <ThemeToggle />
 
               {/* Account */}
-              <DropdownMenu>
+              <DropdownMenu onOpenChange={(open) => {
+                if (open) {
+                  ["/settings/account", "/settings/team", "/settings/billing"].forEach((href) => router.prefetch(href));
+                }
+              }}>
                 <DropdownMenuTrigger aria-label="Account menu" className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
                   <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
                     {initialsFromEmail(email)}
@@ -349,7 +357,7 @@ export function AppShell({
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
 

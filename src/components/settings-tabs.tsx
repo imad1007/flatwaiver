@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { NavigationHint } from "@/components/navigation-hint";
 
 const TABS = [
+  { href: "/settings/account", label: "Account" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/branding", label: "Branding" },
   { href: "/settings/developers", label: "Developers" },
@@ -30,13 +32,14 @@ export function SettingsTabs({ className }: { className?: string }) {
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px shrink-0 snap-start border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+              "-mb-px inline-flex shrink-0 snap-start items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
               active
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}
+            <NavigationHint />
           </Link>
         );
       })}

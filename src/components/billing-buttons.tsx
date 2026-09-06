@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 export function BillingActivationNotice({
   active,
@@ -54,6 +56,7 @@ export function BillingButton({
   const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -72,8 +75,9 @@ export function BillingButton({
   }
 
   return (
-    <span>
+    <div className="space-y-3">
       <button
+        type="button"
         onClick={handleClick}
         disabled={busy}
         className={
@@ -82,13 +86,14 @@ export function BillingButton({
             : "rounded-md border border-input px-6 py-3 font-semibold hover:border-ring disabled:opacity-50"
         }
       >
-        {busy ? "One moment…" : label}
+        {busy ? <span className="inline-flex items-center gap-2"><Loader2 aria-hidden className="size-4 motion-safe:animate-spin" />Opening secure checkout…</span> : label}
       </button>
       {error && (
-        <span role="alert" className="ml-3 text-sm text-destructive">
-          {error}
-        </span>
+        <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+          <p>{error}</p>
+          <Link href="/help" className="mt-1 inline-block font-medium underline underline-offset-2">Contact support</Link>
+        </div>
       )}
-    </span>
+    </div>
   );
 }
