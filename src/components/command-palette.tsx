@@ -9,6 +9,7 @@ import {
   FilePlus2,
   FileSignature,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Palette,
   Search,
@@ -77,6 +78,10 @@ export function CommandPalette({
         <CommandSeparator />
 
         <CommandGroup heading="Go to">
+          <CommandItem onSelect={() => go("/help")}>
+            <LifeBuoy className="size-4" />
+            Support and help
+          </CommandItem>
           <CommandItem onSelect={() => go("/dashboard")}>
             <LayoutDashboard className="size-4" />
             Dashboard

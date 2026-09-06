@@ -49,7 +49,7 @@ const NAV = [
   { href: "/waivers", label: "Waivers", icon: ClipboardList },
   { href: "/signatures", label: "Signatures", icon: FileSignature },
   { href: "/settings/branding", label: "Settings", icon: Settings },
-  { href: "/support", label: "Support", icon: LifeBuoy },
+  { href: "/help", label: "Support", icon: LifeBuoy },
 ];
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -62,6 +62,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   renewals: "Renewals",
   settings: "Settings",
   account: "Account",
+  help: "Support",
   team: "Team",
   branding: "Branding",
   developers: "Developers",
@@ -306,7 +307,7 @@ export function AppShell({
 
               {/* Support */}
               <Link
-                href="/support"
+                href="/help"
                 aria-label="Support"
                 title="Support"
                 className="hidden size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:inline-flex"

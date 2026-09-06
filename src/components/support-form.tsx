@@ -39,7 +39,7 @@ export function SupportForm({ defaultEmail = "" }: { defaultEmail?: string }) {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error || "We couldn't send your request.");
-      setReference(body?.reference);
+      setReference(body?.reference ?? null);
       form.reset();
     } catch (reason) {
       setError(
@@ -61,8 +61,9 @@ export function SupportForm({ defaultEmail = "" }: { defaultEmail?: string }) {
     return (
       <div role="status" className="rounded-xl border border-success/30 bg-success/10 p-5 text-sm">
         <h2 className="font-semibold text-success">Your request was received</h2>
-        <p className="mt-1 text-muted-foreground">We usually reply within one business day.</p>
+        <p className="mt-1 text-muted-foreground">We’ll reply to the email you provided. You can keep using the app.</p>
         {reference && <p className="mt-2 font-mono text-xs text-muted-foreground">Reference: {reference}</p>}
+        <button type="button" className="mt-4 font-medium text-primary underline" onClick={() => setReference(undefined)}>Send another request</button>
       </div>
     );
   }
@@ -74,7 +75,7 @@ export function SupportForm({ defaultEmail = "" }: { defaultEmail?: string }) {
         <label className="block"><span className="mb-1 block text-sm font-medium">Name <span className="text-muted-foreground">(optional)</span></span><input className={inputClass} name="name" maxLength={120} /></label>
       </div>
       <label className="block"><span className="mb-1 block text-sm font-medium">What can we help with?</span><select className={inputClass} name="topic">{SUPPORT_TOPICS.map((topic) => <option key={topic}>{topic}</option>)}</select></label>
-      <label className="block"><span className="mb-1 block text-sm font-medium">Message</span><textarea className={inputClass} name="message" required minLength={20} maxLength={4000} rows={6} /></label>
+      <label className="block"><span className="mb-1 block text-sm font-medium">Message</span><textarea className={inputClass} name="message" required minLength={20} maxLength={4000} rows={6} placeholder="What were you trying to do? What happened instead? Include any error message you saw." /></label>
       <label className="absolute -left-[10000px]" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       <p className="text-xs text-muted-foreground">For your privacy, don&apos;t include signatures, identity documents, medical details, passwords, or API keys.</p>
       <TurnstileWidget onToken={setToken} resetSignal={resetSignal} />

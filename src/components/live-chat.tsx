@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent } from "@/lib/consent";
 import { isSignerPage } from "@/lib/signer-pages";
+import { CHAT_REQUEST, publishChatStatus } from "@/lib/chat";
 
 /**
  * Tawk.to live chat. Injected client-side (like Tawk's own snippet) rather than
@@ -19,7 +20,14 @@ const PROD_HOSTS = new Set(["flatwaiver.com", "www.flatwaiver.com"]);
 
 declare global {
   interface Window {
-    Tawk_API?: Record<string, unknown>;
+    Tawk_API?: {
+      onLoad?: () => void;
+      onStatusChange?: (status: "online" | "away" | "offline") => void;
+      getStatus?: () => "online" | "away" | "offline";
+      maximize?: () => void;
+      showWidget?: () => void;
+      hideWidget?: () => void;
+    };
     Tawk_LoadStart?: Date;
   }
 }
@@ -29,27 +37,51 @@ export function LiveChat() {
   const consent = useConsent();
 
   useEffect(() => {
-    if (consent !== "granted") return; // chat is a third-party cookie-setter
-    if (isSignerPage(pathname)) return;
-    if (document.getElementById("tawk-to")) return; // already loaded this session
-
-    // The default widget loads only on the production host, so local and preview
-    // sessions don't show up as visitors (or ping you with test chats) in the
-    // dashboard. Setting NEXT_PUBLIC_TAWK_SRC forces it on in any environment.
-    const src =
-      OVERRIDE_SRC ||
-      (PROD_HOSTS.has(window.location.hostname) ? DEFAULT_SRC : null);
-    if (!src) return;
-
-    window.Tawk_API = window.Tawk_API || {};
-    window.Tawk_LoadStart = new Date();
-    const s = document.createElement("script");
-    s.id = "tawk-to";
-    s.async = true;
-    s.src = src;
-    s.charset = "UTF-8";
-    s.setAttribute("crossorigin", "*");
-    document.body.appendChild(s);
+    let pendingOpen = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const excluded = isSignerPage(pathname);
+    const api = window.Tawk_API = window.Tawk_API || {};
+    function ready() {
+      clearTimeout(timer);
+      publishChatStatus(api.getStatus?.() ?? "offline");
+      if (excluded) { api.hideWidget?.(); return; }
+      api.showWidget?.();
+      if (pendingOpen) { api.maximize?.(); pendingOpen = false; }
+    }
+    api.onLoad = ready;
+    api.onStatusChange = (status) => publishChatStatus(status);
+    function load(open: boolean) {
+      if (excluded) return;
+      pendingOpen = open;
+      if (api.getStatus && api.maximize) { ready(); return; }
+      const src = OVERRIDE_SRC || (PROD_HOSTS.has(window.location.hostname) ? DEFAULT_SRC : null);
+      if (!src) { publishChatStatus("unavailable"); return; }
+      publishChatStatus("loading");
+      clearTimeout(timer);
+      timer = setTimeout(() => { pendingOpen = false; publishChatStatus("unavailable"); }, 12_000);
+      if (document.getElementById("tawk-to")) return;
+      window.Tawk_LoadStart = new Date();
+      const s = document.createElement("script");
+      s.id = "tawk-to";
+      s.async = true;
+      s.src = src;
+      s.charset = "UTF-8";
+      s.setAttribute("crossorigin", "*");
+      s.onerror = () => { clearTimeout(timer); pendingOpen = false; s.remove(); publishChatStatus("unavailable"); };
+      document.body.appendChild(s);
+    }
+    // An explicit chat request enables only chat, without changing analytics consent.
+    const openChat = () => load(true);
+    window.addEventListener(CHAT_REQUEST, openChat);
+    if (excluded) api.hideWidget?.();
+    else if (api.getStatus) ready();
+    else if (consent === "granted") load(false);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener(CHAT_REQUEST, openChat);
+      api.onLoad = undefined;
+      api.onStatusChange = undefined;
+    };
   }, [pathname, consent]);
 
   return null;
