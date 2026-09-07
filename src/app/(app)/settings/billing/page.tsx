@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Check, ShieldCheck, Sparkles, ArrowUpRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { BillingActivationNotice, BillingButton } from "@/components/billing-buttons";
 import { DataLoadError } from "@/components/data-load-error";
@@ -33,38 +35,47 @@ export default async function BillingPage({
       ? ("/api/stripe/portal" as const)
       : null;
 
+  const pending = checkout === "success" && status !== "active";
+  const statusLabel = pending ? "Confirming payment" : status === "active" ? "Active" : status === "trialing" ? (trialDaysLeft > 0 ? "Free trial" : "Trial ended") : status === "past_due" ? "Payment overdue" : "Inactive";
+
   return (
-    <div>
+    <div className="space-y-6">
       {checkout === "success" && (
         <BillingActivationNotice active={status === "active"} checkoutId={checkoutId} />
       )}
       {checkout === "canceled" && (
         <div role="status" className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
-          Checkout canceled—no charge was made.
+          Checkout was canceled. You can return to your plan below.
         </div>
       )}
 
-      <section className="rounded-xl border border-border bg-card p-6 shadow-card">
-        <h2 className="font-bold">Plan</h2>
-        <p className="mt-2 text-3xl font-bold">
+      <section className="overflow-hidden rounded-2xl border border-primary/15 bg-card shadow-sm">
+        <div className="border-b border-primary/10 bg-primary/5 p-6 sm:p-8">
+        <div className="mb-5 flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-sm font-semibold text-primary"><Sparkles className="size-4" /> {APP.name}</span><span className="rounded-full border bg-background px-3 py-1 text-xs font-medium">{statusLabel}</span></div>
+        <h2 className="text-2xl font-semibold tracking-tight">One plan. Everything included.</h2>
+        <p className="mt-5 text-5xl font-semibold tracking-tight">
           ${APP.priceMonthlyUsd}
-          <span className="text-base font-normal text-muted-foreground">/month, flat</span>
+          <span className="text-base font-normal text-muted-foreground">/ month</span>
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           Unlimited signed waivers, templates, and storage.
         </p>
 
-        <div className="mt-6">
+        </div>
+        <div className="grid gap-3 border-b px-6 py-5 sm:grid-cols-2 sm:px-8">
+          {["Unlimited waivers & signatures", "QR codes & front-desk kiosk", "Signed PDF storage", "Search & export your records"].map((feature) => <p key={feature} className="flex items-center gap-2 text-sm"><Check className="size-4 shrink-0 text-primary" />{feature}</p>)}
+        </div>
+        <div className="p-6 sm:p-8">
           {!checkoutConfigured && status !== "active" && canManage && (
             <p className="mb-4 text-sm text-muted-foreground">
-              Billing is temporarily unavailable. Your trial keeps working in the meantime.
+              Billing is temporarily unavailable. Please contact support for help with your plan.
             </p>
           )}
 
-          {status === "trialing" && (
+          {status === "trialing" && !pending && (
             <>
               <p className="mb-4 text-sm">
-                You&apos;re on a free trial—<strong>{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining</strong>. No card on file.
+                {trialDaysLeft > 0 ? <>Your free trial has <strong>{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} remaining</strong>.</> : <>Your free trial has ended. Subscribe to keep collecting signatures.</>}
               </p>
               {checkoutConfigured && canManage && (
                 <BillingButton endpoint="/api/creem/checkout" label={`Subscribe—$${APP.priceMonthlyUsd}/mo`} primary />
@@ -89,7 +100,7 @@ export default async function BillingPage({
             </>
           )}
 
-          {(status === "past_due" || status === "canceled") && (
+          {!pending && (status === "past_due" || status === "canceled") && (
             <>
               <p className="mb-4 text-sm">
                 Your subscription is <strong className="text-amber-700">{status === "past_due" ? "past due" : "canceled"}</strong>. New signatures are paused until billing is fixed.
@@ -105,6 +116,7 @@ export default async function BillingPage({
             </>
           )}
 
+          {pending && <p className="text-sm text-muted-foreground">Your plan will update here once payment is confirmed. There is no need to subscribe again.</p>}
           {!canManage && (
             <p className="mt-4 text-sm text-muted-foreground">
               Ask an account owner or admin to manage billing.
@@ -113,14 +125,10 @@ export default async function BillingPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-card">
-        <h2 className="font-bold text-foreground">Your documents are never held hostage</h2>
-        <p className="mt-2">
-          Whatever happens with billing, you can always view, search, download,
-          and export every waiver you&apos;ve collected. A lapsed subscription only
-          pauses <em>new</em> signatures.
-        </p>
-      </section>
+      <div className="flex items-start gap-3 rounded-xl bg-muted/40 p-5">
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+        <div><h2 className="text-sm font-medium">Your records stay yours</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">View, search, and export existing signed waivers at any time, even after your subscription ends.</p><Link href="/signatures" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary">View your records<ArrowUpRight className="size-3.5" /></Link></div>
+      </div>
     </div>
   );
 }
