@@ -401,6 +401,7 @@ export async function POST(
     orgId: waiver.orgId,
     recordId,
     pdfPath,
+    pdf,
     signerEmail,
     signerName: payload.signerName,
     waiverName: waiver.name,
@@ -539,6 +540,7 @@ async function sendEmails(opts: {
   orgId: string;
   recordId: string;
   pdfPath: string;
+  pdf: Buffer;
   signerEmail: string | null;
   signerName: string;
   waiverName: string;
@@ -567,11 +569,12 @@ async function sendEmails(opts: {
 
     if (opts.flagged) {
       // Flagged: alert every owner + admin so a screening hit isn't missed.
-      const { data: staff } = await opts.admin
+      const { data: staff, error: staffError } = await opts.admin
         .from("profiles")
         .select("email")
         .eq("org_id", opts.orgId)
         .in("role", ["owner", "admin"]);
+      if (staffError) throw staffError;
       for (const person of staff ?? []) {
         if (person.email) {
           await sendFlaggedSignatureEmail({
@@ -580,25 +583,29 @@ async function sendEmails(opts: {
             waiverName: opts.waiverName,
             signedAtIso: opts.signedAtIso,
             detailUrl,
+            pdf: opts.pdf,
+            recordId: opts.recordId,
           });
         }
       }
     } else {
-      // Normal: notify the owner.
-      const { data: owner } = await opts.admin
+      // Normal: notify every owner in the signing organization.
+      const { data: owners, error: ownersError } = await opts.admin
         .from("profiles")
         .select("email")
         .eq("org_id", opts.orgId)
-        .eq("role", "owner")
-        .limit(1)
-        .maybeSingle();
-      if (owner?.email) {
+        .eq("role", "owner");
+      if (ownersError) throw ownersError;
+      for (const owner of owners ?? []) {
+        if (!owner.email) continue;
         await sendOwnerNotificationEmail({
           to: owner.email,
           signerName: opts.signerName,
           waiverName: opts.waiverName,
           signedAtIso: opts.signedAtIso,
           detailUrl,
+          pdf: opts.pdf,
+          recordId: opts.recordId,
         });
       }
     }

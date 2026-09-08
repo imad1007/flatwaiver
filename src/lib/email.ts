@@ -60,15 +60,22 @@ export async function sendOwnerNotificationEmail(opts: {
   waiverName: string;
   signedAtIso: string;
   detailUrl: string;
+  pdf: Buffer;
+  recordId: string;
 }) {
   const resend = resendClient();
-  if (!resend) return;
+  if (!resend) {
+    console.error("Signature notification not sent: RESEND_API_KEY is missing");
+    return;
+  }
   try {
     const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
       subject: `New signature: ${opts.signerName} — ${opts.waiverName}`,
+      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf }],
       html: `
+        <p>The signed waiver PDF is attached for your records.</p>
         <p><strong>${escapeHtml(opts.signerName)}</strong> signed <strong>${escapeHtml(opts.waiverName)}</strong> at ${opts.signedAtIso} (UTC).</p>
         <p><a href="${opts.detailUrl}">View the signature record</a></p>
         <p>— ${APP.name}</p>
@@ -175,15 +182,22 @@ export async function sendFlaggedSignatureEmail(opts: {
   waiverName: string;
   signedAtIso: string;
   detailUrl: string;
+  pdf: Buffer;
+  recordId: string;
 }) {
   const resend = resendClient();
-  if (!resend) return;
+  if (!resend) {
+    console.error("Signature notification not sent: RESEND_API_KEY is missing");
+    return;
+  }
   try {
     const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
       subject: `⚠️ Flagged signature: ${opts.signerName} — ${opts.waiverName}`,
+      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf }],
       html: `
+        <p>The signed waiver PDF is attached for your records.</p>
         <p><strong>${escapeHtml(opts.signerName)}</strong> signed
         <strong>${escapeHtml(opts.waiverName)}</strong> at ${opts.signedAtIso} (UTC),
         and one of their answers matched a flag you configured.</p>
