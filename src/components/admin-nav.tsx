@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, LayoutDashboard, LogOut, Newspaper, Users } from "lucide-react";
+import { ArrowUpRight, Bell, LayoutDashboard, LogOut, Newspaper, Users } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/customers", label: "Customers", icon: Users, exact: false },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell, exact: false },
   { href: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
 ];
 
@@ -48,6 +49,7 @@ export function AdminNav({ email }: { email: string }) {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-label={item.label}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   active

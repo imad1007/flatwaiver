@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,7 +17,7 @@ export interface NotificationItem {
   id: string;
   title: string;
   description?: string;
-  href: string;
+  href?: string;
 }
 
 /**
@@ -25,7 +26,23 @@ export interface NotificationItem {
  * server — it's absent when there's nothing to show, never decorative.
  */
 export function NotificationsMenu({ items }: { items: NotificationItem[] }) {
-  const count = items.length;
+  const [messages, setMessages] = useState<NotificationItem[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function refresh() {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store", signal: controller.signal });
+        if (!response.ok) return;
+        const body = await response.json();
+        if (!controller.signal.aborted) setMessages(body.notifications);
+      } catch { /* Keep existing messages during temporary network failures. */ }
+    }
+    void refresh();
+    const interval = window.setInterval(() => { void refresh(); }, 60_000);
+    return () => { controller.abort(); window.clearInterval(interval); };
+  }, []);
+  const allItems = [...items, ...messages];
+  const count = allItems.length;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -39,7 +56,7 @@ export function NotificationsMenu({ items }: { items: NotificationItem[] }) {
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Notifications</DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -48,7 +65,7 @@ export function NotificationsMenu({ items }: { items: NotificationItem[] }) {
               You&apos;re all caught up.
             </p>
           ) : (
-            items.map((n) => (
+            allItems.map((n) => n.href ? (
               <DropdownMenuItem
                 key={n.id}
                 render={<Link href={n.href} />}
@@ -59,6 +76,11 @@ export function NotificationsMenu({ items }: { items: NotificationItem[] }) {
                   <span className="text-xs text-muted-foreground">{n.description}</span>
                 )}
               </DropdownMenuItem>
+            ) : (
+              <div key={n.id} className="border-b px-2 py-3 last:border-0">
+                <p className="break-words text-sm font-medium">{n.title}</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground">{n.description}</p>
+              </div>
             ))
           )}
         </DropdownMenuGroup>
