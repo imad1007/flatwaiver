@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authDestination } from "@/lib/auth-destination";
+import { hasAppAccess, requiresAppAccess } from "@/lib/billing-access";
+import { isPlatformAdmin } from "@/lib/admin";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -60,6 +62,23 @@ export default async function proxy(request: NextRequest) {
     const redirectResponse = NextResponse.redirect(new URL(destination, url.origin));
     response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
     return redirectResponse;
+  }
+
+  // Run on each page request, including client navigation. Billing and provider
+  // endpoints remain reachable so an expired account can complete payment.
+  if (user && requiresAppAccess(pathname) && !isPlatformAdmin(user.email)) {
+    const { data: subscription, error } = await supabase
+      .from("subscriptions")
+      .select("status, trial_ends_at")
+      .maybeSingle();
+    if (error || !hasAppAccess(subscription)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/settings/billing";
+      url.search = "";
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+      return redirectResponse;
+    }
   }
 
   return response;

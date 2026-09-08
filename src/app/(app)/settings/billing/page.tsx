@@ -103,7 +103,7 @@ export default async function BillingPage({
           {!pending && (status === "past_due" || status === "canceled") && (
             <>
               <p className="mb-4 text-sm">
-                Your subscription is <strong className="text-amber-700">{status === "past_due" ? "past due" : "canceled"}</strong>. New signatures are paused until billing is fixed.
+                Your subscription is <strong className="text-amber-700">{status === "past_due" ? "past due" : "canceled"}</strong>. Subscribe to restore access to your workspace.
               </p>
               {canManage && (
                 <div className="flex flex-wrap gap-3">
@@ -127,7 +127,7 @@ export default async function BillingPage({
 
       <div className="flex items-start gap-3 rounded-xl bg-muted/40 p-5">
         <ShieldCheck className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-        <div><h2 className="text-sm font-medium">Your records stay yours</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">View, search, and export existing signed waivers at any time, even after your subscription ends.</p><Link href="/signatures" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary">View your records<ArrowUpRight className="size-3.5" /></Link></div>
+        <div><h2 className="text-sm font-medium">Your records stay yours</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Your signed waivers remain stored securely. An active subscription restores access to your workspace and records.</p>{status === "active" && <Link href="/signatures" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary">View your records<ArrowUpRight className="size-3.5" /></Link>}</div>
       </div>
     </div>
   );

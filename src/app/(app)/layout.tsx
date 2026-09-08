@@ -163,7 +163,7 @@ function TrialBanner({
           <strong className="font-semibold">
             {status === "past_due" ? "past due" : "inactive"}
           </strong>
-          . New signatures are paused — existing waivers stay accessible.
+          . Subscribe to restore access to your workspace.
         </span>
         <Link
           href="/settings/billing"
