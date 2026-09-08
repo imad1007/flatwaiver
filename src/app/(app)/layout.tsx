@@ -9,7 +9,8 @@ import { isPlatformAdmin } from "@/lib/admin";
 import { AppShell } from "@/components/app-shell";
 import type { NotificationItem } from "@/components/notifications-menu";
 import { APP } from "@/lib/config";
-import { businessNameMissing, subscriptionIsUsable } from "@/lib/types";
+import { businessNameMissing } from "@/lib/types";
+import { hasAppAccess } from "@/lib/billing-access";
 import { daysLeftUntil } from "@/lib/dates";
 
 /** ISO timestamp N days ago. Module scope so the impure time read stays out of render. */
@@ -98,6 +99,14 @@ export default async function AppLayout({
       });
     }
   }
+  if (!hasAppAccess(subscription) && subscription?.status !== "trialing") {
+    notifications.push({
+      id: "subscription-expired",
+      title: subscription?.status === "past_due" ? "Your subscription payment is overdue" : "Your subscription has ended",
+      description: "Renew your plan to restore access to your workspace.",
+      href: "/settings/billing",
+    });
+  }
   if ((flaggedCount ?? 0) > 0) {
     notifications.push({
       id: "flagged",
@@ -134,6 +143,15 @@ function TrialBanner({
 }) {
   if (status === "active") return null;
 
+  if (!hasAppAccess({ status: status ?? "", trial_ends_at: trialEndsAt })) {
+    return (
+      <TrialPill expired>
+        <strong>{status === "trialing" ? "Your free trial has ended." : status === "past_due" ? "Your subscription payment is overdue." : "Your subscription has ended."}</strong>
+        <Link href="/settings/billing" className="font-semibold underline underline-offset-2">{status === "trialing" ? `Subscribe for $${APP.priceMonthlyUsd}/mo` : "Renew subscription"}</Link>
+      </TrialPill>
+    );
+  }
+
   if (status === "trialing" && trialEndsAt) {
     const daysLeft = daysLeftUntil(trialEndsAt);
     return (
@@ -155,26 +173,6 @@ function TrialBanner({
     );
   }
 
-  if (!subscriptionIsUsable(status)) {
-    return (
-      <TrialPill>
-        <span>
-          Your subscription is{" "}
-          <strong className="font-semibold">
-            {status === "past_due" ? "past due" : "inactive"}
-          </strong>
-          . Subscribe to restore access to your workspace.
-        </span>
-        <Link
-          href="/settings/billing"
-          className="font-semibold underline underline-offset-2 hover:opacity-80"
-        >
-          Fix billing
-        </Link>
-      </TrialPill>
-    );
-  }
-
   return null;
 }
 
@@ -182,11 +180,11 @@ function TrialBanner({
  * Compact centered "reminder" pill (amber, warning icon, inline link) — the
  * shared shell for the trial / past-due notices.
  */
-function TrialPill({ children }: { children: React.ReactNode }) {
+function TrialPill({ children, expired = false }: { children: React.ReactNode; expired?: boolean }) {
   return (
     <div className="flex justify-center px-4 py-2.5">
-      <div className="inline-flex flex-nowrap items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-amber-300/70 bg-amber-50 px-4 py-1.5 text-center text-sm text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-        <AlertCircle className="size-4 shrink-0 text-amber-500" aria-hidden />
+      <div className={`inline-flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border px-4 py-2 text-center text-sm shadow-sm ${expired ? "border-red-300 bg-red-50 text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200" : "border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"}`}>
+        <AlertCircle className="size-4 shrink-0" aria-hidden />
         {children}
       </div>
     </div>

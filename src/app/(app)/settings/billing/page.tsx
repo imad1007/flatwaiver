@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BillingExpiryDialog } from "@/components/billing-expiry-dialog";
+import { hasAppAccess } from "@/lib/billing-access";
 import { Check, ShieldCheck, Sparkles, ArrowUpRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { BillingActivationNotice, BillingButton } from "@/components/billing-buttons";
@@ -40,6 +42,7 @@ export default async function BillingPage({
 
   return (
     <div className="space-y-6">
+      {!pending && !hasAppAccess(sub) && <BillingExpiryDialog canManage={canManage} title={status === "trialing" ? "Your free trial has ended" : status === "past_due" ? "Your subscription payment is overdue" : "Your subscription has ended"} />}
       {checkout === "success" && (
         <BillingActivationNotice active={status === "active"} checkoutId={checkoutId} />
       )}
