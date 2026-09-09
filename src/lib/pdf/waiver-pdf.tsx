@@ -62,38 +62,22 @@ export async function renderSignedPdf(
 }
 
 const styles = StyleSheet.create({
-  page: {
-    padding: 48,
-    fontSize: 10,
-    fontFamily: "Helvetica",
-    lineHeight: 1.5,
-    color: "#111111",
-  },
-  orgName: { fontSize: 9, color: "#666666", marginBottom: 2 },
-  title: { fontSize: 16, fontFamily: "Helvetica-Bold", marginBottom: 12 },
-  heading: { fontSize: 12, fontFamily: "Helvetica-Bold", marginTop: 10, marginBottom: 4 },
-  paragraph: { marginBottom: 6 },
-  listItem: { marginBottom: 2, marginLeft: 10 },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 16,
-    marginBottom: 6,
-    borderBottom: "1 solid #999999",
-    paddingBottom: 2,
-  },
-  row: { flexDirection: "row", marginBottom: 3 },
-  label: { width: 170, color: "#555555" },
-  value: { flex: 1 },
-  signatureImage: { width: 220, height: 80, objectFit: "contain" },
-  evidenceFooter: {
-    marginTop: 18,
-    paddingTop: 8,
-    borderTop: "1 solid #999999",
-    fontSize: 8,
-    color: "#444444",
-  },
-  mono: { fontFamily: "Courier", fontSize: 8 },
+  page: { paddingTop: 42, paddingHorizontal: 48, paddingBottom: 64, fontSize: 10, fontFamily: "Helvetica", lineHeight: 1.55, color: "#243044" },
+  orgName: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#475569", marginBottom: 8 },
+  title: { fontSize: 24, lineHeight: 1.2, fontFamily: "Helvetica-Bold", marginBottom: 12, color: "#172033" },
+  heading: { fontSize: 12, fontFamily: "Helvetica-Bold", marginTop: 14, marginBottom: 5, color: "#172033" },
+  paragraph: { marginBottom: 8 },
+  listItem: { marginBottom: 4, marginLeft: 12 },
+  sectionTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#dce2eb", paddingBottom: 6, color: "#172033" },
+  row: { flexDirection: "row", paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: "#edf0f5" },
+  label: { width: 150, paddingRight: 14, color: "#64748b", fontSize: 9 },
+  value: { flex: 1, fontSize: 10 },
+  signatureImage: { width: 220, height: 60, objectFit: "contain", objectPosition: "left", marginTop: 8 },
+  signatureCard: { marginTop: 14, padding: 12, backgroundColor: "#f7f9fc", borderWidth: 1, borderColor: "#e1e7ef", borderRadius: 6 },
+  evidenceFooter: { marginTop: 14, padding: 12, backgroundColor: "#f7f9fc", borderWidth: 1, borderColor: "#e1e7ef", borderRadius: 6, fontSize: 8, color: "#536176" },
+  mono: { fontFamily: "Courier", fontSize: 8, lineHeight: 1.6 },
+  meta: { fontSize: 8, color: "#64748b", marginBottom: 20, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: "#4f46e5" },
+  footer: { position: "absolute", top: 744, height: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#dce2eb", fontSize: 8, color: "#64748b" },
 });
 
 function WaiverPdf({
@@ -132,10 +116,12 @@ function WaiverPdf({
           {input.waiverName}
         </Text>
 
+        <Text style={styles.meta}>SIGNED WAIVER  |  Version {input.versionNumber}  |  {displayDate(input.signedAtIso)}</Text>
+
         {input.blocks.map((block, i) => {
           if (block.type === "heading") {
             return (
-              <Text key={i} style={styles.heading}>
+              <Text key={i} style={styles.heading} minPresenceAhead={36}>
                 {block.text}
               </Text>
             );
@@ -158,9 +144,18 @@ function WaiverPdf({
           );
         })}
 
+        <View style={styles.footer} fixed><Text>Signed waiver / Electronic signature record</Text></View>
+    <Text fixed style={{ position: "absolute", top: 750, left: 470, fontSize: 8, color: "#64748b", lineHeight: 1 }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+      </Page>
+
+      <Page size="LETTER" style={styles.page}>
+        <Text style={styles.orgName}>{input.orgName}</Text>
+        <Text style={styles.title}>Signing record</Text>
+        <Text style={styles.meta}>{input.waiverName}  |  Version {input.versionNumber}</Text>
+
         {filledFields.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Signer information</Text>
+            <Text style={styles.sectionTitle} minPresenceAhead={48}>Signer information</Text>
             {filledFields.map((f) => (
               <View key={f.key} style={styles.row}>
                 <Text style={styles.label}>{f.label}</Text>
@@ -176,8 +171,8 @@ function WaiverPdf({
             the name/email/timestamp rows, and the signature image never split
             across a page break. If it doesn't fit in the space left on the
             current page, the entire block moves to the next page intact. */}
-        <View wrap={false}>
-          <Text style={styles.sectionTitle}>Signature</Text>
+        <View wrap={false} style={styles.signatureCard}>
+          <Text style={{ ...styles.heading, marginTop: 0 }}>Participant signature</Text>
           <View style={styles.row}>
             <Text style={styles.label}>Full legal name</Text>
             <Text style={styles.value}>{input.signerName}</Text>
@@ -190,15 +185,15 @@ function WaiverPdf({
           )}
           <View style={styles.row}>
             <Text style={styles.label}>Signed at (UTC)</Text>
-            <Text style={styles.value}>{input.signedAtIso}</Text>
+            <Text style={styles.value}>{displayDate(input.signedAtIso)}</Text>
           </View>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={input.signatureDataUrl} style={styles.signatureImage} />
         </View>
 
         {input.isMinor && (
-          <View wrap={false}>
-            <Text style={styles.sectionTitle}>Parent / guardian</Text>
+          <View wrap={false} style={styles.signatureCard}>
+            <Text style={{ ...styles.heading, marginTop: 0 }}>Parent / guardian signature</Text>
             <View style={styles.row}>
               <Text style={styles.label}>Guardian name</Text>
               <Text style={styles.value}>{input.guardianName ?? ""}</Text>
@@ -216,11 +211,15 @@ function WaiverPdf({
             )}
           </View>
         )}
+        <View style={styles.footer} fixed><Text>Signed waiver / Electronic signature record</Text></View>
+    <Text fixed style={{ position: "absolute", top: 750, left: 470, fontSize: 8, color: "#64748b", lineHeight: 1 }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
       </Page>
 
       {/* Evidence page */}
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.title}>Signature Evidence Record</Text>
+        <Text style={styles.orgName}>{input.orgName}</Text>
+        <Text style={styles.title}>Signature evidence record</Text>
+        <Text style={styles.meta}>AUDIT RECORD  |  Version {input.versionNumber}</Text>
 
         <EvidenceRow label="Signer name" value={input.signerName} />
         <EvidenceRow label="Signer email" value={input.signerEmail ?? "—"} />
@@ -253,10 +252,11 @@ function WaiverPdf({
           &ldquo;{input.consentText}&rdquo;
         </Text>
 
-        <View style={styles.evidenceFooter}>
-          <Text>Integrity hash of this document as stored:</Text>
+        <View style={styles.evidenceFooter} wrap={false}>
+          <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 5 }}>Document integrity / SHA-256</Text>
+          <Text>Pre-stamp document hash:</Text>
           <Text style={styles.mono}>
-            {stampedHash ?? "________________________________________________________________"}
+            {wrapHash(stampedHash ?? "________________________________________________________________")}
           </Text>
           <Text style={{ marginTop: 6 }}>
             This SHA-256 hash was computed over the rendered document and stamped
@@ -265,6 +265,8 @@ function WaiverPdf({
             this file and compare it with the database record to verify integrity.
           </Text>
         </View>
+        <View style={styles.footer} fixed><Text>Signed waiver / Electronic signature record</Text></View>
+    <Text fixed style={{ position: "absolute", top: 750, left: 470, fontSize: 8, color: "#64748b", lineHeight: 1 }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
       </Page>
     </Document>
   );
@@ -280,10 +282,10 @@ function EvidenceRow({
   mono?: boolean;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={{ ...styles.row, paddingVertical: 3 }}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={mono ? { ...styles.value, ...styles.mono } : styles.value}>
-        {value}
+      <Text style={mono ? { ...styles.value, ...styles.mono } : { ...styles.value, fontSize: 9 }}>
+        {mono ? wrapHash(value) : value}
       </Text>
     </View>
   );
@@ -293,4 +295,14 @@ function formatValue(v: string | boolean | undefined): string {
   if (v === true) return "Yes";
   if (v === false) return "No";
   return v ?? "";
+}
+
+function wrapHash(value: string): string {
+  return value.match(/.{1,32}/g)?.join("\n") ?? value;
+}
+
+function displayDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date) + " UTC";
 }
