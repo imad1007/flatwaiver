@@ -62,21 +62,21 @@ export async function renderSignedPdf(
 }
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 42, paddingHorizontal: 48, paddingBottom: 64, fontSize: 10, fontFamily: "Helvetica", lineHeight: 1.55, color: "#243044" },
+  page: { paddingTop: 42, paddingHorizontal: 48, paddingBottom: 64, fontSize: 9, fontFamily: "Helvetica", lineHeight: 1.35, color: "#243044" },
   orgName: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#475569", marginBottom: 8 },
-  title: { fontSize: 24, lineHeight: 1.2, fontFamily: "Helvetica-Bold", marginBottom: 12, color: "#172033" },
-  heading: { fontSize: 12, fontFamily: "Helvetica-Bold", marginTop: 14, marginBottom: 5, color: "#172033" },
-  paragraph: { marginBottom: 8 },
-  listItem: { marginBottom: 4, marginLeft: 12 },
-  sectionTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#dce2eb", paddingBottom: 6, color: "#172033" },
+  title: { fontSize: 20, lineHeight: 1.2, fontFamily: "Helvetica-Bold", marginBottom: 12, color: "#172033" },
+  heading: { fontSize: 10.5, fontFamily: "Helvetica-Bold", marginTop: 9, marginBottom: 4, color: "#172033" },
+  paragraph: { marginBottom: 5 },
+  listItem: { marginBottom: 2, marginLeft: 12 },
+  sectionTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 12, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: "#dce2eb", paddingBottom: 6, color: "#172033" },
   row: { flexDirection: "row", paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: "#edf0f5" },
   label: { width: 150, paddingRight: 14, color: "#64748b", fontSize: 9 },
-  value: { flex: 1, fontSize: 10 },
+  value: { flex: 1, fontSize: 9 },
   signatureImage: { width: 220, height: 60, objectFit: "contain", objectPosition: "left", marginTop: 8 },
   signatureCard: { marginTop: 14, padding: 12, backgroundColor: "#f7f9fc", borderWidth: 1, borderColor: "#e1e7ef", borderRadius: 6 },
   evidenceFooter: { marginTop: 14, padding: 12, backgroundColor: "#f7f9fc", borderWidth: 1, borderColor: "#e1e7ef", borderRadius: 6, fontSize: 8, color: "#536176" },
   mono: { fontFamily: "Courier", fontSize: 8, lineHeight: 1.6 },
-  meta: { fontSize: 8, color: "#64748b", marginBottom: 20, paddingBottom: 12, borderBottomWidth: 2, borderBottomColor: "#4f46e5" },
+  meta: { fontSize: 8, color: "#64748b", marginBottom: 12, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: "#4f46e5" },
   footer: { position: "absolute", top: 744, height: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#dce2eb", fontSize: 8, color: "#64748b" },
 });
 
@@ -143,15 +143,6 @@ function WaiverPdf({
             </View>
           );
         })}
-
-        <View style={styles.footer} fixed><Text>Signed waiver / Electronic signature record</Text></View>
-    <Text fixed style={{ position: "absolute", top: 750, left: 470, fontSize: 8, color: "#64748b", lineHeight: 1 }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
-      </Page>
-
-      <Page size="LETTER" style={styles.page}>
-        <Text style={styles.orgName}>{input.orgName}</Text>
-        <Text style={styles.title}>Signing record</Text>
-        <Text style={styles.meta}>{input.waiverName}  |  Version {input.versionNumber}</Text>
 
         {filledFields.length > 0 && (
           <>
