@@ -226,7 +226,7 @@ export function AppShell({
       {/* User chip */}
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
             {initialsFromEmail(email)}
           </span>
           <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
@@ -343,7 +343,7 @@ export function AppShell({
                 }
               }}>
                 <DropdownMenuTrigger aria-label="Account menu" className="ml-1 flex items-center gap-1.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-linear-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white shadow-sm">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
                     {initialsFromEmail(email)}
                   </span>
                   <ChevronDown className="size-4 text-muted-foreground" />
