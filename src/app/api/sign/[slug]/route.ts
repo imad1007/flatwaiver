@@ -571,14 +571,15 @@ async function sendEmails(opts: {
       // Flagged: alert every owner + admin so a screening hit isn't missed.
       const { data: staff, error: staffError } = await opts.admin
         .from("profiles")
-        .select("email")
+        .select("id")
         .eq("org_id", opts.orgId)
         .in("role", ["owner", "admin"]);
       if (staffError) throw staffError;
       for (const person of staff ?? []) {
-        if (person.email) {
+        const email = await notificationRecipientEmail(opts.admin, person.id);
+        if (email) {
           await sendFlaggedSignatureEmail({
-            to: person.email,
+            to: email,
             signerName: opts.signerName,
             waiverName: opts.waiverName,
             signedAtIso: opts.signedAtIso,
@@ -592,14 +593,15 @@ async function sendEmails(opts: {
       // Normal: notify every owner in the signing organization.
       const { data: owners, error: ownersError } = await opts.admin
         .from("profiles")
-        .select("email")
+        .select("id")
         .eq("org_id", opts.orgId)
         .eq("role", "owner");
       if (ownersError) throw ownersError;
       for (const owner of owners ?? []) {
-        if (!owner.email) continue;
+        const email = await notificationRecipientEmail(opts.admin, owner.id);
+        if (!email) continue;
         await sendOwnerNotificationEmail({
-          to: owner.email,
+          to: email,
           signerName: opts.signerName,
           waiverName: opts.waiverName,
           signedAtIso: opts.signedAtIso,
@@ -612,4 +614,18 @@ async function sendEmails(opts: {
   } catch (err) {
     console.error("post-sign emails failed", err);
   }
+}
+
+/** Auth is authoritative; profiles.email can lag behind a login-email change. */
+async function notificationRecipientEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error) {
+    console.error("Notification recipient lookup failed", { userId, status: error.status });
+    return null;
+  }
+  // Never use new_email: it may still be awaiting confirmation.
+  return data.user?.email ?? null;
 }
