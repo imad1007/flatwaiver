@@ -293,10 +293,10 @@ export function AppShell({
             </nav>
 
             {/* Trial / billing pill — centered in the nav on desktop */}
-            <div className="hidden min-w-0 flex-1 justify-center sm:flex">{banner}</div>
+            <div className="hidden min-w-0 flex-1 justify-center xl:flex">{banner}</div>
 
             {/* Right cluster */}
-            <div className="ml-auto flex items-center gap-0.5">
+            <div className="ml-auto flex shrink-0 items-center gap-0.5">
               {/* Search */}
               <button
                 onClick={() => setPaletteOpen(true)}
@@ -353,7 +353,7 @@ export function AppShell({
             </div>
           </div>
           {/* Trial / billing pill — below the bar on mobile */}
-          <div className="px-2 sm:hidden">{banner}</div>
+          <div className="px-4 pb-2 empty:hidden xl:hidden">{banner}</div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">

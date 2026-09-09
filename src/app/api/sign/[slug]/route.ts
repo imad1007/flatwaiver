@@ -568,7 +568,7 @@ async function sendEmails(opts: {
     const detailUrl = `${APP.url?.replace(/\/$/, "")}/signatures/${opts.recordId}`;
 
     if (opts.flagged) {
-      // Flagged: alert every owner + admin so a screening hit isn't missed.
+      // Flagged: notify opted-in owners and admins.
       const { data: staff, error: staffError } = await opts.admin
         .from("profiles")
         .select("id")
@@ -590,7 +590,7 @@ async function sendEmails(opts: {
         }
       }
     } else {
-      // Normal: notify every owner in the signing organization.
+      // Normal: notify opted-in owners in the signing organization.
       const { data: owners, error: ownersError } = await opts.admin
         .from("profiles")
         .select("id")
@@ -627,5 +627,7 @@ async function notificationRecipientEmail(
     return null;
   }
   // Never use new_email: it may still be awaiting confirmation.
+  // Explicit opt-in only; missing preferences default to no staff email.
+  if (data.user?.user_metadata?.signed_waiver_emails !== true) return null;
   return data.user?.email ?? null;
 }

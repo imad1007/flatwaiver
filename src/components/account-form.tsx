@@ -14,10 +14,12 @@ export function AccountForm({
   email,
   orgName,
   canEditBusiness,
+  signedWaiverEmails,
 }: {
   email: string;
   orgName: string;
   canEditBusiness: boolean;
+  signedWaiverEmails: boolean;
 }) {
   const [name, setName] = useState(orgName);
   const [isPending, startTransition] = useTransition();
@@ -26,6 +28,26 @@ export function AccountForm({
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(signedWaiverEmails);
+  const [savedEmailEnabled, setSavedEmailEnabled] = useState(signedWaiverEmails);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  async function handleEmailPreference(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingEmail(true);
+    try {
+      const { error } = await createClient().auth.updateUser({
+        data: { signed_waiver_emails: emailEnabled },
+      });
+      if (error) throw error;
+      setSavedEmailEnabled(emailEnabled);
+      toast.success(emailEnabled ? "Signed waiver emails enabled" : "Signed waiver emails disabled");
+    } catch {
+      toast.error("Couldn't save your email preference. Please try again.");
+    } finally {
+      setSavingEmail(false);
+    }
+  }
 
   function handleNameSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,13 +96,33 @@ export function AccountForm({
       <section className="rounded-xl border border-border p-5">
         <h2 className="font-bold">Login email</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          You sign in with this address, and signature notifications go here.
+          You sign in with this address. Optional signature emails are sent here when enabled.
         </p>
         <p className="mt-3 rounded-md bg-muted/50 px-3 py-2 font-mono text-sm">{email}</p>
         <p className="mt-2 text-xs text-muted-foreground/70">
           Need to change it? Contact support — email changes require identity
           confirmation.
         </p>
+      </section>
+
+      <section className="rounded-xl border border-border p-5">
+        <h2 className="font-bold">Signed waiver emails</h2>
+        <p id="waiver-email-description" className="mt-1 text-sm text-muted-foreground">
+          Choose whether to receive signature notifications with the signed PDF attached.
+          This includes flagged signature emails available to your role. Your waivers remain available in the app.
+        </p>
+        <form onSubmit={handleEmailPreference} className="mt-4 space-y-4">
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input type="checkbox" checked={emailEnabled} disabled={savingEmail}
+              onChange={(e) => setEmailEnabled(e.target.checked)}
+              aria-describedby="waiver-email-description"
+              className="mt-0.5 size-4 shrink-0 accent-primary" />
+            <span>Email me signed waiver PDFs. I can turn this off at any time.</span>
+          </label>
+          <Button type="submit" disabled={savingEmail || emailEnabled === savedEmailEnabled}>
+            {savingEmail ? "Saving…" : "Save email preference"}
+          </Button>
+        </form>
       </section>
 
       {/* Business name */}
