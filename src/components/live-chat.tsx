@@ -52,9 +52,9 @@ export function LiveChat() {
     let pendingOpen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const excluded = isSignerPage(pathname);
-    const appPage = /^\/(dashboard|waivers|signatures|settings|support|admin|checkin|onboarding)(\/|$)/.test(pathname);
+    const appPage = /^\/(dashboard|waivers|signatures|settings|support|help|admin|checkin|onboarding)(\/|$)/.test(pathname);
     const manualOnly = signedIn !== false || appPage;
-    const supportPage = pathname === "/support";
+    const supportPage = /^\/(support|help)\/?$/.test(pathname);
     let explicitlyOpened = false;
     const api = window.Tawk_API = window.Tawk_API || {};
     function ready() {
