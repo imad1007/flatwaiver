@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // so the sitemap reports real freshness (bump the date when you edit one).
   const pages: { path: string; priority: number; lastModified?: string }[] = [
     { path: "/", priority: 1 },
+    { path: "/industries/martial-arts", priority: 0.8, lastModified: "2026-09-10" },
     { path: "/security", priority: 0.8 },
     { path: "/blog", priority: 0.7 },
     { path: "/support", priority: 0.4, lastModified: "2026-07-30" },

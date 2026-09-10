@@ -392,7 +392,7 @@ function Industries() {
               key={label}
               className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-muted-foreground"
             >
-              {label}
+              {label === "Martial arts" ? <Link href="/industries/martial-arts" className="hover:underline">{label}</Link> : label}
             </span>
           ))}
         </div>
