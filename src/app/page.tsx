@@ -46,7 +46,7 @@ export const revalidate = 600;
 
 const INDUSTRIES = [
   "Gyms & fitness",
-  "Climbing",
+  "Climbing facilities",
   "Trampoline parks",
   "Martial arts",
   "Tours & activities",
@@ -107,7 +107,7 @@ const BENTO = [
   {
     icon: Mail,
     title: "Email copies",
-    body: "Signers get their PDF automatically; you get notified on every signature.",
+    body: "Signers who provide an email receive a PDF download link. Enable owner notifications to receive signed PDF attachments.",
   },
 ];
 
@@ -172,12 +172,13 @@ const STRUCTURED_DATA = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "Digital waiver software with unlimited signed waivers, kiosk mode, QR codes, AI PDF conversion, and court-ready evidence — for one flat monthly price.",
+        "Digital waiver software for activity businesses, with unlimited signed waivers, waiver templates and storage. Upload your PDF, share signing links or QR codes, and search your signed records.",
       offers: {
         "@type": "Offer",
         price: String(APP.priceMonthlyUsd),
         priceCurrency: "USD",
-        description: `Flat $${APP.priceMonthlyUsd}/month for unlimited signed waivers`,
+        url: `${SITE_URL}/#pricing`,
+        description: `Flat $${APP.priceMonthlyUsd}/month for unlimited signed waivers, unlimited waiver templates and unlimited storage`,
       },
       publisher: { "@id": `${SITE_URL}/#organization` },
     },
@@ -302,11 +303,12 @@ function Hero() {
           </Link>
 
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+            Digital waiver software.{" "}
+            <br />
             Unlimited waivers.
             <br />
-            ${APP.priceMonthlyUsd}/month.{" "}
             <span className="relative whitespace-nowrap text-brand-600 dark:text-brand-300">
-              Flat.
+              ${APP.priceMonthlyUsd}/month.
               <svg
                 aria-hidden
                 viewBox="0 0 120 12"
@@ -382,7 +384,7 @@ function Industries() {
     <section className="border-y border-border bg-muted/40 py-8">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Built for high-volume waiver businesses
+          Built for businesses collecting liability waivers
         </p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {INDUSTRIES.map((label) => (
@@ -394,6 +396,10 @@ function Industries() {
             </span>
           ))}
         </div>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Explore <Link href="/blog/gym-waiver-software" className="underline underline-offset-2">waiver software for gyms</Link>{" "}
+          and <Link href="/blog/waiver-software-for-climbing-gyms" className="underline underline-offset-2">climbing gym waiver software</Link>.
+        </p>
       </div>
     </section>
   );
@@ -442,7 +448,7 @@ function HowItWorks() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="How it works"
-          title="From filing cabinet to live in five minutes"
+          title="From PDF to online waiver signing in five minutes"
           sub="Three steps. No implementation project, no sales call, no onboarding fee."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -529,6 +535,11 @@ function Comparison() {
                     </a>
                   ))}
                 </p>
+                <p className="flex flex-wrap gap-x-3 gap-y-1">
+                  <Link href="/blog/smartwaiver-pricing" className="underline underline-offset-2">Smartwaiver pricing explained</Link>
+                  <Link href="/blog/smartwaiver-alternatives" className="underline underline-offset-2">Compare Smartwaiver alternatives</Link>
+                  <Link href="/blog/flatwaiver-vs-smartwaiver" className="underline underline-offset-2">FlatWaiver vs Smartwaiver</Link>
+                </p>
               </div>
             </div>
           </Reveal>
@@ -576,7 +587,7 @@ function Features() {
       {/* 3 — Court-ready records */}
       <FeatureRow
         eyebrow="Court-ready records"
-        title="Evidence that holds up when it matters"
+        title="Signed waiver storage, search and retrieval"
         body="Every signature is stored with timestamp, IP, consent record, and a SHA-256 integrity hash, locked to the exact waiver version signed. Search and export anytime."
         bullets={[
           "Append-only records — nothing can be silently edited",

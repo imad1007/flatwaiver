@@ -18,7 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_DESCRIPTION =
-  "Stop paying per signed waiver. Upload the PDF you already use — your digital waiver is live in 5 minutes.";
+  `Digital waiver software for gyms, climbing facilities, trampoline parks, tours and activity businesses. Unlimited signed waivers for $${APP.priceMonthlyUsd}/month.`;
+const SITE_TITLE = `Digital Waiver Software — Unlimited Waivers for $${APP.priceMonthlyUsd}/mo | ${APP.name}`;
 
 /** Only the real production deploy is indexable; every preview is noindex. */
 const IS_PRODUCTION = process.env.VERCEL_ENV === "production";
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
   // Hardcoded www so all canonical/OG URLs resolve to the one true host,
   // never a preview deployment's URL.
   metadataBase: new URL(APP.siteUrl),
-  title: `Unlimited Digital Waivers — $${APP.priceMonthlyUsd}/month Flat | ${APP.name}`,
+  title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   // "./" resolves per-route, so every page canonicalizes its own clean URL
   // (strips ?utm_/gclid duplicates from ads).
@@ -35,13 +36,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: APP.name,
-    title: `Unlimited Digital Waivers — $${APP.priceMonthlyUsd}/month Flat`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: "./",
   },
   twitter: {
     card: "summary_large_image",
-    title: `Unlimited Digital Waivers — $${APP.priceMonthlyUsd}/month Flat`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
   // Belt-and-suspenders: noindex the entire site on any non-production
