@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent } from "@/lib/consent";
 import { isSignerPage } from "@/lib/signer-pages";
 import { CHAT_REQUEST, publishChatStatus } from "@/lib/chat";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Tawk.to live chat. Injected client-side (like Tawk's own snippet) rather than
@@ -22,6 +23,9 @@ declare global {
   interface Window {
     Tawk_API?: {
       onLoad?: () => void;
+      onBeforeLoad?: () => void;
+      onChatMinimized?: () => void;
+      onChatMaximized?: () => void;
       onStatusChange?: (status: "online" | "away" | "offline") => void;
       getStatus?: () => "online" | "away" | "offline";
       maximize?: () => void;
@@ -35,23 +39,45 @@ declare global {
 export function LiveChat() {
   const pathname = usePathname();
   const consent = useConsent();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.user));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     let pendingOpen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const excluded = isSignerPage(pathname);
+    const appPage = /^\/(dashboard|waivers|signatures|settings|support|admin|checkin|onboarding)(\/|$)/.test(pathname);
+    const manualOnly = signedIn !== false || appPage;
+    const supportPage = pathname === "/support";
+    let explicitlyOpened = false;
     const api = window.Tawk_API = window.Tawk_API || {};
     function ready() {
       clearTimeout(timer);
       publishChatStatus(api.getStatus?.() ?? "offline");
       if (excluded) { api.hideWidget?.(); return; }
+      if (manualOnly && !pendingOpen && !explicitlyOpened) { api.hideWidget?.(); return; }
       api.showWidget?.();
-      if (pendingOpen) { api.maximize?.(); pendingOpen = false; }
+      if (pendingOpen) { explicitlyOpened = true; api.maximize?.(); pendingOpen = false; }
     }
     api.onLoad = ready;
+    api.onBeforeLoad = () => { if (excluded || manualOnly) api.hideWidget?.(); };
+    api.onChatMinimized = () => {
+      explicitlyOpened = false;
+      if (excluded || manualOnly) api.hideWidget?.();
+    };
+    api.onChatMaximized = () => {
+      if (excluded || (manualOnly && !explicitlyOpened)) api.hideWidget?.();
+    };
     api.onStatusChange = (status) => publishChatStatus(status);
     function load(open: boolean) {
       if (excluded) return;
+      if (manualOnly && (!open || !supportPage)) return;
       pendingOpen = open;
       if (api.getStatus && api.maximize) { ready(); return; }
       const src = OVERRIDE_SRC || (PROD_HOSTS.has(window.location.hostname) ? DEFAULT_SRC : null);
@@ -73,16 +99,19 @@ export function LiveChat() {
     // An explicit chat request enables only chat, without changing analytics consent.
     const openChat = () => load(true);
     window.addEventListener(CHAT_REQUEST, openChat);
-    if (excluded) api.hideWidget?.();
+    if (excluded || manualOnly) api.hideWidget?.();
     else if (api.getStatus) ready();
     else if (consent === "granted") load(false);
     return () => {
       clearTimeout(timer);
       window.removeEventListener(CHAT_REQUEST, openChat);
       api.onLoad = undefined;
+      api.onBeforeLoad = undefined;
+      api.onChatMinimized = undefined;
+      api.onChatMaximized = undefined;
       api.onStatusChange = undefined;
     };
-  }, [pathname, consent]);
+  }, [pathname, consent, signedIn]);
 
   return null;
 }
