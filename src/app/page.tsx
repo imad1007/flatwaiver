@@ -33,7 +33,8 @@ import { formatPostDate } from "@/lib/blog";
 import { getAllBlogListItems, type BlogListItem } from "@/lib/blog-merge";
 import { APP } from "@/lib/config";
 import {
-  COMPETITOR_PRICING_VERIFIED_ON,
+  COMPETITOR_PRICING_CHECKED_ON,
+  SMARTWAIVER_PRICING_NOTICE,
   PUBLISHED_COMPETITOR_PRICING,
 } from "@/lib/competitor-pricing";
 
@@ -511,7 +512,7 @@ function Comparison() {
               </table>
               <div className="space-y-2 px-5 pb-4 pt-2 text-xs text-muted-foreground/70">
                 <p>
-                  Public monthly prices checked {COMPETITOR_PRICING_VERIFIED_ON}.
+                  Checked on {COMPETITOR_PRICING_CHECKED_ON}. {SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Smartwaiver figures in this table use current rates through October 7; Enterprise is unaffected.
                   Plans and features differ; taxes, discounts, add-ons, and
                   overages are excluded.
                 </p>

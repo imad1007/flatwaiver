@@ -72,8 +72,9 @@ export async function sendOwnerNotificationEmail(opts: {
     const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
+      replyTo: APP.supportEmail,
       subject: `New signature: ${opts.signerName} — ${opts.waiverName}`,
-      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf }],
+      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf, contentType: "application/pdf" }],
       html: `
         <p>The signed waiver PDF is attached for your records.</p>
         <p><strong>${escapeHtml(opts.signerName)}</strong> signed <strong>${escapeHtml(opts.waiverName)}</strong> at ${opts.signedAtIso} (UTC).</p>
@@ -82,8 +83,9 @@ export async function sendOwnerNotificationEmail(opts: {
       `,
     });
     assertEmailAccepted(result);
+    console.info("Signed waiver email accepted", { recordId: opts.recordId, emailId: result.data?.id, notification: "sendOwnerNotificationEmail" });
   } catch (err) {
-    console.error("sendOwnerNotificationEmail failed", err);
+    console.error("sendOwnerNotificationEmail failed", { recordId: opts.recordId, error: err });
   }
 }
 
@@ -194,8 +196,9 @@ export async function sendFlaggedSignatureEmail(opts: {
     const result = await resend.emails.send({
       from: FROM,
       to: opts.to,
+      replyTo: APP.supportEmail,
       subject: `⚠️ Flagged signature: ${opts.signerName} — ${opts.waiverName}`,
-      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf }],
+      attachments: [{ filename: `signed-waiver-${opts.recordId}.pdf`, content: opts.pdf, contentType: "application/pdf" }],
       html: `
         <p>The signed waiver PDF is attached for your records.</p>
         <p><strong>${escapeHtml(opts.signerName)}</strong> signed
@@ -206,8 +209,9 @@ export async function sendFlaggedSignatureEmail(opts: {
       `,
     });
     assertEmailAccepted(result);
+    console.info("Signed waiver email accepted", { recordId: opts.recordId, emailId: result.data?.id, notification: "sendFlaggedSignatureEmail" });
   } catch (err) {
-    console.error("sendFlaggedSignatureEmail failed", err);
+    console.error("sendFlaggedSignatureEmail failed", { recordId: opts.recordId, error: err });
   }
 }
 
