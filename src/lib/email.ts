@@ -2,6 +2,24 @@ import "server-only";
 
 import { Resend } from "resend";
 import { APP } from "@/lib/config";
+import { billingExpiryEmail, type BillingExpiryKind } from "@/lib/billing-expiry-email";
+
+/** Billing notices throw on rejection so the durable queue never marks failures sent. */
+export async function sendBillingExpiryEmail(opts: {
+  to: string; orgName: string; kind: BillingExpiryKind; idempotencyKey: string;
+}) {
+  const resend = resendClient();
+  if (!resend) throw new Error("Billing email is not configured.");
+  const message = billingExpiryEmail({
+    kind: opts.kind, orgName: opts.orgName, appName: APP.name,
+    monthlyUsd: APP.priceMonthlyUsd, billingUrl: `${APP.siteUrl}/settings/billing`,
+    supportEmail: APP.supportEmail,
+  });
+  const result = await resend.emails.send({ from: FROM, to: opts.to, replyTo: APP.supportEmail, ...message }, { idempotencyKey: opts.idempotencyKey });
+  assertEmailAccepted(result);
+  if (!result.data?.id) throw new Error("Billing email provider did not return an ID.");
+  return result.data.id;
+}
 
 const FROM = `${APP.name} <notifications@${emailDomain()}>`;
 
