@@ -81,7 +81,7 @@ for (const slug of ['smartwaiver-pricing', 'smartwaiver-alternatives', 'waiver-s
  const article = await source('content/blog/' + slug + '.mdx');
  assert.match(article, /September 8, 2026/);
  assert.match(article, /October 8, 2026/);
- const expectedModified = slug === 'smartwaiver-pricing' ? '2026-09-11' : '2026-09-10';
+ const expectedModified = ['waiver-software-for-climbing-gyms', 'smartwaiver-pricing'].includes(slug) ? '2026-09-11' : '2026-09-10';
  assert.ok(article.includes('dateModified: "' + expectedModified + '"'), slug + ' modification date');
  assert.doesNotMatch(article, /re-prices|re-pricing|custom above|Every volume-priced tool/);
 }
