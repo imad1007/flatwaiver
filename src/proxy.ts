@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   "/checkin",
   "/waivers",
   "/signatures",
+  "/data",
   "/settings",
   "/onboarding",
   // Requires a session; the /admin layout additionally enforces the

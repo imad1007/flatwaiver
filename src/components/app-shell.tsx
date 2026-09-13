@@ -50,6 +50,7 @@ const NAV = [
   { href: "/checkin", label: "Front desk", icon: ClipboardCheck },
   { href: "/waivers", label: "Waivers", icon: ClipboardList },
   { href: "/signatures", label: "Signatures", icon: FileSignature },
+  { href: "/data", label: "Import & Export", icon: ClipboardList },
   { href: "/settings/branding", label: "Settings", icon: Settings },
   { href: "/help", label: "Support", icon: LifeBuoy },
 ];
@@ -62,6 +63,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   share: "Share",
   signatures: "Signatures",
   renewals: "Renewals",
+  data: "Import & Export",
+  records: "Imported records",
   settings: "Settings",
   account: "Account",
   help: "Support",

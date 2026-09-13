@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { storagePathBelongsToOrg } from "@/lib/storage-path";
 
 export const runtime = "nodejs";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   // Org-membership check: every object path starts with the owning org's id.
-  if (!path.startsWith(`${profile.org_id}/`) || path.includes("..")) {
+  if (!storagePathBelongsToOrg(path, profile.org_id)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
