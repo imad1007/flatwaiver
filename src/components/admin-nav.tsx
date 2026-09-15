@@ -29,7 +29,7 @@ export function AdminNav({ email }: { email: string }) {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center gap-2 px-4 py-2 sm:gap-4 sm:px-6 lg:px-8">
         <Link href="/admin" className="flex items-center gap-2">
           <LogoMark className="size-7 shrink-0" />
           <span className="text-sm font-semibold">
@@ -40,7 +40,7 @@ export function AdminNav({ email }: { email: string }) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-0.5">
+        <nav className="order-3 flex w-full items-center justify-center gap-0.5 border-t pt-2 sm:order-none sm:w-auto sm:justify-start sm:border-0 sm:pt-0">
           {NAV.map((item) => {
             const active = item.exact
               ? pathname === item.href

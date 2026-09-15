@@ -96,16 +96,23 @@ async function bannedUserIds(): Promise<Set<string>> {
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("admin_org_overview")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const data: OverviewRow[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data: page, error } = await admin
+      .from("admin_org_overview")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .order("org_id")
+      .range(offset, offset + 999);
 
-  if (error) {
-    if (isMissingTableError(error)) {
-      return { ready: false, rows: [], stats: emptyStats() };
+    if (error) {
+      if (isMissingTableError(error)) {
+        return { ready: false, rows: [], stats: emptyStats() };
+      }
+      throw error;
     }
-    throw error;
+    data.push(...(page as OverviewRow[]));
+    if (page.length < 1000) break;
   }
 
   const banned = await bannedUserIds();
