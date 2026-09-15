@@ -24,9 +24,11 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background">
       <AdminNav email={user.email ?? ""} />
-      <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <div className="lg:pl-60">
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
