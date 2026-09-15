@@ -11,6 +11,21 @@ export interface AnalyticsSubscription {
     paddle_subscription_id: string | null;
 }
 export type AccountStage = 'subscribed' | 'trial' | 'expired' | 'pastDue' | 'canceled' | 'manual' | 'other';
+export function registrationComparisons(dates: string[], now: number) {
+    const day = 86400000;
+    const midnight = Date.parse(new Date(now).toISOString().slice(0, 10));
+    const timestamps = dates.map(Date.parse).filter(Number.isFinite);
+    return (["daily", "weekly", "monthly"] as const).map(period => {
+        const start = period === "daily" ? midnight : now - (period === "weekly" ? 7 : 30) * day;
+        const previousStart = period === "daily" ? midnight - day : start - (now - start);
+        const previousEnd = period === "daily" ? now - day : start;
+        const current = timestamps.filter(t => t >= start && t < now).length;
+        const previous = timestamps.filter(t => t >= previousStart && t < previousEnd).length;
+        return { period, current, previous, percent: previous === 0 ? (current === 0 ? 0 : null) : (current - previous) / previous * 100,
+            start: new Date(start).toISOString(), end: new Date(now).toISOString(),
+            previousStart: new Date(previousStart).toISOString(), previousEnd: new Date(previousEnd).toISOString() };
+    });
+}
 export const stageLabels: Record<AccountStage, string> = {
     subscribed: 'Subscribers', trial: 'Live trials', expired: 'Trial ended · not subscribed',
     pastDue: 'Past due', canceled: 'Canceled subscriptions', manual: 'Manual active access', other: 'No subscription / other',
@@ -56,6 +71,6 @@ export function buildAdminAnalytics(customers: AnalyticsCustomer[], subscription
         if (stage === 'trial' && Date.parse(row.trialEndsAt!) <= now + 7 * 86400000)
             endingSoon++;
     }
-    return { counts, days, totalUsers: userDates.length, endingSoon, estimatedMrr: counts.subscribed * monthlyPrice, estimatedArr: counts.subscribed * monthlyPrice * 12 };
+    return { counts, days, comparisons: registrationComparisons(userDates, now), totalUsers: userDates.length, endingSoon, estimatedMrr: counts.subscribed * monthlyPrice, estimatedArr: counts.subscribed * monthlyPrice * 12 };
 }
 export type AdminAnalytics = ReturnType<typeof buildAdminAnalytics>;

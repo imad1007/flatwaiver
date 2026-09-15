@@ -1,5 +1,5 @@
 ﻿import assert from 'node:assert/strict';
-import { accountStage, buildAdminAnalytics } from '../src/lib/admin-analytics.ts';
+import { accountStage, buildAdminAnalytics, registrationComparisons } from '../src/lib/admin-analytics.ts';
 const now=Date.parse('2026-09-14T12:00:00Z');
 const row=(id,status,end='2026-09-14T12:00:00Z',created='2026-09-14T01:00:00Z')=>({orgId:id,status,trialEndsAt:end,createdAt:created});
 assert.equal(accountStage(row('1','trialing'),false,now),'expired');
@@ -21,3 +21,17 @@ assert.equal(Object.values(result.counts).reduce((a,b)=>a+b,0),rows.length);
 const empty=buildAdminAnalytics([],[],[],19,now);assert.equal(empty.estimatedMrr,0);assert.ok(empty.days.every(d=>d.users===0));
 const boundary=buildAdminAnalytics([row('start','trialing','2026-01-01T00:00:00Z',result.days[0].date+'T00:00:00Z')],[],[],19,now);assert.equal(boundary.days[0].organizations,1);
 console.log('PASS: trial cutoff, paid/manual distinction, canceled and past-due classification, MRR/ARR, UTC date bounds, cohort counts, empty states.');
+
+const at=Date.parse('2026-09-15T12:00:00Z');
+const daily=registrationComparisons(['2026-09-15T00:00:00Z','2026-09-15T10:00:00Z','2026-09-14T10:00:00Z','2026-09-14T15:00:00Z','2026-09-16T00:00:00Z','bad'],at)[0];
+assert.equal(daily.current,2);assert.equal(daily.previous,1);assert.equal(daily.percent,100);
+assert.equal(registrationComparisons(['2026-09-14T10:00:00Z'],at)[0].percent,-100);
+assert.equal(registrationComparisons([],at)[0].percent,0);
+assert.equal(registrationComparisons(['2026-09-15T10:00:00Z'],at)[0].percent,null);
+for(const [index,days] of [[1,7],[2,30]]) {
+ const start=at-days*86400000;
+ const comparison=registrationComparisons([new Date(start).toISOString(),new Date(start-1).toISOString(),new Date(start-days*86400000).toISOString(),new Date(at).toISOString()],at)[index];
+ assert.equal(comparison.current,1);assert.equal(comparison.previous,2);assert.equal(comparison.percent,-50);
+}
+assert.equal(registrationComparisons(['2026-09-14T00:00:00Z'],Date.parse('2026-09-15T00:00:00Z'))[0].previous,0);
+console.log('PASS: percentage increases/decreases, zero baseline, matched daily cutoff, rolling week/month boundaries, invalid and future dates.');
