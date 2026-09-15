@@ -52,19 +52,23 @@ export function AdminAnalyticsDashboard({ data, activation, updatedAt, totalOrgs
       <button onClick={() => startTransition(() => router.refresh())} disabled={pending} className="inline-flex min-h-10 items-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"><RefreshCw className={`size-4 ${pending ? 'animate-spin' : ''}`}/>{pending ? 'Refreshing…' : 'Refresh data'}</button>
     </header>
     <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 text-xs text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="size-1.5 rounded-full bg-emerald-500"/>Current snapshot · {new Date(updatedAt).toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' })} UTC</span><span>{number(totalOrgs)} organizations · {number(suspended)} suspended</span></div>
-    <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, value, hint, Icon }, i) => <div key={label} className={`${panel} ${i === 3 ? 'bg-gradient-to-br from-primary/10 via-card to-violet-500/5' : ''}`}><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-muted-foreground">{label}</p><span className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="size-4"/></span></div><p className="mt-5 text-4xl font-semibold tracking-tight tabular-nums">{value}</p><p className="mt-3 text-xs leading-relaxed text-muted-foreground">{hint}</p></div>)}</section>
-    <section className={panel} aria-label="Registration comparison">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="font-semibold">Registration growth</h2><p className="mt-1 text-xs text-muted-foreground">{comparisonPeriod === 'daily' ? 'Today vs yesterday, through the same time of day' : comparisonPeriod === 'weekly' ? 'Last 7 days vs the preceding 7 days' : 'Last 30 days vs the preceding 30 days'} ? UTC</p></div>
-        <div className="flex rounded-lg bg-muted p-1">{(['daily', 'weekly', 'monthly'] as const).map(period => <button key={period} aria-pressed={comparisonPeriod === period} onClick={() => setComparisonPeriod(period)} className={`min-h-10 rounded-md px-3 text-xs font-medium capitalize ${comparisonPeriod === period ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{period}</button>)}</div>
-      </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3" aria-live="polite">
-        <p><strong className="text-3xl font-semibold tabular-nums">{number(comparison.current)}</strong><span className="ml-2 text-sm text-muted-foreground">new users</span></p>
-        <span className={`rounded-full px-3 py-1.5 text-sm font-semibold tabular-nums ${comparison.current > comparison.previous ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : comparison.current < comparison.previous ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-muted text-muted-foreground'}`}>{comparison.percent === null ? 'New growth' : `${comparison.percent > 0 ? '+' : ''}${comparison.percent.toLocaleString('en-US', {maximumFractionDigits: 1})}%`} {comparison.percent !== null && (comparison.current > comparison.previous ? 'increase' : comparison.current < comparison.previous ? 'decrease' : 'no change')}</span>
-        <p className="text-sm text-muted-foreground">vs <strong className="text-foreground">{number(comparison.previous)}</strong> in the previous period</p>
-      </div>
-      {comparison.percent === null && <p className="mt-3 text-xs text-muted-foreground">No registrations in the previous period, so a percentage cannot be calculated.</p>}
-      <details className="mt-4 text-xs text-muted-foreground"><summary className="cursor-pointer">Comparison dates (UTC)</summary><p className="mt-2">Current: {comparison.start.replace('T', ' ').slice(0,16)} to {comparison.end.replace('T', ' ').slice(0,16)}</p><p className="mt-1">Previous: {comparison.previousStart.replace('T', ' ').slice(0,16)} to {comparison.previousEnd.replace('T', ' ').slice(0,16)}</p></details>
+
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-xs text-muted-foreground">{comparisonPeriod === 'daily' ? 'Today vs yesterday at the same time' : comparisonPeriod === 'weekly' ? 'Last 7 days vs previous 7 days' : 'Last 30 days vs previous 30 days'} (UTC)</p>
+      <div className="flex rounded-lg bg-muted p-1" aria-label="Metric comparison period">{(['daily', 'weekly', 'monthly'] as const).map(period => <button key={period} aria-pressed={comparisonPeriod === period} onClick={() => setComparisonPeriod(period)} className={`min-h-10 rounded-md px-3 text-xs font-medium capitalize ${comparisonPeriod === period ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{period}</button>)}</div>
+    </div>
+    <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {metrics.map(({ label, value, hint, Icon }, i) => <div key={label} className={`${panel} ${i === 3 ? 'bg-gradient-to-br from-primary/10 via-card to-violet-500/5' : ''}`}>
+        <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-muted-foreground">{label}</p><span className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="size-4" /></span></div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-4xl font-semibold tracking-tight tabular-nums">{value}</p>
+          {i === 0 ? <span aria-live="polite" title={`New registrations: ${comparison.current} vs ${comparison.previous}. This compares signups, not the all-time total.`} className={`rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${comparison.current > comparison.previous ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : comparison.current < comparison.previous ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-muted text-muted-foreground'}`}>
+            <span className="sr-only">New registration change: </span>{comparison.percent === null ? 'New growth' : `${comparison.percent > 0 ? '+' : ''}${comparison.percent.toLocaleString('en-US', {maximumFractionDigits: 1})}%`}
+          </span> : <span title={`Historical ${label.toLowerCase()} snapshots are not available for this comparison.`} className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">No history</span>}
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{hint}</p>
+        {i === 0 && <p className="mt-2 text-xs text-muted-foreground">New signups: {number(comparison.current)} vs {number(comparison.previous)}{comparison.percent === null ? ' (no previous baseline)' : ''}</p>}
+      </div>)}
     </section>
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]">
       <section className={panel}>
