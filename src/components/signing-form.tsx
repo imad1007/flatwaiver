@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signerFieldLabel, signerText, type SignerLanguage } from "@/lib/signer-language";
+import { SIGNER_LANGUAGES, signerDirection, signerLanguage, signerFieldLabel, signerText, type SignerLanguage } from "@/lib/signer-language";
 import { useRouter } from "next/navigation";
 import {
   SignatureCanvas,
@@ -36,6 +36,7 @@ async function fileToResizedDataUrl(file: File, maxDim = 1200, quality = 0.8): P
 }
 
 export interface SigningFormProps {
+  defaultLanguage?: SignerLanguage;
   slug: string;
   waiverName: string;
   orgName: string;
@@ -54,7 +55,7 @@ export interface SigningFormProps {
 
 export function SigningForm(props: SigningFormProps) {
   const router = useRouter();
-  const [language, setLanguage] = useState<SignerLanguage>("en");
+  const [language, setLanguage] = useState<SignerLanguage>(props.defaultLanguage ?? "en");
   const t = (text: string) => signerText(text, language);
   const [fieldValues, setFieldValues] = useState<Record<string, string | boolean>>({});
   const [isMinor, setIsMinor] = useState(false);
@@ -107,7 +108,7 @@ export function SigningForm(props: SigningFormProps) {
       clearTimeout(kioskResetTimerRef.current);
       kioskResetTimerRef.current = null;
     }
-    setLanguage("en");
+    setLanguage(props.defaultLanguage ?? "en");
     setFieldValues({});
     setIsMinor(false);
     setGuardianName("");
@@ -215,7 +216,7 @@ export function SigningForm(props: SigningFormProps) {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        setError(language === "fr" ? t("Something went wrong. Please try again.") : body?.error ?? t("Something went wrong. Please try again."));
+        setError(language !== "en" ? t("Something went wrong. Please try again.") : body?.error ?? t("Something went wrong. Please try again."));
         setTurnstileToken("");
         setTurnstileReset((n) => n + 1);
         return;
@@ -240,7 +241,7 @@ export function SigningForm(props: SigningFormProps) {
 
   if (kioskDone) {
     return (
-      <div lang={language} aria-live="polite" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <div lang={language} dir={signerDirection(language)} aria-live="polite" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <div className="text-6xl text-success">✓</div>
         <h2 className="mt-4 text-3xl font-bold">{t("You're all set!")}</h2>
         <p className="mt-2 text-lg text-muted-foreground">
@@ -256,6 +257,7 @@ export function SigningForm(props: SigningFormProps) {
   return (
     <form
       lang={language}
+      dir={signerDirection(language)}
       key={formKey}
       onSubmit={handleSubmit}
       onInput={() => armKioskPrivacyReset()}
@@ -264,12 +266,13 @@ export function SigningForm(props: SigningFormProps) {
       className="space-y-8"
     >
       <label className="flex flex-wrap items-center justify-end gap-3 text-sm">
-        Language / Langue
-        <select aria-label="Language / Langue" value={language} onChange={e => setLanguage(e.target.value as SignerLanguage)} className="rounded-md border border-input bg-card px-3 py-2">
-          <option value="en">English</option><option value="fr">Français</option>
+        {t("Language")}
+        <select aria-label={t("Language")} value={language} onChange={e => setLanguage(signerLanguage(e.target.value))} className="max-w-full rounded-md border border-input bg-card px-3 py-2">
+          {SIGNER_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
         </select>
-        <span className="w-full text-right text-xs text-muted-foreground">{language === "fr" ? "Les clauses et les champs personnalisés restent dans leur langue d’origine." : "Waiver text and custom fields remain in their original language."}</span>
+        <span className="w-full text-end text-xs text-muted-foreground">{t("Waiver text and custom fields remain in their original language.")}</span>
       </label>
+      <p className="text-sm text-muted-foreground">{t("Please read the waiver below, fill in your details, and sign.")}</p>
       {props.kiosk && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
           <p className="text-muted-foreground">
@@ -455,7 +458,7 @@ export function SigningForm(props: SigningFormProps) {
             onChange={(e) => setConsentGiven(e.target.checked)}
             className="mt-1 size-5 accent-primary"
           />
-          <span className="text-sm leading-relaxed">{props.consentText}</span>
+          <span dir="auto" className="text-sm leading-relaxed">{props.consentText}</span>
         </label>
       </div>
 

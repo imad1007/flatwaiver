@@ -66,6 +66,8 @@ import {
 import { APP } from "@/lib/config";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { draftContentSchema } from "@/lib/waiver-schema";
+import { SIGNER_LANGUAGES, signerLanguage, signerDirection, signerText } from "@/lib/signer-language";
+import { FRENCH_DEFAULT_CONSENT } from "@/lib/signer-consent";
 
 type VersionSummary = Pick<
   TemplateVersion,
@@ -129,6 +131,7 @@ export function WaiverEditor({
   const [{ blocks, fields }, setItems] = useState(() => toItems(initial));
   const [consentText, setConsentText] = useState(initial.consent_text);
   const [minorMode, setMinorMode] = useState(initial.minor_mode);
+  const [language, setLanguage] = useState(signerLanguage(initial.signer_language));
   const [warnings, setWarnings] = useState(initial.warnings ?? []);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const [publishOpen, setPublishOpen] = useState(false);
@@ -144,14 +147,16 @@ export function WaiverEditor({
       fields: fields.map((f) => f.field),
       consent_text: consentText,
       minor_mode: minorMode,
+      signer_language: language,
       warnings: warnings.length ? warnings : undefined,
     }),
-    [blocks, consentText, fields, minorMode, name, template.name, warnings]
+    [blocks, consentText, fields, minorMode, language, name, template.name, warnings]
   );
   const currentFingerprint = JSON.stringify(currentDraft);
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     JSON.stringify({
       ...initial,
+      signer_language: signerLanguage(initial.signer_language),
       title: template.name.trim() || initial.title,
       warnings: warnings.length ? warnings : undefined,
     })
@@ -246,6 +251,7 @@ export function WaiverEditor({
     setItems(toItems(recovery.draft));
     setConsentText(recovery.draft.consent_text);
     setMinorMode(recovery.draft.minor_mode);
+    setLanguage(signerLanguage(recovery.draft.signer_language));
     setWarnings(recovery.draft.warnings ?? []);
     setRecovery(null);
     toast.success("Recovered your unsaved changes");
@@ -557,6 +563,18 @@ export function WaiverEditor({
             </div>
           </section>
 
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
+            <SectionTitle title="Signer language" sub="Choose the language your signing form opens in. Signers can switch between ten languages." />
+            <label className="mt-4 block text-sm font-medium">
+              Default language
+              <select aria-label="Default signer language" value={language} onChange={e => setLanguage(signerLanguage(e.target.value))} className="mt-2 block w-full rounded-md border border-input bg-card px-3 py-2">
+                {SIGNER_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+              </select>
+            </label>
+            <p className="mt-3 text-sm text-muted-foreground">Standard field labels, guardian details, signature controls and buttons use this language. The preview updates immediately. Save and publish to update your live form.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Edit custom questions and waiver paragraphs in their existing sections. Consent stays exactly as written below so the signer and saved PDF have the same text.</p>
+          </section>
+
           {/* Minors */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <SectionTitle title="Minors" />
@@ -580,10 +598,17 @@ export function WaiverEditor({
             />
             <textarea
               value={consentText}
+              dir="auto"
               onChange={(e) => setConsentText(e.target.value)}
               rows={3}
               className="mt-3 w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none"
             />
+            {language === "fr" && consentText === DEFAULT_CONSENT_TEXT && (
+              <button type="button" onClick={() => setConsentText(FRENCH_DEFAULT_CONSENT)} className="mt-3 rounded-md border border-input px-3 py-2 text-sm font-medium hover:bg-muted">
+                Use French translation of default consent
+              </button>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">Review consent wording before publishing. Custom consent is never overwritten automatically.</p>
           </section>
 
           {/* Version history */}
@@ -728,6 +753,7 @@ export function WaiverEditor({
                   blocks={blocks.map((b) => b.block)}
                   fields={fields.map((f) => f.field)}
                   consentText={consentText}
+                  language={language}
                   minorMode={minorMode}
                 />
               </div>
@@ -1115,19 +1141,22 @@ function SignerPreview({
   fields,
   consentText,
   minorMode,
+  language,
 }: {
   name: string;
   blocks: WaiverBlock[];
   fields: WaiverField[];
   consentText: string;
   minorMode: "allowed" | "disallowed";
+  language: import("@/lib/signer-language").SignerLanguage;
 }) {
+  const t = (text: string) => signerText(text, language);
   return (
-    <div className="pointer-events-none space-y-4 text-left" aria-hidden>
+    <div lang={language} dir={signerDirection(language)} className="pointer-events-none space-y-4 text-start" aria-hidden>
       <div>
         <h2 className="text-lg font-bold">{name || "Untitled waiver"}</h2>
         <p className="text-xs text-muted-foreground">
-          Please read the waiver below, fill in your details, and sign.
+          {t("Please read the waiver below, fill in your details, and sign.")}
         </p>
       </div>
 
@@ -1143,6 +1172,7 @@ function SignerPreview({
         <div className="space-y-3">
           {fields.map((field, i) => (
             <FieldInput
+              language={language}
               key={i}
               field={{ ...field, label: field.label || "Untitled field" }}
               value={field.type === "checkbox" ? false : ""}
@@ -1157,7 +1187,7 @@ function SignerPreview({
         <div className="rounded-lg border border-border bg-card p-3 text-sm">
           <label className="flex items-center gap-2.5">
             <input type="checkbox" disabled className="size-4" />
-            <span className="font-medium">The participant is under 18</span>
+            <span className="font-medium">{t("The participant is under 18")}</span>
           </label>
         </div>
       )}
@@ -1165,29 +1195,29 @@ function SignerPreview({
       <div className="rounded-lg border border-border bg-card p-3">
         <label className="flex items-start gap-2.5">
           <input type="checkbox" disabled className="mt-0.5 size-4" />
-          <span className="text-xs leading-relaxed">{consentText}</span>
+          <span dir="auto" className="text-xs leading-relaxed">{consentText}</span>
         </label>
       </div>
 
       <div className="space-y-2">
         <div>
           <span className="mb-1 block text-sm font-medium text-foreground/90">
-            Full legal name
+            {t("Full legal name")}
           </span>
           <div className="h-10 rounded-md border border-input bg-card" />
         </div>
         <div>
           <span className="mb-1 block text-sm font-medium text-foreground/90">
-            Your signature
+            {t("Your signature")}
           </span>
           <div className="flex h-24 items-center justify-center rounded-md border border-input bg-card text-xs text-muted-foreground/60">
-            Signature canvas
+            {t("drawing area")}
           </div>
         </div>
       </div>
 
       <div className="rounded-lg bg-primary py-3 text-center text-sm font-semibold text-primary-foreground">
-        Sign waiver
+        {t("Sign waiver")}
       </div>
     </div>
   );

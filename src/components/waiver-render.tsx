@@ -9,11 +9,11 @@ export const signerInputClass =
 /** One block of waiver legal text, rendered exactly as the signer sees it. */
 export function BlockView({ block }: { block: WaiverBlock }) {
   if (block.type === "heading") {
-    return <h2 className="text-lg font-bold">{block.text}</h2>;
+    return <h2 dir="auto" className="text-lg font-bold">{block.text}</h2>;
   }
   if (block.type === "paragraph") {
     return (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+      <p dir="auto" className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
         {block.text}
       </p>
     );
@@ -21,7 +21,7 @@ export function BlockView({ block }: { block: WaiverBlock }) {
   return (
     <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-foreground/90">
       {block.items.map((item, i) => (
-        <li key={i}>{item}</li>
+        <li key={i} dir="auto">{item}</li>
       ))}
     </ul>
   );

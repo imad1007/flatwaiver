@@ -1,8 +1,27 @@
-export type SignerLanguage = "en" | "fr";
+import { additionalLanguages, translationRows } from "./signer-translations";
+
+export const SIGNER_LANGUAGES = [
+  { code: "en", name: "English" }, { code: "fr", name: "Français" },
+  { code: "es", name: "Español" }, { code: "pt", name: "Português" },
+  { code: "zh", name: "中文（简体）" }, { code: "hi", name: "हिन्दी" },
+  { code: "ar", name: "العربية" }, { code: "bn", name: "বাংলা" },
+  { code: "ru", name: "Русский" }, { code: "ur", name: "اردو" },
+] as const;
+export type SignerLanguage = typeof SIGNER_LANGUAGES[number]["code"];
+export function signerLanguage(value: unknown): SignerLanguage {
+  return SIGNER_LANGUAGES.find(l => l.code === value)?.code ?? "en";
+}
+export function signerDirection(language: SignerLanguage): "rtl" | "ltr" {
+  return language === "ar" || language === "ur" ? "rtl" : "ltr";
+}
 
 // Translate only known interface labels. Never translate stored waiver clauses,
 // custom consent, field keys or submitted option values.
 const french: Record<string, string> = {
+  "Signature": "Signature",
+  "Language": "Langue",
+  "Waiver text and custom fields remain in their original language.": "Les clauses et les champs personnalisés restent dans leur langue d’origine.",
+  "Please read the waiver below, fill in your details, and sign.": "Veuillez lire le document ci-dessous, remplir vos informations et signer.",
   "Full legal name": "Nom légal complet",
   "Full name": "Nom complet", "First name": "Prénom", "Last name": "Nom de famille",
   "Name": "Nom", "Email": "Adresse e-mail", "Email address": "Adresse e-mail",
@@ -41,16 +60,28 @@ const french: Record<string, string> = {
   "We couldn't submit this waiver": "Impossible d’envoyer ce document",
   "Submitting…": "Envoi…", "Sign waiver": "Signer le document",
 };
-const normalized = new Map(Object.entries(french).map(([key, value]) => [key.toLowerCase(), value]));
+const catalogs: Partial<Record<SignerLanguage, Record<string, string>>> = { fr: french };
+additionalLanguages.forEach((language, index) => {
+  catalogs[language] = Object.fromEntries(Object.entries(translationRows).map(([key, values]) => [key, values[index]]));
+});
+const keys = new Map(Object.keys(french).map(key => [key.toLowerCase(), key]));
+const aliases: Record<string, string> = {
+  "your email": "Email", "your email address": "Email address",
+  "e-mail": "Email", "your name": "Full name", "your full name": "Full name",
+  "your phone": "Phone", "your phone number": "Phone number", "birth date": "Date of birth",
+};
 export function signerText(text: string, language: SignerLanguage): string {
-  return language === "fr" ? normalized.get(text.trim().toLowerCase()) ?? text : text;
+  const normalized = text.trim().toLowerCase();
+  const key = aliases[normalized] ?? keys.get(normalized);
+  return language === "en" || !key ? text : catalogs[language]?.[key] ?? text;
 }
 
 const standardLabels = new Set([
   "full legal name", "full name", "first name", "last name", "name", "email",
   "email address", "phone", "phone number", "date of birth", "birth date",
   "address", "city", "postal code", "emergency contact", "emergency contact name",
-  "emergency contact phone", "initials",
+  "emergency contact phone", "initials", "signature", "your signature",
+  ...Object.keys(aliases),
 ]);
 export function signerFieldLabel(text: string, language: SignerLanguage): string {
   return standardLabels.has(text.trim().toLowerCase()) ? signerText(text, language) : text;

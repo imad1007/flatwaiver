@@ -36,6 +36,7 @@ export const fieldSchema = z
   );
 
 export const draftContentSchema = z.object({
+  signer_language: z.enum(["en", "fr", "es", "pt", "zh", "hi", "ar", "bn", "ru", "ur"]).optional(),
   title: z.string().min(1).max(200),
   blocks: z.array(blockSchema).min(1),
   fields: z.array(fieldSchema),

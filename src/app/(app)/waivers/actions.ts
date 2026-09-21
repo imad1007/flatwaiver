@@ -139,6 +139,7 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
       p_fields: draft.fields,
       p_consent_text: draft.consent_text,
       p_minor_mode: draft.minor_mode,
+      p_signer_language: draft.signer_language ?? "en",
       p_content_sha256: contentSha256(
         draft.blocks,
         draft.fields,

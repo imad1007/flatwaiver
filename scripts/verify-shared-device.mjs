@@ -22,7 +22,8 @@ assert.match(signRoute, /waiver service is temporarily unavailable[\s\S]*503/);
 
 assert.match(signingForm, /3 \* 60 \* 1000/);
 assert.match(signingForm, /Shared device: entries clear after 3 minutes/);
-assert.match(signingForm, />\s*Clear form\s*</);
+assert.match(signingForm, /\{t\("Clear form"\)\}/);
+assert.match(signingForm, /setLanguage\(props.defaultLanguage \?\? "en"\)/);
 assert.match(signingForm, /autoComplete=\{props\.kiosk \? "off"/);
 assert.match(signingForm, /armKioskPrivacyReset\(5000\)/);
 assert.match(signingForm, /clearTimeout\(kioskResetTimerRef\.current\)/);

@@ -60,12 +60,10 @@ export default async function PublicSigningPage({
         )}
         <p className="text-sm font-medium text-muted-foreground">{waiver.orgName}</p>
         <h1 className="text-2xl font-bold">{waiver.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Please read the waiver below, fill in your details, and sign.
-        </p>
       </header>
 
       <SigningForm
+        defaultLanguage={waiver.version.signer_language}
         slug={waiver.slug}
         waiverName={waiver.name}
         orgName={waiver.orgName}

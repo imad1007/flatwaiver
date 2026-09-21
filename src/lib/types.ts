@@ -69,6 +69,7 @@ export function evaluateFlags(
 export type MinorMode = "allowed" | "disallowed";
 
 export interface DraftContent {
+  signer_language?: import("./signer-language").SignerLanguage;
   title: string;
   blocks: WaiverBlock[];
   fields: WaiverField[];
@@ -149,6 +150,7 @@ export interface WaiverTemplate {
 }
 
 export interface TemplateVersion {
+  signer_language?: import("./signer-language").SignerLanguage;
   id: string;
   template_id: string;
   version_number: number;

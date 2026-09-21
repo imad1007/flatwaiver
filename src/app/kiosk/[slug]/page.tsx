@@ -58,6 +58,7 @@ export default async function KioskPage({
       </header>
 
       <SigningForm
+        defaultLanguage={waiver.version.signer_language}
         slug={waiver.slug}
         waiverName={waiver.name}
         orgName={waiver.orgName}
