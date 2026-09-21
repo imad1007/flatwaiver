@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { signerFieldLabel, signerText, type SignerLanguage } from "@/lib/signer-language";
 import { useRouter } from "next/navigation";
 import {
   SignatureCanvas,
@@ -53,6 +54,8 @@ export interface SigningFormProps {
 
 export function SigningForm(props: SigningFormProps) {
   const router = useRouter();
+  const [language, setLanguage] = useState<SignerLanguage>("en");
+  const t = (text: string) => signerText(text, language);
   const [fieldValues, setFieldValues] = useState<Record<string, string | boolean>>({});
   const [isMinor, setIsMinor] = useState(false);
   const [guardianName, setGuardianName] = useState("");
@@ -104,6 +107,7 @@ export function SigningForm(props: SigningFormProps) {
       clearTimeout(kioskResetTimerRef.current);
       kioskResetTimerRef.current = null;
     }
+    setLanguage("en");
     setFieldValues({});
     setIsMinor(false);
     setGuardianName("");
@@ -133,7 +137,7 @@ export function SigningForm(props: SigningFormProps) {
     try {
       setPhotoDataUrl(await fileToResizedDataUrl(file));
     } catch {
-      setError("Couldn't read that photo. Try again or use a different image.");
+      setError(t("Couldn't read that photo. Try again or use a different image."));
     } finally {
       setPhotoBusy(false);
     }
@@ -162,27 +166,27 @@ export function SigningForm(props: SigningFormProps) {
 
     const signatureDataUrl = signatureRef.current?.getDataUrl() ?? null;
     if (!signatureDataUrl) {
-      setError("Please draw or type your signature.");
+      setError(t("Please draw or type your signature."));
       return;
     }
     let guardianSignatureDataUrl: string | null = null;
     if (isMinor) {
       guardianSignatureDataUrl = guardianSignatureRef.current?.getDataUrl() ?? null;
       if (!guardianSignatureDataUrl) {
-        setError("Guardian signature is required for minors.");
+        setError(t("Guardian signature is required for minors."));
         return;
       }
     }
     if (!consentGiven) {
-      setError("You must agree to sign electronically.");
+      setError(t("You must agree to sign electronically."));
       return;
     }
     if (photoMode === "required" && !photoDataUrl) {
-      setError("A photo is required to sign this waiver.");
+      setError(t("A photo is required to sign this waiver."));
       return;
     }
     if (!turnstileToken) {
-      setError("Please complete the verification challenge.");
+      setError(t("Please complete the verification challenge."));
       return;
     }
 
@@ -211,7 +215,7 @@ export function SigningForm(props: SigningFormProps) {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        setError(body?.error ?? "Something went wrong. Please try again.");
+        setError(language === "fr" ? t("Something went wrong. Please try again.") : body?.error ?? t("Something went wrong. Please try again."));
         setTurnstileToken("");
         setTurnstileReset((n) => n + 1);
         return;
@@ -221,11 +225,11 @@ export function SigningForm(props: SigningFormProps) {
         setKioskDone(true);
         armKioskPrivacyReset(5000);
       } else {
-        router.push(`/w/${props.slug}/done`);
+        router.push(`/w/${props.slug}/done?lang=${language}`);
       }
     } catch {
       setError(
-        "We couldn't reach the signing service. Check your connection and try again; your entries are still here."
+        t("We couldn't reach the signing service. Check your connection and try again; your entries are still here.")
       );
       setTurnstileToken("");
       setTurnstileReset((n) => n + 1);
@@ -236,14 +240,14 @@ export function SigningForm(props: SigningFormProps) {
 
   if (kioskDone) {
     return (
-      <div aria-live="polite" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <div lang={language} aria-live="polite" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <div className="text-6xl text-success">✓</div>
-        <h2 className="mt-4 text-3xl font-bold">You&apos;re all set!</h2>
+        <h2 className="mt-4 text-3xl font-bold">{t("You're all set!")}</h2>
         <p className="mt-2 text-lg text-muted-foreground">
-          Your waiver has been signed and recorded.
+          {t("Your waiver has been signed and recorded.")}
         </p>
         <p className="mt-6 text-sm text-muted-foreground/70">
-          Ready for the next person in a few seconds…
+          {t("Ready for the next person in a few seconds…")}
         </p>
       </div>
     );
@@ -251,6 +255,7 @@ export function SigningForm(props: SigningFormProps) {
 
   return (
     <form
+      lang={language}
       key={formKey}
       onSubmit={handleSubmit}
       onInput={() => armKioskPrivacyReset()}
@@ -258,17 +263,24 @@ export function SigningForm(props: SigningFormProps) {
       autoComplete={props.kiosk ? "off" : undefined}
       className="space-y-8"
     >
+      <label className="flex flex-wrap items-center justify-end gap-3 text-sm">
+        Language / Langue
+        <select aria-label="Language / Langue" value={language} onChange={e => setLanguage(e.target.value as SignerLanguage)} className="rounded-md border border-input bg-card px-3 py-2">
+          <option value="en">English</option><option value="fr">Fran?ais</option>
+        </select>
+        <span className="w-full text-right text-xs text-muted-foreground">{language === "fr" ? "Les clauses et les champs personnalis?s restent dans leur langue d?origine." : "Waiver text and custom fields remain in their original language."}</span>
+      </label>
       {props.kiosk && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
           <p className="text-muted-foreground">
-            Shared device: entries clear after 3 minutes without activity.
+            {t("Shared device: entries clear after 3 minutes without activity.")}
           </p>
           <button
             type="button"
             onClick={resetForm}
             className="font-semibold text-foreground underline underline-offset-4"
           >
-            Clear form
+            {t("Clear form")}
           </button>
         </div>
       )}
@@ -292,7 +304,7 @@ export function SigningForm(props: SigningFormProps) {
                 <div key={field.key}>
                   <label className="block">
                     <span className="mb-1 block text-sm font-medium text-foreground/90">
-                      {field.label}
+                      {signerFieldLabel(field.label, language)}
                       <span className="text-destructive"> *</span>
                     </span>
                     <textarea
@@ -329,6 +341,7 @@ export function SigningForm(props: SigningFormProps) {
               <FieldInput
                 key={field.key}
                 field={field}
+                language={language}
                 value={fieldValues[field.key]}
                 onChange={(v) =>
                   setFieldValues((prev) => ({ ...prev, [field.key]: v }))
@@ -349,14 +362,14 @@ export function SigningForm(props: SigningFormProps) {
               onChange={(e) => setIsMinor(e.target.checked)}
               className="size-5 accent-primary"
             />
-            <span className="font-medium">The participant is under 18</span>
+            <span className="font-medium">{t("The participant is under 18")}</span>
           </label>
 
           {isMinor && (
             <div className="mt-4 space-y-4">
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-foreground/90">
-                  Parent / guardian full legal name
+                  {t("Parent / guardian full legal name")}
                 </span>
                 <input
                   type="text"
@@ -369,12 +382,12 @@ export function SigningForm(props: SigningFormProps) {
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-foreground/90">
-                  Relationship to participant
+                  {t("Relationship to participant")}
                 </span>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Parent"
+                  placeholder={t("e.g. Parent")}
                   value={guardianRelationship}
                   onChange={(e) => setGuardianRelationship(e.target.value)}
                   className={signerInputClass}
@@ -382,7 +395,8 @@ export function SigningForm(props: SigningFormProps) {
               </label>
               <SignatureCanvas
                 ref={guardianSignatureRef}
-                label="Parent / guardian signature"
+                language={language}
+                label={t("Parent / guardian signature")}
               />
             </div>
           )}
@@ -397,15 +411,15 @@ export function SigningForm(props: SigningFormProps) {
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {photoMode === "required"
-              ? "A photo is required to sign this waiver."
-              : "Optionally add a photo (e.g. a photo ID or a selfie)."}
+              ? t("A photo is required to sign this waiver.")
+              : t("Optionally add a photo (e.g. a photo ID or a selfie).")}
           </p>
           {photoDataUrl ? (
             <div className="mt-3 flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photoDataUrl}
-                alt="Captured"
+                alt={t("Captured")}
                 className="h-24 w-24 rounded-lg border border-border object-cover"
               />
               <button
@@ -413,7 +427,7 @@ export function SigningForm(props: SigningFormProps) {
                 onClick={() => setPhotoDataUrl(null)}
                 className="text-sm text-muted-foreground underline"
               >
-                Retake
+                {t("Retake")}
               </button>
             </div>
           ) : (
@@ -425,7 +439,7 @@ export function SigningForm(props: SigningFormProps) {
                 onChange={handlePhotoChange}
                 className="sr-only"
               />
-              {photoBusy ? "Processing…" : "Take / upload photo"}
+              {photoBusy ? t("Processing…") : t("Take / upload photo")}
             </label>
           )}
         </div>
@@ -449,7 +463,7 @@ export function SigningForm(props: SigningFormProps) {
       <div className="space-y-4">
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-foreground/90">
-            Full legal name
+            {t("Full legal name")}
           </span>
           <input
             type="text"
@@ -460,7 +474,7 @@ export function SigningForm(props: SigningFormProps) {
             className={signerInputClass}
           />
         </label>
-        <SignatureCanvas ref={signatureRef} label="Your signature" />
+        <SignatureCanvas ref={signatureRef} language={language} label={t("Your signature")} />
       </div>
 
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
@@ -474,7 +488,7 @@ export function SigningForm(props: SigningFormProps) {
           aria-live="assertive"
           className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
         >
-          <p className="font-medium">We couldn&apos;t submit this waiver</p>
+          <p className="font-medium">{t("We couldn't submit this waiver")}</p>
           <p className="mt-1">{error}</p>
         </div>
       )}
@@ -485,7 +499,7 @@ export function SigningForm(props: SigningFormProps) {
         aria-describedby={error ? "signing-error" : undefined}
         className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
-        {submitting ? "Submitting…" : "Sign waiver"}
+        {submitting ? t("Submitting…") : t("Sign waiver")}
       </button>
     </form>
   );

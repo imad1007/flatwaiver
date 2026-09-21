@@ -1,6 +1,7 @@
 "use client";
 
 import type { WaiverBlock, WaiverField } from "@/lib/types";
+import { signerText, signerFieldLabel, type SignerLanguage } from "@/lib/signer-language";
 
 export const signerInputClass =
   "w-full rounded-md border border-input bg-card px-3 py-3 text-base focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow";
@@ -32,12 +33,16 @@ export function FieldInput({
   value,
   onChange,
   disabled = false,
+  language = "en",
 }: {
   field: WaiverField;
   value: string | boolean | undefined;
   onChange: (v: string | boolean) => void;
   disabled?: boolean;
+  language?: SignerLanguage;
 }) {
+  const t = (text: string) => signerText(text, language);
+  const displayField = { ...field, label: signerFieldLabel(field.label, language) };
   if (field.type === "checkbox") {
     return (
       <label className="flex items-start gap-3">
@@ -49,7 +54,7 @@ export function FieldInput({
           disabled={disabled}
           className="mt-1 size-5 accent-primary"
         />
-        <span className="text-sm">{field.label}</span>
+        <span className="text-sm">{displayField.label}</span>
       </label>
     );
   }
@@ -57,7 +62,7 @@ export function FieldInput({
   if (field.type === "select") {
     return (
       <label className="block">
-        <FieldLabel field={field} />
+        <FieldLabel field={displayField} />
         <select
           required={field.required}
           value={typeof value === "string" ? value : ""}
@@ -66,11 +71,11 @@ export function FieldInput({
           className={signerInputClass}
         >
           <option value="" disabled>
-            Select…
+            {t("Select…")}
           </option>
           {(field.options ?? []).map((opt) => (
             <option key={opt} value={opt}>
-              {opt}
+              {/^(yes|no)$/i.test(opt.trim()) ? t(opt) : opt}
             </option>
           ))}
         </select>
@@ -81,7 +86,7 @@ export function FieldInput({
   if (field.type === "multiline") {
     return (
       <label className="block">
-        <FieldLabel field={field} />
+        <FieldLabel field={displayField} />
         <textarea
           required={field.required}
           rows={3}
@@ -105,7 +110,7 @@ export function FieldInput({
 
   return (
     <label className="block">
-      <FieldLabel field={field} />
+      <FieldLabel field={displayField} />
       <input
         type={inputType}
         required={field.required}

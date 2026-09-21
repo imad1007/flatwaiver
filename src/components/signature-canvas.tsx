@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { signerText, type SignerLanguage } from "@/lib/signer-language";
 import SignaturePad from "signature_pad";
 import { typedSignatureIsValid } from "@/lib/signature-input";
 
@@ -21,8 +22,9 @@ const MIN_POINTS = 8;
 
 export const SignatureCanvas = forwardRef<
   SignatureCanvasHandle,
-  { label: string }
->(function SignatureCanvas({ label }, ref) {
+  { label: string; language?: SignerLanguage }
+>(function SignatureCanvas({ label, language = "en" }, ref) {
+  const t = (text: string) => signerText(text, language);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const padRef = useRef<SignaturePad | null>(null);
   const [mode, setMode] = useState<"draw" | "type">("draw");
@@ -112,7 +114,7 @@ export const SignatureCanvas = forwardRef<
               onChange={() => setMode(option)}
               className="sr-only"
             />
-            {option === "draw" ? "Draw" : "Type"}
+            {option === "draw" ? t("Draw") : t("Type")}
           </label>
         ))}
       </div>
@@ -125,22 +127,22 @@ export const SignatureCanvas = forwardRef<
               onClick={() => padRef.current?.clear()}
               className="text-xs text-muted-foreground underline"
             >
-              Clear drawing
+              {t("Clear drawing")}
             </button>
           </div>
           <canvas
             ref={canvasRef}
             className="mt-1 h-40 w-full touch-none rounded-md border border-input bg-card"
-            aria-label={`${label} drawing area`}
+            aria-label={`${label} ${t("drawing area")}`}
           />
           <p className="mt-1 text-xs text-muted-foreground/70">
-            Draw with a pointer, or choose Type for keyboard entry.
+            {t("Draw with a pointer, or choose Type for keyboard entry.")}
           </p>
         </div>
       ) : (
         <label className="mt-3 block">
           <span className="mb-1 block text-sm text-muted-foreground">
-            Type your full signature
+            {t("Type your full signature")}
           </span>
           <input
             type="text"
@@ -153,7 +155,7 @@ export const SignatureCanvas = forwardRef<
             className="w-full rounded-md border border-input bg-card px-3 py-3 text-lg italic focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
           />
           <span className="mt-1 block text-xs text-muted-foreground/70">
-            Your typed signature will appear in the signed PDF.
+            {t("Your typed signature will appear in the signed PDF.")}
           </span>
         </label>
       )}
