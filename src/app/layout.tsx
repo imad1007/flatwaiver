@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { OpenAIPixel } from "@/components/openai-pixel";
+import { pixelEnabled } from "@/lib/openai-pixel";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics";
@@ -81,6 +83,7 @@ export default function RootLayout({
         <Toaster position="bottom-right" />
         <CookieConsent />
         <Analytics />
+        <OpenAIPixel enabled={pixelEnabled(process.env.VERCEL_ENV, process.env.OPENAI_ADS_PIXEL_ENABLED)} />
         <LiveChat />
       </body>
     </html>

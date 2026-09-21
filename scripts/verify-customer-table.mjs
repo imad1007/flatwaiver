@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { customerPlan, filterCustomers } from '../src/lib/customer-table.ts';
+const now = Date.parse('2026-09-21T12:00:00Z');
+const base = { orgId: 'a', name: 'Alpha', ownerEmail: 'owner@example.com', status: 'trialing', trialEndsAt: '2026-09-21T12:00:00Z', createdAt: '2026-09-01T00:00:00Z', signatureCount: 0, signaturesThisMonth: 0, suspended: false, lastSignedAt: null };
+assert.equal(customerPlan(base, now), 'trial_ended');
+assert.equal(customerPlan({...base, trialEndsAt:'2026-09-21T12:00:01Z'}, now), 'trialing');
+assert.equal(customerPlan({...base, status:'active'}, now), 'active');
+assert.equal(customerPlan({...base, trialEndsAt:null}, now), 'trialing');
+const rows = [base, {...base, orgId:'b', name:'Beta', status:'active', signatureCount:20, signaturesThisMonth:5, suspended:true}, {...base, orgId:'c', trialEndsAt:'2026-09-22T00:00:00Z'}];
+const filters = {query:'', plan:'all', activity:'all', access:'all', sort:'newest'};
+assert.deepEqual(filterCustomers(rows, {...filters,plan:'trial_ended'},now).map(r=>r.orgId), ['a']);
+assert.deepEqual(filterCustomers(rows, {...filters,plan:'ending_soon'},now).map(r=>r.orgId), ['c']);
+assert.deepEqual(filterCustomers(rows, {...filters,activity:'month',access:'suspended',query:'BETA'},now).map(r=>r.orgId), ['b']);
+assert.equal(filterCustomers(rows, {...filters,sort:'signatures'},now)[0].orgId, 'b');
+assert.equal(rows[0].orgId,'a','sorting does not mutate the input');
+console.log('Customer table checks passed: expiry boundary, active subscription precedence, combined filters, sorting.');

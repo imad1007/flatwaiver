@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
 import { APP } from "@/lib/config";
+import { CookieSettings } from "@/components/cookie-settings";
 
 export const metadata: Metadata = {
   title: `Privacy Policy | ${APP.name}`,
@@ -12,7 +13,7 @@ export default function PrivacyPage() {
       <MarketingHeader />
       <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
         <h1 className="text-3xl font-bold">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Last updated: July 4, 2026</p>
+        <p className="mt-2 text-sm text-muted-foreground">Last updated: September 21, 2026</p>
 
         <div className="prose-neutral mt-8 space-y-6 leading-relaxed text-foreground/90">
           <section>
@@ -69,6 +70,22 @@ export default function PrivacyPage() {
               documents), Vercel (hosting), and Cloudflare (bot protection on the
               signing page).
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground">Advertising measurement</h2>
+            <p className="mt-2">
+              With your optional-cookie consent, we use the OpenAI Ads Pixel to
+              measure completed business registrations from advertising. It uses
+              a click reference stored in a first-party cookie for up to 30 days.
+              Our image-only integration does not run automatic form scanning
+              or create the SDK&apos;s browser-reference cookie. We send a random
+              registration event identifier, not your email address, waiver
+              contents, signatures, or signer information. Measurement is kept
+              separate from public signing pages and signed-document screens.
+              You can withdraw optional-cookie consent using Cookie settings.
+            </p>
+            <CookieSettings />
           </section>
 
           <section>

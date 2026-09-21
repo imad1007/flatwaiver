@@ -25,7 +25,7 @@ export function CookieConsent() {
           <Cookie className="mt-0.5 size-5 shrink-0 text-brand-600 dark:text-brand-300" />
           <p className="text-sm text-muted-foreground">
             We use essential cookies to run the site, and — only if you agree —
-            analytics and chat to improve it. See our{" "}
+            analytics, advertising measurement, and chat to improve it. See our{" "}
             <Link
               href="/privacy"
               className="font-medium text-primary underline underline-offset-2 hover:opacity-80"

@@ -24,7 +24,15 @@ function readConsent(): Consent {
 
 export function setConsent(value: "granted" | "denied") {
   document.cookie = `${COOKIE}=${value}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
+  if (value === "denied") {
+    // Remove our attribution cookie and any legacy SDK identifiers.
+    for (const name of ["fw-openai-oppref", "__oppref", "__obref"]) {
+      document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+    }
+  }
   window.dispatchEvent(new Event(CHANGE_EVENT));
+  // Propagate preference changes to other open tabs without storing identity.
+  try { localStorage.setItem(COOKIE, value); } catch { /* Storage may be blocked. */ }
 }
 
 function subscribe(callback: () => void) {

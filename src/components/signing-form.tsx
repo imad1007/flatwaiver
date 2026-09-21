@@ -266,9 +266,9 @@ export function SigningForm(props: SigningFormProps) {
       <label className="flex flex-wrap items-center justify-end gap-3 text-sm">
         Language / Langue
         <select aria-label="Language / Langue" value={language} onChange={e => setLanguage(e.target.value as SignerLanguage)} className="rounded-md border border-input bg-card px-3 py-2">
-          <option value="en">English</option><option value="fr">Fran?ais</option>
+          <option value="en">English</option><option value="fr">Français</option>
         </select>
-        <span className="w-full text-right text-xs text-muted-foreground">{language === "fr" ? "Les clauses et les champs personnalis?s restent dans leur langue d?origine." : "Waiver text and custom fields remain in their original language."}</span>
+        <span className="w-full text-right text-xs text-muted-foreground">{language === "fr" ? "Les clauses et les champs personnalisés restent dans leur langue d’origine." : "Waiver text and custom fields remain in their original language."}</span>
       </label>
       {props.kiosk && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
