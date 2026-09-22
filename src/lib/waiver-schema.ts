@@ -28,14 +28,19 @@ export const fieldSchema = z
     label: z.string().min(1).max(200),
     required: z.boolean(),
     options: z.array(z.string().min(1).max(200)).max(50).optional(),
+    option_labels: z.array(z.string().min(1).max(200)).max(50).optional(),
     flag_values: z.array(z.string().min(1).max(200)).max(50).optional(),
   })
   .refine(
     (f) => f.type !== "select" || (f.options && f.options.length >= 2),
     { message: "select fields need at least two options" }
-  );
+  )
+  .refine(f => !f.option_labels || (f.options && f.option_labels.length === f.options.length), {
+    message: "Translated choices must match the original choices",
+  });
 
 export const draftContentSchema = z.object({
+  translate_content: z.boolean().optional(),
   signer_language: z.enum(["en", "fr", "es", "pt", "zh", "hi", "ar", "bn", "ru", "ur"]).optional(),
   title: z.string().min(1).max(200),
   blocks: z.array(blockSchema).min(1),

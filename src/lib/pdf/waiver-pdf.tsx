@@ -4,13 +4,13 @@ import React from "react";
 import {
   Document,
   Page,
-  Text,
   View,
   Image,
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { sha256Hex } from "@/lib/canonical";
+import { MultilingualText as Text } from "./multilingual-text";
 import type { SigningChannel, WaiverBlock, WaiverField } from "@/lib/types";
 
 export interface SignedPdfInput {
@@ -151,7 +151,7 @@ function WaiverPdf({
               <View key={f.key} style={styles.row}>
                 <Text style={styles.label}>{f.label}</Text>
                 <Text style={styles.value}>
-                  {formatValue(input.fieldValues[f.key])}
+                  {f.option_labels?.[f.options?.indexOf(String(input.fieldValues[f.key])) ?? -1] ?? formatValue(input.fieldValues[f.key])}
                 </Text>
               </View>
             ))}

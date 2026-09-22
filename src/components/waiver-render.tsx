@@ -73,9 +73,9 @@ export function FieldInput({
           <option value="" disabled>
             {t("Select…")}
           </option>
-          {(field.options ?? []).map((opt) => (
+          {(field.options ?? []).map((opt, index) => (
             <option key={opt} value={opt}>
-              {/^(yes|no)$/i.test(opt.trim()) ? t(opt) : opt}
+              {field.option_labels?.[index] ?? (/^(yes|no)$/i.test(opt.trim()) ? t(opt) : opt)}
             </option>
           ))}
         </select>

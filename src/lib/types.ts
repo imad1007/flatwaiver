@@ -24,6 +24,8 @@ export interface WaiverField {
   required: boolean;
   /** Choices for `select` fields. */
   options?: string[];
+  /** Translated display choices; original option values remain stable for flags. */
+  option_labels?: string[];
   /**
    * Answers that flag the signed waiver for staff attention (amber badge).
    * Compared against the normalized answer: checkboxes normalize to
@@ -69,6 +71,7 @@ export function evaluateFlags(
 export type MinorMode = "allowed" | "disallowed";
 
 export interface DraftContent {
+  translate_content?: boolean;
   signer_language?: import("./signer-language").SignerLanguage;
   title: string;
   blocks: WaiverBlock[];

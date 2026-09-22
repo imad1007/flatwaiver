@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   // time; computed paths aren't picked up by output file tracing, so include
   // them explicitly for every blog route (keys are picomatch route globs).
   outputFileTracingIncludes: {
+    "/api/sign/**": ["./public/fonts/waivers/*.ttf"],
     "/blog/**": ["./content/blog/*.mdx"],
   },
   // Safety-net apex -> www redirect. Next anchors `has` host values (^...$),

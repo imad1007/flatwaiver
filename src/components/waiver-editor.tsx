@@ -132,6 +132,10 @@ export function WaiverEditor({
   const [consentText, setConsentText] = useState(initial.consent_text);
   const [minorMode, setMinorMode] = useState(initial.minor_mode);
   const [language, setLanguage] = useState(signerLanguage(initial.signer_language));
+  const [translateContent, setTranslateContent] = useState(initial.translate_content ?? false);
+  const [translating, setTranslating] = useState(false);
+  const [translationPreview, setTranslationPreview] = useState<{ draft: DraftContent; source: string } | null>(null);
+  const [translationUndo, setTranslationUndo] = useState<DraftContent | null>(null);
   const [warnings, setWarnings] = useState(initial.warnings ?? []);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const [publishOpen, setPublishOpen] = useState(false);
@@ -148,15 +152,17 @@ export function WaiverEditor({
       consent_text: consentText,
       minor_mode: minorMode,
       signer_language: language,
+      translate_content: translateContent,
       warnings: warnings.length ? warnings : undefined,
     }),
-    [blocks, consentText, fields, minorMode, language, name, template.name, warnings]
+    [blocks, consentText, fields, minorMode, language, translateContent, name, template.name, warnings]
   );
   const currentFingerprint = JSON.stringify(currentDraft);
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     JSON.stringify({
       ...initial,
       signer_language: signerLanguage(initial.signer_language),
+      translate_content: initial.translate_content ?? false,
       title: template.name.trim() || initial.title,
       warnings: warnings.length ? warnings : undefined,
     })
@@ -236,6 +242,33 @@ export function WaiverEditor({
     return currentDraft;
   }
 
+  function loadTranslatedDraft(draft: DraftContent) {
+    setName(draft.title);
+    setItems(toItems(draft));
+    setConsentText(draft.consent_text);
+    setLanguage(signerLanguage(draft.signer_language));
+    setTranslationPreview(null);
+  }
+
+  async function translateEntireWaiver() {
+    if (translating) return;
+    setTranslating(true);
+    setTranslationPreview(null);
+    const source = JSON.stringify(currentDraft);
+    try {
+      const response = await fetch("/api/waivers/translate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: template.id, draft: currentDraft }),
+        signal: AbortSignal.timeout(115000),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Translation failed.");
+      setTranslationPreview({ draft: draftContentSchema.parse(result.draft), source });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Translation failed. Your original draft is unchanged.");
+    } finally { setTranslating(false); }
+  }
+
   function clearRecovery() {
     try {
       window.sessionStorage.removeItem(recoveryKey);
@@ -252,6 +285,7 @@ export function WaiverEditor({
     setConsentText(recovery.draft.consent_text);
     setMinorMode(recovery.draft.minor_mode);
     setLanguage(signerLanguage(recovery.draft.signer_language));
+    setTranslateContent(recovery.draft.translate_content ?? false);
     setWarnings(recovery.draft.warnings ?? []);
     setRecovery(null);
     toast.success("Recovered your unsaved changes");
@@ -572,7 +606,29 @@ export function WaiverEditor({
               </select>
             </label>
             <p className="mt-3 text-sm text-muted-foreground">Standard field labels, guardian details, signature controls and buttons use this language. The preview updates immediately. Save and publish to update your live form.</p>
-            <p className="mt-2 text-sm text-muted-foreground">Edit custom questions and waiver paragraphs in their existing sections. Consent stays exactly as written below so the signer and saved PDF have the same text.</p>
+            <label className="mt-5 flex items-start gap-3 rounded-lg border border-border p-4 text-sm">
+              <input type="checkbox" checked={translateContent} onChange={e => { setTranslateContent(e.target.checked); setTranslationPreview(null); }} className="mt-0.5 size-4 accent-primary" />
+              <span><strong className="block">Translate the entire waiver</strong><span className="text-muted-foreground">Include the title, paragraphs, custom questions, answer choices and electronic-signature consent.</span></span>
+            </label>
+            {translateContent && <div className="mt-4 space-y-3">
+              <p className="text-sm text-muted-foreground">Generate a translation in the selected language using our AI provider, then review it before replacing your draft. This creates one translated document; it does not automatically translate legal text when a signer switches interface language.</p>
+              {(language === "ar" || language === "ur") && <p className="text-sm text-amber-700">Arabic and Urdu are available for the signer interface. Full-document translation needs further signed-PDF support and is not available yet.</p>}
+              <Button type="button" disabled={translating || isPending || language === "ar" || language === "ur"} onClick={translateEntireWaiver}>{translating ? "Translating entire waiver…" : "Translate entire waiver"}</Button>
+              {translationPreview && <div className="space-y-3 rounded-lg border border-border p-4">
+                <h3 className="font-semibold">Review the translated draft</h3>
+                <p className="text-sm text-muted-foreground">Check names, legal provisions and consent for accuracy. Nothing has been saved or published.</p>
+                <div dir={signerDirection(language)} className="max-h-96 space-y-3 overflow-y-auto rounded-md bg-muted/40 p-3">
+                  <h4 className="font-semibold">{translationPreview.draft.title}</h4>
+                  {translationPreview.draft.blocks.map((block, i) => <BlockView key={i} block={block} />)}
+                  {translationPreview.draft.fields.map(field => <p key={field.key} className="text-sm">{field.label}{field.option_labels?.length ? `: ${field.option_labels.join(" / ")}` : ""}</p>)}
+                  <p className="border-t border-border pt-3 text-sm">{translationPreview.draft.consent_text}</p>
+                </div>
+                {translationPreview.source !== currentFingerprint && <p className="text-sm text-amber-700">The draft changed while translating. Generate a new translation to keep your latest edits.</p>}
+                <Button type="button" disabled={translationPreview.source !== currentFingerprint} onClick={() => { setTranslationUndo(currentDraft); loadTranslatedDraft(translationPreview.draft); }}>Use this translation</Button>
+                <Button type="button" variant="outline" onClick={() => setTranslationPreview(null)}>Discard translation</Button>
+              </div>}
+              {translationUndo && <Button type="button" variant="outline" onClick={() => { loadTranslatedDraft(translationUndo); setTranslationUndo(null); }}>Restore pre-translation draft</Button>}
+            </div>}
           </section>
 
           {/* Minors */}
@@ -995,6 +1051,7 @@ function SortableFieldCard({
             onChange({
               ...field,
               type,
+              option_labels: type === "select" ? field.option_labels : undefined,
               options:
                 type === "select" ? field.options ?? ["Yes", "No"] : undefined,
               flag_values:
@@ -1055,8 +1112,14 @@ function SortableFieldCard({
           {(field.options ?? []).map((option, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
-                value={option}
+                value={field.option_labels?.[i] ?? option}
                 onChange={(e) => {
+                  if (field.option_labels) {
+                    const labels = [...field.option_labels];
+                    labels[i] = e.target.value;
+                    onChange({ ...field, option_labels: labels });
+                    return;
+                  }
                   const next = [...(field.options ?? [])];
                   const old = next[i];
                   next[i] = e.target.value;
@@ -1091,6 +1154,7 @@ function SortableFieldCard({
                   onChange({
                     ...field,
                     options: next,
+                    option_labels: field.option_labels?.filter((_, j) => j !== i),
                     flag_values: flags.length ? flags : undefined,
                   });
                 }}
@@ -1106,6 +1170,7 @@ function SortableFieldCard({
               onChange({
                 ...field,
                 options: [...(field.options ?? []), `Option ${(field.options?.length ?? 0) + 1}`],
+                option_labels: field.option_labels ? [...field.option_labels, `Option ${(field.options?.length ?? 0) + 1}`] : undefined,
               })
             }
             className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
