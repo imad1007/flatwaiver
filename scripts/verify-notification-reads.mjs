@@ -1,0 +1,28 @@
+﻿import assert from "node:assert/strict";
+import fs from "node:fs";
+import { PGlite } from "@electric-sql/pglite";
+const db = new PGlite();
+await db.exec(`
+create role anon;
+create role authenticated;
+create role service_role;
+create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$ select current_setting('request.jwt.claim.sub',true)::uuid $$;
+grant usage on schema auth to authenticated;
+grant execute on function auth.uid() to authenticated;
+insert into auth.users values ('00000000-0000-4000-8000-000000000001'), ('00000000-0000-4000-8000-000000000002');
+`);
+await db.exec(fs.readFileSync("supabase/migrations/0021_notification_reads.sql","utf8"));
+await db.exec(`set role authenticated; set request.jwt.claim.sub='00000000-0000-4000-8000-000000000001';
+insert into public.notification_reads(user_id,notification_id) values(auth.uid(),'message-1');
+insert into public.notification_reads(user_id,notification_id) values(auth.uid(),'message-1') on conflict(user_id,notification_id) do nothing;`);
+assert.equal((await db.query("select * from public.notification_reads")).rows.length,1);
+await assert.rejects(db.exec("insert into public.notification_reads(user_id,notification_id) values('00000000-0000-4000-8000-000000000002','forged')"));
+await db.exec("set request.jwt.claim.sub='00000000-0000-4000-8000-000000000002'");
+assert.equal((await db.query("select * from public.notification_reads")).rows.length,0);
+await assert.rejects(db.exec("update public.notification_reads set notification_id='changed'"));
+await db.exec("reset role; set role anon");
+await assert.rejects(db.query("select * from public.notification_reads"));
+await db.close();
+console.log("Notification receipts passed: persistent reads, duplicate idempotency, cross-user isolation, no updates, anonymous access denied.");
