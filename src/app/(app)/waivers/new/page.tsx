@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileUp, PenLine, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileUp, PenLine, Sparkles, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { createTemplateFromText } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -27,20 +27,25 @@ export default function NewWaiverPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold">New waiver</h1>
-      <p className="mt-2 text-muted-foreground">
-        Two ways to start — both give you a draft to review before anything goes
-        live.
-      </p>
+    <div className={cn("mx-auto w-full pb-8", path === null ? "max-w-4xl" : "max-w-2xl")}>
+      <div className="mb-8 sm:mb-10">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Waiver workspace</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">New waiver</h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+          Bring your existing waiver online, or build a form of your own.
+          Start with a draft and publish when you are ready.
+        </p>
+      </div>
 
       {path === null && (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <ChoiceCard
             icon={FileUp}
             title="Upload existing waiver"
-            badge="AI converts it"
-            body="PDF, a photo or scan, or a Word doc — the waiver you already use, converted into a signable form with every clause preserved exactly."
+            badge="AI-assisted"
+            action="Upload a waiver"
+            details={["PDF, Word, photo or scan", "Editable draft to review"]}
+            body="Turn the waiver you already use into a digital form. Review the conversion and make it yours."
             onClick={() => {
               trackProductEvent("waiver_creation_method_selected", { method: "upload" });
               setPath("upload");
@@ -49,12 +54,24 @@ export default function NewWaiverPage() {
           <ChoiceCard
             icon={PenLine}
             title="Start from scratch"
-            body="Paste your waiver text (or start empty) and build the form yourself in the editor."
+            action="Create a draft"
+            details={["Paste your existing text", "Add questions in the editor"]}
+            body="Start with your own wording and shape the form around your business, one field at a time."
             onClick={() => {
               trackProductEvent("waiver_creation_method_selected", { method: "scratch" });
               setPath("scratch");
             }}
           />
+        </div>
+      )}
+
+      {path === null && (
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-card/60 p-4 sm:p-5">
+          <ClipboardCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <p className="text-sm font-medium">You are in control before it goes live</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">Review your wording, customize signer fields, then publish and share your link or QR code.</p>
+          </div>
         </div>
       )}
 
@@ -69,35 +86,42 @@ function ChoiceCard({
   title,
   badge,
   body,
+  action,
+  details,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   badge?: string;
   body: string;
+  action: string;
+  details: string[];
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        "group rounded-2xl border border-border bg-card p-6 text-left shadow-card transition-all",
-        "hover:-translate-y-0.5 hover:border-ring/50 hover:shadow-pop focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        "group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-card p-6 text-left shadow-sm transition-colors sm:p-8",
+        badge ? "border-primary/25 hover:border-primary/60" : "border-border hover:border-primary/40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
       )}
     >
-      <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-brand-600 transition-transform duration-200 group-hover:scale-110 dark:text-brand-300">
-        <Icon className="size-5" />
+      <div className="mb-7 flex w-full items-center justify-between gap-3">
+        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-xl", badge ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground")}>
+          <Icon className="size-6" />
+        </span>
+        {badge && <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"><Sparkles aria-hidden="true" className="size-3.5" />{badge}</span>}
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <h2 className="text-lg font-bold">{title}</h2>
-        {badge && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-            <Sparkles className="size-2.5" />
-            {badge}
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{body}</p>
+      <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">{body}</p>
+      <ul className="my-6 space-y-2.5">
+        {details.map(detail => <li key={detail} className="flex items-center gap-2 text-sm"><Check aria-hidden="true" className="size-4 shrink-0 text-primary" />{detail}</li>)}
+      </ul>
+      <span className={cn("mt-auto flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-colors", badge ? "bg-primary text-primary-foreground group-hover:bg-primary/90" : "bg-accent text-accent-foreground group-hover:bg-accent/70")}>
+        {action}<ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+      </span>
     </button>
   );
 }
@@ -174,7 +198,7 @@ function UploadPdfForm({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8">
       <BackLink onBack={onBack} />
 
       <label className="block">
@@ -292,7 +316,7 @@ function FromTextForm({ onBack }: { onBack: () => void }) {
           setSubmitting(false);
         }
       }}
-      className="mt-8 space-y-5"
+      className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8"
     >
       <BackLink onBack={onBack} />
 
