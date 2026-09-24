@@ -18,7 +18,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 
 function readConsent(): Consent {
   if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/(?:^|;\s*)fw-consent=(granted|denied)/);
+  const match = document.cookie.match(/(?:^|;\s*)fw-consent=(granted|denied)(?:;|$)/);
   return (match?.[1] as Consent) ?? null;
 }
 
@@ -46,4 +46,10 @@ function subscribe(callback: () => void) {
 
 export function useConsent(): Consent {
   return useSyncExternalStore(subscribe, readConsent, () => null);
+}
+
+// Keep the banner hidden during SSR and hydration until the browser cookie
+// has been read. Null consent alone also means an undecided new visitor.
+export function useConsentReady(): boolean {
+  return useSyncExternalStore(subscribe, () => true, () => false);
 }

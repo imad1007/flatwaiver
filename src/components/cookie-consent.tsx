@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useConsent, setConsent } from "@/lib/consent";
+import { useConsent, useConsentReady, setConsent } from "@/lib/consent";
 import { isSignerPage } from "@/lib/signer-pages";
 
 /**
@@ -14,36 +14,36 @@ import { isSignerPage } from "@/lib/signer-pages";
  */
 export function CookieConsent() {
   const consent = useConsent();
+  const ready = useConsentReady();
   const pathname = usePathname();
   // Already chosen, or on a white-labeled signer page (essential cookies only).
-  if (consent !== null || isSignerPage(pathname)) return null;
+  if (!ready || consent !== null || isSignerPage(pathname)) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 shadow-pop backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex items-start gap-2.5">
-          <Cookie className="mt-0.5 size-5 shrink-0 text-brand-600 dark:text-brand-300" />
-          <p className="text-sm text-muted-foreground">
-            We use essential cookies to run the site, and — only if you agree —
-            analytics, advertising measurement, and chat to improve it. See our{" "}
-            <Link
-              href="/privacy"
-              className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-            >
+    <section
+      aria-label="Cookie preferences"
+      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl rounded-2xl border border-border bg-card p-5 shadow-pop sm:inset-x-6 sm:bottom-6 sm:p-6"
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+          <Cookie aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold tracking-tight">Your privacy, your choice</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Essential cookies keep FlatWaiver running. With your permission,
+            optional cookies enable analytics, advertising measurement and chat.
+            You can change your choice in our{" "}
+            <Link href="/privacy" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
               Privacy Policy
-            </Link>
-            .
+            </Link>.
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={() => setConsent("denied")}>
-            Decline
-          </Button>
-          <Button size="sm" onClick={() => setConsent("granted")}>
-            Accept
-          </Button>
-        </div>
       </div>
-    </div>
+      <div className="mt-5 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:ml-auto sm:max-w-sm">
+        <Button variant="outline" onClick={() => setConsent("denied")}>Essential only</Button>
+        <Button onClick={() => setConsent("granted")}>Accept optional</Button>
+      </div>
+    </section>
   );
 }
