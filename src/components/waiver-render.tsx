@@ -6,20 +6,24 @@ import { signerText, signerFieldLabel, type SignerLanguage } from "@/lib/signer-
 export const signerInputClass =
   "w-full rounded-md border border-input bg-card px-3 py-3 text-base focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow";
 
+// Imported documents often contain long underscore/dot runs that represented
+// paper form lines. They are valid waiver text, but must never widen the form.
+const waiverTextWrapClass = "min-w-0 max-w-full [overflow-wrap:anywhere]";
+
 /** One block of waiver legal text, rendered exactly as the signer sees it. */
 export function BlockView({ block }: { block: WaiverBlock }) {
   if (block.type === "heading") {
-    return <h2 dir="auto" className="text-lg font-bold">{block.text}</h2>;
+    return <h2 dir="auto" className={`${waiverTextWrapClass} text-lg font-bold`}>{block.text}</h2>;
   }
   if (block.type === "paragraph") {
     return (
-      <p dir="auto" className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+      <p dir="auto" className={`${waiverTextWrapClass} whitespace-pre-wrap text-sm leading-relaxed text-foreground/90`}>
         {block.text}
       </p>
     );
   }
   return (
-    <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-foreground/90">
+    <ul className={`${waiverTextWrapClass} list-inside list-disc space-y-1 text-sm leading-relaxed text-foreground/90`}>
       {block.items.map((item, i) => (
         <li key={i} dir="auto">{item}</li>
       ))}
@@ -54,7 +58,7 @@ export function FieldInput({
           disabled={disabled}
           className="mt-1 size-5 accent-primary"
         />
-        <span className="text-sm">{displayField.label}</span>
+        <span className={`${waiverTextWrapClass} text-sm`}>{displayField.label}</span>
       </label>
     );
   }
@@ -126,7 +130,7 @@ export function FieldInput({
 
 function FieldLabel({ field }: { field: WaiverField }) {
   return (
-    <span className="mb-1 block text-sm font-medium text-foreground/90">
+    <span className={`${waiverTextWrapClass} mb-1 block text-sm font-medium text-foreground/90`}>
       {field.label}
       {field.required && <span className="text-destructive"> *</span>}
     </span>

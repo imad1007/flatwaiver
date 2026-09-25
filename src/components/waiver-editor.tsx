@@ -795,7 +795,7 @@ export function WaiverEditor({
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
               <div
                 className={cn(
                   "mx-auto bg-background transition-all duration-300",
@@ -1217,7 +1217,7 @@ function SignerPreview({
 }) {
   const t = (text: string) => signerText(text, language);
   return (
-    <div lang={language} dir={signerDirection(language)} className="pointer-events-none space-y-4 text-start" aria-hidden>
+    <div lang={language} dir={signerDirection(language)} className="pointer-events-none min-w-0 space-y-4 overflow-x-hidden text-start" aria-hidden>
       <div>
         <h2 className="text-lg font-bold">{name || "Untitled waiver"}</h2>
         <p className="text-xs text-muted-foreground">
@@ -1225,7 +1225,7 @@ function SignerPreview({
         </p>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-border bg-card p-3">
+      <div className="min-w-0 space-y-3 overflow-x-hidden rounded-lg border border-border bg-card p-3">
         {blocks.length === 0 ? (
           <p className="text-sm text-muted-foreground/70">Waiver text appears here…</p>
         ) : (

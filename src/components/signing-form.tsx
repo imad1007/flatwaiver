@@ -288,7 +288,7 @@ export function SigningForm(props: SigningFormProps) {
         </div>
       )}
       {/* Waiver text */}
-      <div className="space-y-4 rounded-xl border border-border bg-card p-5 leading-relaxed">
+      <div className="min-w-0 space-y-4 overflow-x-hidden rounded-xl border border-border bg-card p-5 leading-relaxed">
         {props.blocks.map((block, i) => (
           <BlockView key={i} block={block} />
         ))}
