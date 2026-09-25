@@ -2,6 +2,25 @@
 export const OPENAI_PIXEL_ID = "Wdj4prj2rJhsBuYu2cLejz";
 export const OPENAI_ATTRIBUTION_COOKIE = "fw-openai-oppref";
 
+export interface OpenAIQueue {
+  (command: "consent", granted: boolean): void;
+  (command: "measure", event: "registration_completed", data: { type: "customer_action" }, options: { event_id: string }): void;
+}
+
+/** The database claim, not a page view, establishes registration eligibility. */
+export async function measureSdkRegistration(
+  claim: () => Promise<{ eventId?: string } | null>,
+  permitted: () => boolean,
+  queue: OpenAIQueue,
+) {
+  try {
+    if (!permitted()) return;
+    const result = await claim();
+    if (!permitted() || !result?.eventId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(result.eventId)) return;
+    queue("measure", "registration_completed", { type: "customer_action" }, { event_id: result.eventId });
+  } catch { /* Tracking must never interrupt registration or navigation. */ }
+}
+
 export function pixelEnabled(environment: string | undefined, enabled: string | undefined) {
   return environment === "production" && enabled === "true";
 }

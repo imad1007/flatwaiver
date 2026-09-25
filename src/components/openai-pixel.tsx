@@ -1,49 +1,48 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Script from "next/script";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent } from "@/lib/consent";
-import { OPENAI_ATTRIBUTION_COOKIE, measureRegistration, pixelPageMode, readClickCookie, safeClickReference } from "@/lib/openai-pixel";
+import { measureSdkRegistration, pixelPageMode, type OpenAIQueue } from "@/lib/openai-pixel";
 
-/** Image-only measurement: no third-party JavaScript can inspect app content. */
+// Ads Manager setup code, preserved verbatim (without the HTML script tags).
+const setup = '!function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};q.q=[];w.oaiq=q;var j=d.createElement(s);j.async=1;j.src=u;var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(j,f)}(window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");oaiq("init",{pixelId:"Wdj4prj2rJhsBuYu2cLejz",debug:true});';
+
+type PixelWindow = Window & { oaiq?: OpenAIQueue };
+
+/** One root-layout SDK installation and server-authorized registration event. */
 export function OpenAIPixel({ enabled }: { enabled: boolean }) {
   const consent = useConsent();
   const pathname = usePathname();
-  const mode = pixelPageMode(pathname);
-  const container = useRef<HTMLSpanElement>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    (window as PixelWindow).oaiq?.("consent", consent === "granted");
+  }, [enabled, consent]);
 
   useEffect(() => {
-    if (!enabled || consent !== "granted" || !mode || !container.current) return;
-    if (mode === "landing") {
-      const click = safeClickReference(new URLSearchParams(location.search).get("oppref"));
-      if (click) document.cookie = `${OPENAI_ATTRIBUTION_COOKIE}=${encodeURIComponent(click)}; path=/; max-age=2592000; samesite=lax; secure`;
-      return;
-    }
+    const queue = (window as PixelWindow).oaiq;
+    if (!enabled || !ready || consent !== "granted" || pixelPageMode(pathname) !== "conversion" || !queue) return;
     let active = true;
-    let image: HTMLImageElement | undefined;
-    void measureRegistration(
+    void measureSdkRegistration(
       async () => {
         const response = await fetch("/api/ads/registration", { method: "POST", credentials: "same-origin", cache: "no-store" });
         return response.status === 200 ? response.json() : null;
       },
-      () => active && document.cookie.split(/;\s*/).includes("fw-consent=granted"),
-      () => readClickCookie(document.cookie),
-      url => {
-        image = document.createElement("img");
-        image.width = 1;
-        image.height = 1;
-        image.alt = "";
-        // OpenAI gets the website origin, never the current path/query.
-        image.referrerPolicy = "origin";
-        image.src = url;
-        container.current?.appendChild(image);
-      },
+      () => active && /(?:^|;\s*)fw-consent=granted(?:;|$)/.test(document.cookie),
+      queue,
     );
-    return () => {
-      active = false;
-      image?.remove();
-    };
-  }, [enabled, consent, mode]);
+    return () => { active = false; };
+  }, [enabled, ready, consent, pathname]);
 
-  return <span ref={container} hidden aria-hidden="true" />;
+  if (!enabled || consent !== "granted") return null;
+  return (
+    <Script id="flatwaiver-openai-ads-pixel" strategy="afterInteractive" onReady={() => setReady(true)}>
+      {`if (/(?:^|;\\s*)fw-consent=granted(?:;|$)/.test(document.cookie)) {
+        ${setup}
+        oaiq("consent", true);
+      }`}
+    </Script>
+  );
 }

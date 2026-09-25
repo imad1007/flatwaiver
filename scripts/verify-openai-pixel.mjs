@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
-import { pixelEnabled, pixelPageMode, registrationPixelUrl, readClickCookie, measureRegistration, safeClickReference } from "../src/lib/openai-pixel.ts";
+import { pixelEnabled, pixelPageMode, registrationPixelUrl, readClickCookie, measureRegistration, measureSdkRegistration, safeClickReference } from "../src/lib/openai-pixel.ts";
 
 for (const environment of [undefined, "development", "preview"]) assert.equal(pixelEnabled(environment, "true"), false);
 assert.equal(pixelEnabled("production", undefined), false);
@@ -47,8 +47,8 @@ await measureRegistration(async () => { throw new Error("offline"); }, () => tru
 assert.equal(sent.length, 1, "empty/failed claims cannot emit");
 await measureRegistration(claimBrowser, () => true, () => null, () => { throw new Error("blocked"); });
 const component = readFileSync(new URL("../src/components/openai-pixel.tsx", import.meta.url), "utf8");
-assert.ok(!component.includes("oaiq") && !component.includes("iframe"));
-assert.match(component, /referrerPolicy = "origin"/);
+assert.ok(component.includes("measureSdkRegistration"));
+assert.ok(component.includes("pixelPageMode(pathname)"));
 
 // Real SQL execution: registration completion, isolation and repeat claims.
 const db = new PGlite();
@@ -95,3 +95,21 @@ assert.equal((await db.query("select has_function_privilege('authenticated','pub
 assert.equal((await db.query("select has_table_privilege('authenticated','public.registration_measurements','select') as allowed")).rows[0].allowed, false);
 await db.close();
 console.log("OpenAI Pixel checks passed: production/route gates, image field allowlist, blocked transport, consent, completion, one-use claims, isolation.");
+
+const sdkCalls = [];
+const sdkQueue = (...args) => sdkCalls.push(args);
+let sdkClaimed = false;
+const sdkClaim = async () => sdkClaimed ? null : (sdkClaimed = true, { eventId });
+await measureSdkRegistration(sdkClaim, () => false, sdkQueue);
+assert.equal(sdkClaimed, false);
+await measureSdkRegistration(sdkClaim, () => true, sdkQueue);
+await measureSdkRegistration(sdkClaim, () => true, sdkQueue);
+assert.deepEqual(sdkCalls, [["measure", "registration_completed", { type: "customer_action" }, { event_id: eventId }]]);
+let stillAllowed = true;
+await measureSdkRegistration(async () => { stillAllowed = false; return { eventId }; }, () => stillAllowed, sdkQueue);
+await measureSdkRegistration(async () => ({ eventId: "invalid" }), () => true, sdkQueue);
+await measureSdkRegistration(async () => null, () => true, sdkQueue);
+await measureSdkRegistration(async () => { throw new Error("offline"); }, () => true, sdkQueue);
+await measureSdkRegistration(async () => ({ eventId }), () => true, () => { throw new Error("blocked"); });
+assert.equal(sdkCalls.length, 1);
+console.log("SDK registration passed: exact event arguments, once-only claim, denied/withdrawn consent, failed/ineligible claims, malformed ID and blocked SDK.");
