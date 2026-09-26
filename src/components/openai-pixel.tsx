@@ -30,6 +30,16 @@ export function OpenAIPixel({ enabled }: { enabled: boolean }) {
         const response = await fetch("/api/ads/registration", { method: "POST", credentials: "same-origin", cache: "no-store" });
         return response.status === 200 ? response.json() : null;
       },
+      async (eventId) => {
+        const response = await fetch("/api/ads/registration", {
+          method: "PATCH",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        });
+        if (response.status !== 200) throw new Error("Registration delivery was not acknowledged");
+      },
       () => active && /(?:^|;\s*)fw-consent=granted(?:;|$)/.test(document.cookie),
       queue,
     );

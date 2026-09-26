@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "verify:admin-analytics": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-admin-analytics.mjs",
+    "verify:openai-pixel": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-openai-pixel.mjs && node scripts/verify-openai-sdk-setup.mjs",
     "data:worker": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/data-transfer-worker.mjs",
     "verify:data-transfers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-data-transfers.mjs",
     "verify:data-transfer-security": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-data-transfer-security.mjs",

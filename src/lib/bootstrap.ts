@@ -4,7 +4,6 @@ import type { User } from "@supabase/supabase-js";
 import { logAudit } from "@/lib/audit";
 import { APP } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { pixelEnabled } from "@/lib/openai-pixel";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 type ProfileSummary = { id: string; org_id: string; role: string };
@@ -72,15 +71,13 @@ export async function ensureBootstrapped(user: User): Promise<void> {
   // Only the winning NEW business bootstrap can create a conversion candidate.
   // Invites and existing profiles return above. Tracking is best-effort and
   // never allowed to fail signup (including when its migration is absent).
-  if (pixelEnabled(process.env.VERCEL_ENV, process.env.OPENAI_ADS_PIXEL_ENABLED)) {
-    try {
-      const { error } = await admin.from("registration_measurements").insert({
-        user_id: user.id, org_id: org.id,
-      });
-      if (error) console.warn("Registration measurement candidate could not be saved");
-    } catch {
-      console.warn("Registration measurement candidate could not be saved");
-    }
+  try {
+    const { error } = await admin.from("registration_measurements").insert({
+      user_id: user.id, org_id: org.id,
+    });
+    if (error) console.warn("Registration measurement candidate could not be saved");
+  } catch {
+    console.warn("Registration measurement candidate could not be saved");
   }
 }
 
