@@ -20,18 +20,25 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
+  CheckSquare,
+  Copy,
   Flag,
   GripVertical,
   Heading2,
   Info,
   List,
+  Mail,
   Monitor,
   Pilcrow,
   Plus,
   Rocket,
   Smartphone,
+  TextCursorInput,
   Trash2,
+  UserRoundCheck,
 } from "lucide-react";
 import {
   archiveTemplate,
@@ -102,6 +109,12 @@ const FIELD_TYPE_OPTIONS: { value: FieldType; label: string }[] = [
 ];
 
 const uid = () => crypto.randomUUID();
+
+function moveItem<T extends { id: string }>(items: T[], id: string, direction: -1 | 1) {
+  const from = items.findIndex((item) => item.id === id);
+  const to = from + direction;
+  return from < 0 || to < 0 || to >= items.length ? items : arrayMove(items, from, to);
+}
 
 function toItems(draft: DraftContent): { blocks: BlockItem[]; fields: FieldItem[] } {
   return {
@@ -238,6 +251,48 @@ export function WaiverEditor({
   const setFields = (updater: (prev: FieldItem[]) => FieldItem[]) =>
     setItems((s) => ({ ...s, fields: updater(s.fields) }));
 
+  function addBlock(type: WaiverBlock["type"]) {
+    const block: WaiverBlock =
+      type === "list"
+        ? { type: "list", items: [""] }
+        : { type, text: "" };
+    setBlocks((prev) => [...prev, { id: uid(), block }]);
+  }
+
+  function uniqueFieldKey(base: string, items = fields) {
+    const normalized = base.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+    const keys = new Set(items.map(({ field }) => field.key));
+    if (!keys.has(normalized)) return normalized;
+    let suffix = 2;
+    while (keys.has(`${normalized}_${suffix}`)) suffix += 1;
+    return `${normalized}_${suffix}`;
+  }
+
+  function addField(type: FieldType = "text", label = "") {
+    const base = label ? label.toLowerCase().replace(/[^a-z0-9]+/g, "_") : `field_${fields.length + 1}`;
+    setFields((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        field: {
+          key: uniqueFieldKey(base, prev),
+          type,
+          label,
+          required: false,
+          ...(type === "select" ? { options: ["Yes", "No"] } : {}),
+        },
+      },
+    ]);
+  }
+
+  function moveBlock(id: string, direction: -1 | 1) {
+    setBlocks((prev) => moveItem(prev, id, direction));
+  }
+
+  function moveField(id: string, direction: -1 | 1) {
+    setFields((prev) => moveItem(prev, id, direction));
+  }
+
   function buildDraft(): DraftContent {
     return currentDraft;
   }
@@ -367,9 +422,9 @@ export function WaiverEditor({
   const baseUrl = (APP.url ?? "").replace(/\/$/, "");
 
   return (
-    <div>
+    <div className="pb-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-card sm:px-6">
         <div className="min-w-0">
           <Link
             href="/waivers"
@@ -437,14 +492,17 @@ export function WaiverEditor({
       )}
 
       {/* Legal-responsibility disclaimer + conversion warnings */}
-      <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-sm text-foreground/80">
-        <Info className="mt-0.5 size-4 shrink-0 text-info" />
-        <span>
+      <details className="group mt-4 rounded-xl border border-info/25 bg-info/5 text-sm text-foreground/80">
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 py-3 font-medium">
+          <Info className="size-4 shrink-0 text-info" />
+          Publishing and legal responsibility
+          <span className="ml-auto text-xs font-normal text-muted-foreground group-open:hidden">Show</span>
+        </summary>
+        <p className="border-t border-info/20 px-4 py-3 pl-11">
           {APP.name} doesn&apos;t review waiver content for legal enforceability.
-          You&apos;re responsible for the language and lawfulness of what you
-          publish — review every clause and have a lawyer check it for your state.
-        </span>
-      </div>
+          You&apos;re responsible for the language and lawfulness of what you publish — review every clause and have a lawyer check it for your state.
+        </p>
+      </details>
       {warnings.length > 0 && (
         <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <p className="font-semibold">Conversion warnings</p>
@@ -471,12 +529,30 @@ export function WaiverEditor({
         </div>
       )}
 
-      {/* Two-pane layout */}
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
-        {/* ── Editor pane ── */}
+      {/* Builder workspace */}
+      <div className="mt-6 grid items-start gap-5 xl:grid-cols-[190px_minmax(0,1fr)_400px]">
+        <aside className="hidden rounded-2xl border border-border bg-card p-3 shadow-card xl:sticky xl:top-20 xl:block">
+          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Add a block</p>
+          <div className="space-y-1.5">
+            <PaletteButton icon={Heading2} label="Heading" onClick={() => addBlock("heading")} />
+            <PaletteButton icon={Pilcrow} label="Rich text" onClick={() => addBlock("paragraph")} />
+            <PaletteButton icon={List} label="List" onClick={() => addBlock("list")} />
+          </div>
+          <div className="my-3 border-t border-border" />
+          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Signer input</p>
+          <div className="space-y-1.5">
+            <PaletteButton icon={TextCursorInput} label="Short answer" onClick={() => addField("text", "Question")} />
+            <PaletteButton icon={Mail} label="Email" onClick={() => addField("email", "Email address")} />
+            <PaletteButton icon={CheckSquare} label="Checkbox" onClick={() => addField("checkbox", "I agree")} />
+            <PaletteButton icon={UserRoundCheck} label="Initials" onClick={() => addField("initials", "Initials")} />
+          </div>
+          <p className="mt-3 px-2 text-xs leading-relaxed text-muted-foreground">Add a block, then customize it in the editor. Drag or use the arrow controls to reorder.</p>
+        </aside>
+
+        {/* Editor pane */}
         <div className="min-w-0 space-y-6">
           {/* Blocks */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <section id="waiver-content" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">
             <SectionTitle
               title="Waiver text"
               sub="The legal content signers read, in order. Drag to reorder."
@@ -503,6 +579,16 @@ export function WaiverEditor({
                       onRemove={() =>
                         setBlocks((prev) => prev.filter((b) => b.id !== item.id))
                       }
+                      onDuplicate={() => setBlocks((prev) => {
+                        const index = prev.findIndex((block) => block.id === item.id);
+                        if (index < 0) return prev;
+                        const copy: BlockItem = { id: uid(), block: structuredClone(prev[index].block) };
+                        return [...prev.slice(0, index + 1), copy, ...prev.slice(index + 1)];
+                      })}
+                      onMoveUp={() => moveBlock(item.id, -1)}
+                      onMoveDown={() => moveBlock(item.id, 1)}
+                      first={item.id === blocks[0]?.id}
+                      last={item.id === blocks.at(-1)?.id}
                     />
                   ))}
                 </div>
@@ -512,38 +598,23 @@ export function WaiverEditor({
               <AddChip
                 icon={Heading2}
                 label="Heading"
-                onClick={() =>
-                  setBlocks((prev) => [
-                    ...prev,
-                    { id: uid(), block: { type: "heading", text: "" } },
-                  ])
-                }
+                onClick={() => addBlock("heading")}
               />
               <AddChip
                 icon={Pilcrow}
                 label="Paragraph"
-                onClick={() =>
-                  setBlocks((prev) => [
-                    ...prev,
-                    { id: uid(), block: { type: "paragraph", text: "" } },
-                  ])
-                }
+                onClick={() => addBlock("paragraph")}
               />
               <AddChip
                 icon={List}
                 label="List"
-                onClick={() =>
-                  setBlocks((prev) => [
-                    ...prev,
-                    { id: uid(), block: { type: "list", items: [""] } },
-                  ])
-                }
+                onClick={() => addBlock("list")}
               />
             </div>
           </section>
 
           {/* Fields */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <section id="signer-fields" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">
             <SectionTitle
               title="Signer fields"
               sub="Inputs the signer fills in. Full legal name and the signature are always included automatically."
@@ -570,6 +641,24 @@ export function WaiverEditor({
                       onRemove={() =>
                         setFields((prev) => prev.filter((f) => f.id !== item.id))
                       }
+                      onDuplicate={() => setFields((prev) => {
+                        const index = prev.findIndex((field) => field.id === item.id);
+                        if (index < 0) return prev;
+                        const source = prev[index].field;
+                        const copy: FieldItem = {
+                          id: uid(),
+                          field: {
+                            ...structuredClone(source),
+                            key: uniqueFieldKey(`${source.key}_copy`, prev),
+                            label: `${source.label || "Untitled field"} copy`,
+                          },
+                        };
+                        return [...prev.slice(0, index + 1), copy, ...prev.slice(index + 1)];
+                      })}
+                      onMoveUp={() => moveField(item.id, -1)}
+                      onMoveDown={() => moveField(item.id, 1)}
+                      first={item.id === fields[0]?.id}
+                      last={item.id === fields.at(-1)?.id}
                     />
                   ))}
                 </div>
@@ -579,20 +668,7 @@ export function WaiverEditor({
               <AddChip
                 icon={Plus}
                 label="Add field"
-                onClick={() =>
-                  setFields((prev) => [
-                    ...prev,
-                    {
-                      id: uid(),
-                      field: {
-                        key: `field_${prev.length + 1}`,
-                        type: "text",
-                        label: "",
-                        required: false,
-                      },
-                    },
-                  ])
-                }
+                onClick={() => addField()}
               />
             </div>
           </section>
@@ -769,8 +845,8 @@ export function WaiverEditor({
           </section>
         </div>
 
-        {/* ── Live preview pane ── */}
-        <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
+        {/* Live preview pane */}
+        <div className="xl:sticky xl:top-20 xl:h-[calc(100vh-6.5rem)]">
           <div className="flex h-full flex-col rounded-2xl border border-border bg-muted/40">
             <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -903,10 +979,20 @@ function SortableBlockCard({
   item,
   onChange,
   onRemove,
+  onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  first,
+  last,
 }: {
   item: BlockItem;
   onChange: (block: WaiverBlock) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  first: boolean;
+  last: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -933,13 +1019,12 @@ function SortableBlockCard({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
           {block.type}
         </span>
-        <button
-          onClick={onRemove}
-          aria-label="Remove block"
-          className="ml-auto text-muted-foreground/50 transition-colors hover:text-destructive"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <div className="ml-auto flex items-center gap-0.5">
+          <EditorIconButton label="Move block up" onClick={onMoveUp} disabled={first}><ArrowUp className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Move block down" onClick={onMoveDown} disabled={last}><ArrowDown className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Duplicate block" onClick={onDuplicate}><Copy className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Remove block" onClick={onRemove} destructive><Trash2 className="size-3.5" /></EditorIconButton>
+        </div>
       </div>
 
       <div className="px-3 pb-3 pt-1.5">
@@ -1003,10 +1088,20 @@ function SortableFieldCard({
   item,
   onChange,
   onRemove,
+  onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  first,
+  last,
 }: {
   item: FieldItem;
   onChange: (field: WaiverField) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  first: boolean;
+  last: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -1079,13 +1174,12 @@ function SortableFieldCard({
             <Flag className="size-3.5 text-warning" />
           </span>
         )}
-        <button
-          onClick={onRemove}
-          aria-label="Remove field"
-          className="text-muted-foreground/50 transition-colors hover:text-destructive"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <div className="ml-auto flex items-center gap-0.5">
+          <EditorIconButton label="Move field up" onClick={onMoveUp} disabled={first}><ArrowUp className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Move field down" onClick={onMoveDown} disabled={last}><ArrowDown className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Duplicate field" onClick={onDuplicate}><Copy className="size-3.5" /></EditorIconButton>
+          <EditorIconButton label="Remove field" onClick={onRemove} destructive><Trash2 className="size-3.5" /></EditorIconButton>
+        </div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
@@ -1289,6 +1383,52 @@ function SignerPreview({
 }
 
 // ── Small pieces ─────────────────────────────────────────────────────────────
+
+function PaletteButton({ icon: Icon, label, onClick }: { icon: typeof Heading2; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-left text-sm font-medium text-muted-foreground transition-all hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+        <Icon className="size-4" />
+      </span>
+      {label}
+      <Plus className="ml-auto size-3.5 opacity-0 transition-opacity group-hover:opacity-70" />
+    </button>
+  );
+}
+
+function EditorIconButton({
+  label,
+  onClick,
+  disabled = false,
+  destructive = false,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex size-7 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-25",
+        destructive && "hover:bg-destructive/10 hover:text-destructive",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 function SectionTitle({ title, sub }: { title: string; sub?: string }) {
   return (
