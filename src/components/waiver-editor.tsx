@@ -23,18 +23,23 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  AlertTriangle,
+  CalendarDays,
   CheckSquare,
   Copy,
+  Eye,
   Flag,
   GripVertical,
   Heading2,
-  Info,
   List,
+  ListChecks,
   Mail,
   Monitor,
   Pilcrow,
+  Phone,
   Plus,
   Rocket,
+  Settings,
   Smartphone,
   TextCursorInput,
   Trash2,
@@ -60,6 +65,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_CONSENT_TEXT,
@@ -126,9 +132,11 @@ function toItems(draft: DraftContent): { blocks: BlockItem[]; fields: FieldItem[
 export function WaiverEditor({
   template,
   versions,
+  settings,
 }: {
   template: WaiverTemplate;
   versions: VersionSummary[];
+  settings: React.ReactNode;
 }) {
   const router = useRouter();
   const initial =
@@ -152,6 +160,9 @@ export function WaiverEditor({
   const [warnings, setWarnings] = useState(initial.warnings ?? []);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [recovery, setRecovery] = useState<DraftRecovery | null>(null);
@@ -424,30 +435,42 @@ export function WaiverEditor({
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-card sm:px-6">
-        <div className="min-w-0">
+      <header className="sticky top-14 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-y border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/waivers"
             onClick={confirmDiscard}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Back to waivers"
+            title="Back to waivers"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <ArrowLeft className="size-3.5" />
-            All waivers
+            <ArrowLeft className="size-4" />
           </Link>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Editor · {currentVersionLabel}
-          </p>
-          <div className="mt-1 flex items-center gap-3">
+          <div className="min-w-0">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-label="Waiver name"
-              className="w-full max-w-md rounded-md border border-transparent px-2 py-1 text-2xl font-bold transition-colors hover:border-input focus:border-ring focus:outline-none"
+              className="w-full max-w-sm truncate rounded border border-transparent bg-transparent px-1 text-sm font-semibold transition-colors hover:border-input focus:border-ring focus:outline-none sm:text-base"
             />
-            <StatusBadge status={template.status} />
+            <p className="px-1 text-[11px] text-muted-foreground">{currentVersionLabel}</p>
           </div>
+          <StatusBadge status={template.status} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+          <span aria-live="polite" className={cn("mr-1 hidden text-xs sm:inline", hasUnsavedChanges ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground")}>
+            {isPending ? "Saving…" : hasUnsavedChanges ? "Unsaved changes" : "Saved ✓"}
+          </span>
+          <Button variant="ghost" size="sm" onClick={() => setToolsOpen(true)} className="xl:hidden">
+            <Plus className="size-4" /> Add
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+            <Settings className="size-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(true)}>
+            <Eye className="size-4" /> Preview
+          </Button>
           {template.status === "published" && (
             <Button
               variant="ghost"
@@ -462,12 +485,15 @@ export function WaiverEditor({
               Share
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={isPending || !hasUnsavedChanges}>
+            Save
+          </Button>
           <Button onClick={() => setPublishOpen(true)} disabled={isPending}>
             <Rocket className="size-4" />
             Publish
           </Button>
         </div>
-      </div>
+      </header>
 
       {recovery && (
         <div
@@ -491,47 +517,34 @@ export function WaiverEditor({
         </div>
       )}
 
-      {/* Legal-responsibility disclaimer + conversion warnings */}
-      <details className="group mt-4 rounded-xl border border-info/25 bg-info/5 text-sm text-foreground/80">
-        <summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 py-3 font-medium">
-          <Info className="size-4 shrink-0 text-info" />
-          Publishing and legal responsibility
-          <span className="ml-auto text-xs font-normal text-muted-foreground group-open:hidden">Show</span>
-        </summary>
-        <p className="border-t border-info/20 px-4 py-3 pl-11">
-          {APP.name} doesn&apos;t review waiver content for legal enforceability.
-          You&apos;re responsible for the language and lawfulness of what you publish — review every clause and have a lawyer check it for your state.
-        </p>
-      </details>
+      {/* Import diagnostics stay available without competing with the document. */}
       {warnings.length > 0 && (
-        <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <p className="font-semibold">Conversion warnings</p>
-          <ul className="mt-1 list-inside list-disc">
+        <details className="group mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-semibold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-4" />
+            {warnings.length} import issue{warnings.length === 1 ? "" : "s"}
+            <span className="ml-auto text-xs font-normal text-muted-foreground group-open:hidden">Review</span>
+          </summary>
+          <ul className="list-disc space-y-1 border-t border-amber-500/20 px-8 py-3 text-muted-foreground">
             {warnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
       {template.source_pdf_path && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold">Original source file</p>
-            <p className="text-xs text-muted-foreground">
-              Open the private upload while checking the converted or recovered draft.
-            </p>
-          </div>
+        <div className="mt-3 flex justify-end">
           <FileDownloadButton
             bucket="uploads"
             path={template.source_pdf_path}
-            label="Open original file"
+            label="Compare with original"
           />
         </div>
       )}
 
       {/* Builder workspace */}
-      <div className="mt-6 grid items-start gap-5 xl:grid-cols-[190px_minmax(0,1fr)_400px]">
-        <aside className="hidden rounded-2xl border border-border bg-card p-3 shadow-card xl:sticky xl:top-20 xl:block">
+      <div className="mt-6 grid items-start gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="hidden max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-2xl border border-border bg-card p-3 shadow-card xl:sticky xl:top-20 xl:block">
           <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Add a block</p>
           <div className="space-y-1.5">
             <PaletteButton icon={Heading2} label="Heading" onClick={() => addBlock("heading")} />
@@ -542,17 +555,22 @@ export function WaiverEditor({
           <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Signer input</p>
           <div className="space-y-1.5">
             <PaletteButton icon={TextCursorInput} label="Short answer" onClick={() => addField("text", "Question")} />
+            <PaletteButton icon={Pilcrow} label="Long answer" onClick={() => addField("multiline", "Question")} />
             <PaletteButton icon={Mail} label="Email" onClick={() => addField("email", "Email address")} />
+            <PaletteButton icon={Phone} label="Phone" onClick={() => addField("phone", "Phone number")} />
+            <PaletteButton icon={CalendarDays} label="Date" onClick={() => addField("date", "Date")} />
+            <PaletteButton icon={CalendarDays} label="Date of birth" onClick={() => addField("date_of_birth", "Date of birth")} />
+            <PaletteButton icon={ListChecks} label="Dropdown" onClick={() => addField("select", "Choose an option")} />
             <PaletteButton icon={CheckSquare} label="Checkbox" onClick={() => addField("checkbox", "I agree")} />
             <PaletteButton icon={UserRoundCheck} label="Initials" onClick={() => addField("initials", "Initials")} />
           </div>
-          <p className="mt-3 px-2 text-xs leading-relaxed text-muted-foreground">Add a block, then customize it in the editor. Drag or use the arrow controls to reorder.</p>
+          <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">Full legal name, e-sign consent, and signature capture are included automatically.</p>
         </aside>
 
         {/* Editor pane */}
-        <div className="min-w-0 space-y-6">
+        <main className="min-w-0 max-w-4xl">
           {/* Blocks */}
-          <section id="waiver-content" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">
+          <section id="waiver-content" className="scroll-mt-24 rounded-t-2xl border border-border bg-card px-6 pt-7 pb-4 shadow-card sm:px-10 sm:pt-10">
             <SectionTitle
               title="Waiver text"
               sub="The legal content signers read, in order. Drag to reorder."
@@ -566,7 +584,7 @@ export function WaiverEditor({
                 items={blocks.map((b) => b.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="mt-4 space-y-2.5">
+                <div className="mt-6 space-y-1">
                   {blocks.map((item) => (
                     <SortableBlockCard
                       key={item.id}
@@ -594,7 +612,7 @@ export function WaiverEditor({
                 </div>
               </SortableContext>
             </DndContext>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-dashed border-border pt-4 xl:hidden">
               <AddChip
                 icon={Heading2}
                 label="Heading"
@@ -614,7 +632,7 @@ export function WaiverEditor({
           </section>
 
           {/* Fields */}
-          <section id="signer-fields" className="scroll-mt-24 rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6">
+          <section id="signer-fields" className="scroll-mt-24 border-x border-border bg-card px-6 py-6 sm:px-10">
             <SectionTitle
               title="Signer fields"
               sub="Inputs the signer fills in. Full legal name and the signature are always included automatically."
@@ -628,7 +646,7 @@ export function WaiverEditor({
                 items={fields.map((f) => f.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="mt-4 space-y-2.5">
+                <div className="mt-4 space-y-3">
                   {fields.map((item) => (
                     <SortableFieldCard
                       key={item.id}
@@ -664,7 +682,7 @@ export function WaiverEditor({
                 </div>
               </SortableContext>
             </DndContext>
-            <div className="mt-3">
+            <div className="mt-4 xl:hidden">
               <AddChip
                 icon={Plus}
                 label="Add field"
@@ -673,57 +691,8 @@ export function WaiverEditor({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            <SectionTitle title="Signer language" sub="Choose the language your signing form opens in. Signers can switch between ten languages." />
-            <label className="mt-4 block text-sm font-medium">
-              Default language
-              <select aria-label="Default signer language" value={language} onChange={e => setLanguage(signerLanguage(e.target.value))} className="mt-2 block w-full rounded-md border border-input bg-card px-3 py-2">
-                {SIGNER_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
-              </select>
-            </label>
-            <p className="mt-3 text-sm text-muted-foreground">Standard field labels, guardian details, signature controls and buttons use this language. The preview updates immediately. Save and publish to update your live form.</p>
-            <label className="mt-5 flex items-start gap-3 rounded-lg border border-border p-4 text-sm">
-              <input type="checkbox" checked={translateContent} onChange={e => { setTranslateContent(e.target.checked); setTranslationPreview(null); }} className="mt-0.5 size-4 accent-primary" />
-              <span><strong className="block">Translate the entire waiver</strong><span className="text-muted-foreground">Include the title, paragraphs, custom questions, answer choices and electronic-signature consent.</span></span>
-            </label>
-            {translateContent && <div className="mt-4 space-y-3">
-              <p className="text-sm text-muted-foreground">Generate a translation in the selected language using our AI provider, then review it before replacing your draft. This creates one translated document; it does not automatically translate legal text when a signer switches interface language.</p>
-              {(language === "ar" || language === "ur") && <p className="text-sm text-amber-700">Arabic and Urdu are available for the signer interface. Full-document translation needs further signed-PDF support and is not available yet.</p>}
-              <Button type="button" disabled={translating || isPending || language === "ar" || language === "ur"} onClick={translateEntireWaiver}>{translating ? "Translating entire waiver…" : "Translate entire waiver"}</Button>
-              {translationPreview && <div className="space-y-3 rounded-lg border border-border p-4">
-                <h3 className="font-semibold">Review the translated draft</h3>
-                <p className="text-sm text-muted-foreground">Check names, legal provisions and consent for accuracy. Nothing has been saved or published.</p>
-                <div dir={signerDirection(language)} className="max-h-96 space-y-3 overflow-y-auto rounded-md bg-muted/40 p-3">
-                  <h4 className="font-semibold">{translationPreview.draft.title}</h4>
-                  {translationPreview.draft.blocks.map((block, i) => <BlockView key={i} block={block} />)}
-                  {translationPreview.draft.fields.map(field => <p key={field.key} className="text-sm">{field.label}{field.option_labels?.length ? `: ${field.option_labels.join(" / ")}` : ""}</p>)}
-                  <p className="border-t border-border pt-3 text-sm">{translationPreview.draft.consent_text}</p>
-                </div>
-                {translationPreview.source !== currentFingerprint && <p className="text-sm text-amber-700">The draft changed while translating. Generate a new translation to keep your latest edits.</p>}
-                <Button type="button" disabled={translationPreview.source !== currentFingerprint} onClick={() => { setTranslationUndo(currentDraft); loadTranslatedDraft(translationPreview.draft); }}>Use this translation</Button>
-                <Button type="button" variant="outline" onClick={() => setTranslationPreview(null)}>Discard translation</Button>
-              </div>}
-              {translationUndo && <Button type="button" variant="outline" onClick={() => { loadTranslatedDraft(translationUndo); setTranslationUndo(null); }}>Restore pre-translation draft</Button>}
-            </div>}
-          </section>
-
-          {/* Minors */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            <SectionTitle title="Minors" />
-            <label className="mt-3 flex items-center gap-3 text-sm">
-              <Switch
-                checked={minorMode === "allowed"}
-                onCheckedChange={(checked) =>
-                  setMinorMode(checked ? "allowed" : "disallowed")
-                }
-              />
-              Allow signing for minors (adds guardian name, relationship, and
-              signature when the participant is under 18)
-            </label>
-          </section>
-
           {/* Consent */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <section className="rounded-b-2xl border border-border bg-card px-6 pt-5 pb-8 shadow-card sm:px-10 sm:pb-10">
             <SectionTitle
               title="E-sign consent text"
               sub="Shown next to the consent checkbox and stored with every signature."
@@ -743,168 +712,84 @@ export function WaiverEditor({
             <p className="mt-2 text-xs text-muted-foreground">Review consent wording before publishing. Custom consent is never overwritten automatically.</p>
           </section>
 
-          {/* Version history */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            <SectionTitle title="Version history" />
-            {versions.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Not published yet. Publishing creates version 1.
-              </p>
-            ) : (
-              <ul className="mt-3 divide-y divide-border/60 rounded-xl border border-border text-sm">
-                {versions.map((v) => (
-                  <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                    <span className="font-semibold">v{v.version_number}</span>
-                    {template.current_version_id === v.id && (
-                      <Badge className="bg-success/15 text-success">live</Badge>
-                    )}
-                    <span className="text-muted-foreground">
-                      {new Date(v.created_at).toLocaleString()}
-                    </span>
-                    <span
-                      className="ml-auto font-mono text-xs text-muted-foreground/70"
-                      title="SHA-256 of this version's content"
-                    >
-                      {v.content_sha256.slice(0, 16)}…
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground/70">
-              Versions are immutable. Signed waivers stay locked to the exact
-              version they were signed against, forever.
-            </p>
-          </section>
+        </main>
 
-          {/* Danger zone */}
-          <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
-            <h2 className="font-bold text-destructive">Danger zone</h2>
-            {template.status === "archived" ? (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">
-                  This waiver is archived — its public link is off. Restore it to
-                  start collecting signatures again.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    startTransition(async () => {
-                      try {
-                        await unarchiveTemplate(template.id);
-                        toast.success("Waiver restored");
-                        router.refresh();
-                      } catch (error) {
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Couldn't restore the waiver. Please try again."
-                        );
-                      }
-                    })
-                  }
-                  disabled={isPending}
-                >
-                  Restore waiver
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Archiving turns off the public signing link. Existing signed
-                  waivers are unaffected and stay fully accessible.
-                </p>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Archive this waiver? The public signing link will stop working. Existing signed waivers are unaffected."
-                      )
-                    )
-                      startTransition(async () => {
-                        try {
-                          await archiveTemplate(template.id);
-                          toast.success("Waiver archived");
-                          router.refresh();
-                        } catch (error) {
-                          toast.error(
-                            error instanceof Error
-                              ? error.message
-                              : "Couldn't archive the waiver. Please try again."
-                          );
-                        }
-                      });
-                  }}
-                  disabled={isPending}
-                >
-                  Archive waiver
-                </Button>
-              </div>
-            )}
-          </section>
-        </div>
+      </div>
 
-        {/* Live preview pane */}
-        <div className="xl:sticky xl:top-20 xl:h-[calc(100vh-6.5rem)]">
-          <div className="flex h-full flex-col rounded-2xl border border-border bg-muted/40">
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Live preview
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  variant={device === "mobile" ? "secondary" : "ghost"}
-                  size="icon-sm"
-                  onClick={() => setDevice("mobile")}
-                  aria-label="Mobile preview"
-                >
-                  <Smartphone className="size-3.5" />
-                </Button>
-                <Button
-                  variant={device === "desktop" ? "secondary" : "ghost"}
-                  size="icon-sm"
-                  onClick={() => setDevice("desktop")}
-                  aria-label="Desktop preview"
-                >
-                  <Monitor className="size-3.5" />
-                </Button>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="flex max-h-[92vh] flex-col sm:max-w-5xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-4 pr-8">
+              <div><DialogTitle>Signer preview</DialogTitle><DialogDescription>Review the current draft as a signer will see it.</DialogDescription></div>
+              <div className="flex rounded-lg border border-border p-1">
+                <Button variant={device === "mobile" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setDevice("mobile")} aria-label="Mobile preview"><Smartphone className="size-4" /></Button>
+                <Button variant={device === "desktop" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setDevice("desktop")} aria-label="Desktop preview"><Monitor className="size-4" /></Button>
               </div>
             </div>
-            <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
-              <div
-                className={cn(
-                  "mx-auto bg-background transition-all duration-300",
-                  device === "mobile"
-                    ? "max-w-[375px] rounded-[1.75rem] border-4 border-foreground/70 p-4 dark:border-foreground/30"
-                    : "max-w-full rounded-xl border border-border p-6"
-                )}
-              >
-                <SignerPreview
-                  name={name}
-                  blocks={blocks.map((b) => b.block)}
-                  fields={fields.map((f) => f.field)}
-                  consentText={consentText}
-                  language={language}
-                  minorMode={minorMode}
-                />
-              </div>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-muted/40 p-4 sm:p-6">
+            <div className={cn("mx-auto bg-background shadow-card transition-[max-width]", device === "mobile" ? "max-w-[390px] rounded-[1.75rem] border-4 border-foreground/70 p-5 dark:border-foreground/30" : "max-w-3xl rounded-xl border border-border p-8")}>
+              <SignerPreview name={name} blocks={blocks.map((b) => b.block)} fields={fields.map((f) => f.field)} consentText={consentText} language={language} minorMode={minorMode} />
             </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Sticky save bar */}
-      <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="flex items-center justify-between gap-4">
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {hasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
-          </p>
-          <Button onClick={handleSave} disabled={isPending || !hasUnsavedChanges}>
-            {isPending ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
-      </div>
+      <Sheet open={toolsOpen} onOpenChange={setToolsOpen}>
+        <SheetContent side="left" className="w-72 p-5">
+          <SheetHeader><SheetTitle>Add to waiver</SheetTitle><SheetDescription>Choose content or a signer field.</SheetDescription></SheetHeader>
+          <div className="mt-5 space-y-1.5">
+            <PaletteButton icon={Heading2} label="Heading" onClick={() => { addBlock("heading"); setToolsOpen(false); }} />
+            <PaletteButton icon={Pilcrow} label="Text" onClick={() => { addBlock("paragraph"); setToolsOpen(false); }} />
+            <PaletteButton icon={List} label="List" onClick={() => { addBlock("list"); setToolsOpen(false); }} />
+          </div>
+          <div className="my-4 border-t border-border" />
+          <div className="space-y-1.5">
+            <PaletteButton icon={TextCursorInput} label="Short answer" onClick={() => { addField("text", "Question"); setToolsOpen(false); }} />
+            <PaletteButton icon={Pilcrow} label="Long answer" onClick={() => { addField("multiline", "Question"); setToolsOpen(false); }} />
+            <PaletteButton icon={Mail} label="Email" onClick={() => { addField("email", "Email address"); setToolsOpen(false); }} />
+            <PaletteButton icon={Phone} label="Phone" onClick={() => { addField("phone", "Phone number"); setToolsOpen(false); }} />
+            <PaletteButton icon={CalendarDays} label="Date" onClick={() => { addField("date", "Date"); setToolsOpen(false); }} />
+            <PaletteButton icon={CalendarDays} label="Date of birth" onClick={() => { addField("date_of_birth", "Date of birth"); setToolsOpen(false); }} />
+            <PaletteButton icon={ListChecks} label="Dropdown" onClick={() => { addField("select", "Choose an option"); setToolsOpen(false); }} />
+            <PaletteButton icon={CheckSquare} label="Checkbox" onClick={() => { addField("checkbox", "I agree"); setToolsOpen(false); }} />
+            <PaletteButton icon={UserRoundCheck} label="Initials" onClick={() => { addField("initials", "Initials"); setToolsOpen(false); }} />
+          </div>
+          <p className="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">Full legal name, e-sign consent, and signature capture are included automatically.</p>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-5 sm:max-w-xl sm:p-6">
+          <SheetHeader><SheetTitle>Waiver settings</SheetTitle><SheetDescription>Signing behavior, evidence capture, versions, and availability.</SheetDescription></SheetHeader>
+          <div className="mt-6 space-y-6">
+            <SettingsSection title="Signer language">
+              <select aria-label="Default signer language" value={language} onChange={(event) => setLanguage(signerLanguage(event.target.value))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm">
+                {SIGNER_LANGUAGES.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+              </select>
+              <label className="mt-3 flex items-start gap-3 text-sm"><input type="checkbox" checked={translateContent} onChange={(event) => { setTranslateContent(event.target.checked); setTranslationPreview(null); }} className="mt-0.5 size-4 accent-primary" /><span><strong className="block">Translate document content</strong><span className="text-muted-foreground">Translate the title, legal text, custom fields, choices, and consent.</span></span></label>
+              {translateContent && <div className="mt-4 space-y-3"><Button type="button" disabled={translating || isPending || language === "ar" || language === "ur"} onClick={translateEntireWaiver}>{translating ? "Translating…" : "Generate translation"}</Button>{translationPreview && <div className="rounded-lg border border-border p-3"><p className="text-sm font-semibold">Translation ready for review</p><p className="mt-1 text-xs text-muted-foreground">Nothing changes until you apply it.</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={translationPreview.source !== currentFingerprint} onClick={() => { setTranslationUndo(currentDraft); loadTranslatedDraft(translationPreview.draft); }}>Use translation</Button><Button size="sm" variant="outline" onClick={() => setTranslationPreview(null)}>Discard</Button></div></div>}{translationUndo && <Button type="button" variant="outline" onClick={() => { loadTranslatedDraft(translationUndo); setTranslationUndo(null); }}>Restore original draft</Button>}</div>}
+              {translateContent && (language === "ar" || language === "ur") && <p className="mt-3 text-xs text-muted-foreground">Automatic document translation is not available for this language yet. The signer interface will still use the selected language.</p>}
+            </SettingsSection>
+            <SettingsSection title="Minor participants"><label className="flex items-center gap-3 text-sm"><Switch checked={minorMode === "allowed"} onCheckedChange={(checked) => setMinorMode(checked ? "allowed" : "disallowed")} />Allow signing for minors and collect guardian details</label></SettingsSection>
+            {settings}
+            <SettingsSection title="Publishing responsibility">
+              <p className="text-sm leading-relaxed text-muted-foreground">{APP.name} doesn&apos;t review waiver content for legal enforceability. You&apos;re responsible for the language and lawfulness of what you publish. Review every clause and have a lawyer check it for your state.</p>
+            </SettingsSection>
+            <SettingsSection title="Version history">
+              {versions.length === 0 ? <p className="text-sm text-muted-foreground">Not published yet. Publishing creates version 1.</p> : <ul className="divide-y divide-border text-sm">{versions.map((version) => <li key={version.id} className="flex items-center gap-3 py-2.5"><strong>v{version.version_number}</strong>{template.current_version_id === version.id && <Badge className="bg-success/15 text-success">live</Badge>}<span className="ml-auto text-xs text-muted-foreground">{new Date(version.created_at).toLocaleDateString()}</span></li>)}</ul>}
+              <p className="mt-2 text-xs text-muted-foreground">Published versions and signed records remain immutable.</p>
+            </SettingsSection>
+            <SettingsSection title={template.status === "archived" ? "Restore waiver" : "Archive waiver"} danger>
+              <p className="text-sm text-muted-foreground">{template.status === "archived" ? "Restore the public signing link." : "Archiving turns off the public signing link. Existing signed waivers remain accessible."}</p>
+              <Button className="mt-3" variant={template.status === "archived" ? "outline" : "destructive"} disabled={isPending} onClick={() => {
+                if (template.status !== "archived" && !confirm("Archive this waiver? The public signing link will stop working. Existing signed waivers are unaffected.")) return;
+                startTransition(async () => { try { if (template.status === "archived") { await unarchiveTemplate(template.id); toast.success("Waiver restored"); } else { await archiveTemplate(template.id); toast.success("Waiver archived"); } setSettingsOpen(false); router.refresh(); } catch (error) { toast.error(error instanceof Error ? error.message : "Couldn't update the waiver."); } });
+              }}>{template.status === "archived" ? "Restore waiver" : "Archive waiver"}</Button>
+            </SettingsSection>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Publish confirmation */}
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
@@ -1003,11 +888,11 @@ function SortableBlockCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "rounded-lg border border-border bg-card shadow-card",
-        isDragging && "z-10 opacity-80 shadow-pop"
+        "group/block relative -mx-4 rounded-md border border-transparent px-4 py-1 transition-colors hover:bg-muted/20 focus-within:border-primary/20 focus-within:bg-muted/20",
+        isDragging && "z-10 border-primary/40 bg-card opacity-80 shadow-pop"
       )}
     >
-      <div className="flex items-center gap-2 px-3 pt-2.5">
+      <div className="flex h-7 items-center gap-1 opacity-50 transition-opacity group-hover/block:opacity-100 group-focus-within/block:opacity-100">
         <button
           {...attributes}
           {...listeners}
@@ -1016,7 +901,7 @@ function SortableBlockCard({
         >
           <GripVertical className="size-4" />
         </button>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
           {block.type}
         </span>
         <div className="ml-auto flex items-center gap-0.5">
@@ -1027,13 +912,13 @@ function SortableBlockCard({
         </div>
       </div>
 
-      <div className="px-3 pb-3 pt-1.5">
+      <div className="pb-2">
         {block.type === "heading" && (
           <input
             value={block.text}
             onChange={(e) => onChange({ ...block, text: e.target.value })}
             placeholder="Heading text"
-            className="w-full rounded border border-border bg-background px-2 py-1.5 font-bold focus:border-ring focus:outline-none"
+            className="w-full rounded border border-transparent bg-transparent px-1 py-1 text-xl font-bold leading-tight focus:border-primary/20 focus:bg-background focus:outline-none"
           />
         )}
         {block.type === "paragraph" && (
@@ -1041,15 +926,15 @@ function SortableBlockCard({
             value={block.text}
             onChange={(e) => onChange({ ...block, text: e.target.value })}
             placeholder="Paragraph text"
-            rows={Math.min(10, Math.max(2, Math.ceil(block.text.length / 90)))}
-            className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:border-ring focus:outline-none"
+            rows={Math.min(14, Math.max(1, Math.ceil(block.text.length / 85)))}
+            className="w-full resize-y rounded border border-transparent bg-transparent px-1 py-1 text-[15px] leading-7 focus:border-primary/20 focus:bg-background focus:outline-none"
           />
         )}
         {block.type === "list" && (
-          <div className="space-y-1.5">
+          <div className="space-y-1 pl-1">
             {block.items.map((listItem, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="text-muted-foreground/70">•</span>
+                <span className="text-foreground/70">•</span>
                 <input
                   value={listItem}
                   onChange={(e) =>
@@ -1058,7 +943,7 @@ function SortableBlockCard({
                       items: block.items.map((x, j) => (j === i ? e.target.value : x)),
                     })
                   }
-                  className="w-full rounded border border-border bg-background px-2 py-1 text-sm focus:border-ring focus:outline-none"
+                  className="w-full rounded border border-transparent bg-transparent px-1 py-1 text-[15px] leading-6 focus:border-primary/20 focus:bg-background focus:outline-none"
                 />
                 <button
                   onClick={() =>
@@ -1120,8 +1005,8 @@ function SortableFieldCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "rounded-lg border border-border bg-card p-3 shadow-card",
-        isDragging && "z-10 opacity-80 shadow-pop"
+        "group/field rounded-xl border border-primary/15 bg-primary/[0.025] p-3 transition-colors hover:border-primary/25",
+        isDragging && "z-10 border-primary/50 bg-card opacity-80 shadow-pop"
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -1174,7 +1059,7 @@ function SortableFieldCard({
             <Flag className="size-3.5 text-warning" />
           </span>
         )}
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="ml-auto flex items-center gap-0.5 opacity-60 transition-opacity sm:opacity-0 sm:group-hover/field:opacity-100 sm:group-focus-within/field:opacity-100">
           <EditorIconButton label="Move field up" onClick={onMoveUp} disabled={first}><ArrowUp className="size-3.5" /></EditorIconButton>
           <EditorIconButton label="Move field down" onClick={onMoveDown} disabled={last}><ArrowDown className="size-3.5" /></EditorIconButton>
           <EditorIconButton label="Duplicate field" onClick={onDuplicate}><Copy className="size-3.5" /></EditorIconButton>
@@ -1436,6 +1321,28 @@ function SectionTitle({ title, sub }: { title: string; sub?: string }) {
       <h2 className="text-lg font-bold">{title}</h2>
       {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
     </div>
+  );
+}
+
+function SettingsSection({
+  title,
+  danger = false,
+  children,
+}: {
+  title: string;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-xl border border-border bg-card p-4",
+        danger && "border-destructive/25 bg-destructive/[0.025]",
+      )}
+    >
+      <h3 className={cn("text-sm font-semibold", danger && "text-destructive")}>{title}</h3>
+      <div className="mt-3">{children}</div>
+    </section>
   );
 }
 

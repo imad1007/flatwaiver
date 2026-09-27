@@ -30,6 +30,7 @@
     "verify:responsive": "node scripts/verify-responsive-contracts.mjs",
     "verify:marketing-pricing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-marketing-pricing.mjs",
     "verify:waiver-draft-recovery": "node scripts/verify-waiver-draft-recovery.mjs",
+    "verify:waiver-editor": "node scripts/verify-waiver-editor-ux.mjs",
     "verify:management-load-states": "node scripts/verify-management-load-states.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "verify:sign-flow": "node scripts/verify-sign-flow.mjs"

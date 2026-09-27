@@ -20,7 +20,7 @@ assert.match(editor, /Restore changes/);
 assert.match(editor, /Discard backup/);
 assert.match(editor, /clearRecovery\(\)/);
 assert.match(editor, /template\.source_pdf_path/);
-assert.match(editor, /label="Open original file"/);
+assert.match(editor, /label="Compare with original"/);
 
 assert.match(newWaiver, /flatwaiver:new-waiver:scratch/);
 assert.match(newWaiver, /value=\{name\}/);

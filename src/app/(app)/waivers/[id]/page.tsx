@@ -55,14 +55,18 @@ export default async function WaiverEditorPage({
           TemplateVersion,
           "id" | "template_id" | "version_number" | "minor_mode" | "content_sha256" | "created_at"
         >[]}
-      />
-      <WaiverRenewalSetting
-        templateId={typedTemplate.id}
-        expiryMonths={typedTemplate.expiry_months ?? null}
-      />
-      <WaiverPhotoSetting
-        templateId={typedTemplate.id}
-        photoMode={typedTemplate.photo_mode ?? "off"}
+        settings={
+          <>
+            <WaiverRenewalSetting
+              templateId={typedTemplate.id}
+              expiryMonths={typedTemplate.expiry_months ?? null}
+            />
+            <WaiverPhotoSetting
+              templateId={typedTemplate.id}
+              photoMode={typedTemplate.photo_mode ?? "off"}
+            />
+          </>
+        }
       />
     </div>
   );
