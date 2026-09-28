@@ -156,6 +156,11 @@ export async function POST(
   if (!waiver) {
     return jsonError("This waiver is no longer available.", 404);
   }
+  // Rechecked server-side for every submission. An old browser tab cannot
+  // bypass a billing suspension by posting directly to this endpoint.
+  if (!waiver.acceptingSignatures) {
+    return jsonError("This waiver is temporarily unavailable.", 403);
+  }
   const version = waiver.version;
 
   // Validate field values against this version's field definitions.
@@ -174,11 +179,6 @@ export async function POST(
     ) {
       return jsonError("Guardian name, relationship, and signature are required.", 400);
     }
-  }
-
-  // 4. Subscription gating
-  if (!waiver.acceptingSignatures) {
-    return jsonError("This business's waiver collection is paused.", 403);
   }
 
   // Photo capture: enforce the template's policy.

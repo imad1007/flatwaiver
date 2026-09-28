@@ -239,6 +239,8 @@ export interface Subscription {
   status: SubscriptionStatus;
   trial_ends_at: string | null;
   current_period_end: string | null;
+  billing_grace_started_at: string | null;
+  public_signing_suspended_at: string | null;
   updated_at: string;
 }
 

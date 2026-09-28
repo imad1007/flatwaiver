@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { CreditCard, ShieldCheck } from "lucide-react";
 import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { SigningForm } from "@/components/signing-form";
 import { APP } from "@/lib/config";
+import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
   params,
@@ -38,9 +41,8 @@ export default async function PublicSigningPage({
     );
   }
   if (!waiver.acceptingSignatures) {
-    return (
-      <NotAvailable message="This business's waiver collection is paused. Please check with the staff." />
-    );
+    const canManageBilling = await viewerOwnsOrganization(waiver.orgId);
+    return <BillingSuspension canManageBilling={canManageBilling} />;
   }
 
   const brandStyle = waiver.branding.color
@@ -79,6 +81,46 @@ export default async function PublicSigningPage({
       <footer className="mt-10 text-center text-xs text-muted-foreground/70">
         Powered by {APP.name}
       </footer>
+    </main>
+  );
+}
+
+async function viewerOwnsOrganization(orgId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .eq("org_id", orgId)
+    .eq("role", "owner")
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
+function BillingSuspension({ canManageBilling }: { canManageBilling: boolean }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-5 py-12">
+      <section className="w-full max-w-lg rounded-2xl border border-border bg-card p-7 text-center shadow-card sm:p-10">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300">
+          <CreditCard className="size-6" aria-hidden />
+        </div>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Signing temporarily paused</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">This waiver is temporarily unavailable</h1>
+        <p className="mt-3 leading-7 text-muted-foreground">
+          This waiver is temporarily unavailable because this organization&apos;s FlatWaiver subscription requires attention.
+        </p>
+        {canManageBilling && (
+          <Link href="/settings/billing" className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+            Review billing and restore signing
+          </Link>
+        )}
+        <div className="mt-7 flex items-center justify-center gap-2 border-t border-border pt-5 text-xs text-muted-foreground">
+          <ShieldCheck className="size-4" aria-hidden />
+          Existing waiver records remain securely stored.
+        </div>
+      </section>
     </main>
   );
 }

@@ -10,7 +10,7 @@ const to = process.argv.find(arg => arg.startsWith('--to='))?.slice(5);
 if (send && (!to || !process.env.RESEND_API_KEY)) throw new Error('Sending requires --to=email and RESEND_API_KEY.');
 await mkdir('output/emails', { recursive: true });
 const resend = send ? new Resend(process.env.RESEND_API_KEY) : null;
-for (const kind of ['trial-ended', 'subscription-ended']) {
+for (const kind of ['trial-ended', 'suspension-warning', 'subscription-ended']) {
   const message = billingExpiryEmail({ kind, orgName: 'Your demo workspace', appName: APP.name,
     monthlyUsd: APP.priceMonthlyUsd, billingUrl: `${APP.siteUrl}/settings/billing`, supportEmail: APP.supportEmail });
   await writeFile(`output/emails/${kind}.html`, message.html);

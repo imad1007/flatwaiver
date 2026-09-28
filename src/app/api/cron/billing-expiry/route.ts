@@ -8,10 +8,10 @@ export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || !process.env.RESEND_API_KEY) return NextResponse.json({ error: "Billing email is not configured." }, { status: 503 });
+  if (!secret) return NextResponse.json({ error: "Billing lifecycle is not configured." }, { status: 503 });
   if (request.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   const admin = createAdminClient();
-  const { data: jobs, error } = await admin.rpc("claim_billing_expiry_emails", { p_limit: 20 });
+  const { data: jobs, error } = await admin.rpc("process_billing_lifecycle", { p_limit: 20 });
   if (error) {
     console.error("Billing expiry scan failed", { code: error.code });
     return NextResponse.json({ error: "Billing expiry scan failed." }, { status: 503 });
@@ -20,6 +20,10 @@ export async function GET(request: Request) {
   let failed = 0;
   for (const job of jobs ?? []) {
     try {
+      // Stay below the provider's default two-requests-per-second limit. Wait
+      // before the authoritative recheck so a concurrent payment can cancel
+      // this notice as late as possible.
+      await new Promise((resolve) => setTimeout(resolve, 600));
       // Recheck immediately before delivery: the owner may have just renewed or changed email.
       const { data: candidate, error: recheckError } = await admin.from("billing_expiry_candidates")
         .select("recipient_email").eq("org_id", job.org_id).eq("recipient_id", job.recipient_id)
@@ -30,8 +34,6 @@ export async function GET(request: Request) {
         if (skipError) throw new Error("Could not record skipped notice.");
         continue;
       }
-      // Stay below the provider's default two-requests-per-second limit.
-      await new Promise((resolve) => setTimeout(resolve, 600));
       const providerId = await sendBillingExpiryEmail({
         to: job.recipient_email, orgName: job.org_name, kind: job.kind as BillingExpiryKind,
         idempotencyKey: `billing-expiry/${job.id}`,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { billingExpiryEmail } from '../src/lib/billing-expiry-email.ts';
 import { APP } from '../src/lib/config.ts';
 
-for (const kind of ['trial-ended', 'subscription-ended']) {
+for (const kind of ['trial-ended', 'suspension-warning', 'subscription-ended']) {
   const message = billingExpiryEmail({ kind, orgName: '<img src=x onerror=bad> & Gym', appName: APP.name,
     monthlyUsd: APP.priceMonthlyUsd, billingUrl: `${APP.siteUrl}/settings/billing`, supportEmail: APP.supportEmail });
   assert(!message.html.includes('<img src=x'));
@@ -13,7 +13,13 @@ for (const kind of ['trial-ended', 'subscription-ended']) {
     assert(message.html.includes(feature)); assert(message.text.includes(feature));
   }
   assert.equal((message.html.match(/<h1 /g) ?? []).length, 1);
-  assert(message.subject.includes(kind === 'trial-ended' ? 'trial has ended' : 'subscription has ended'));
+  if (kind === 'suspension-warning') {
+    assert.equal(message.subject, 'Action required: Your FlatWaiver waivers will be suspended in 24 hours');
+    assert(message.text.includes('No data will be deleted'));
+    assert(message.text.includes('resumes automatically after payment'));
+  } else {
+    assert(message.subject.includes(kind === 'trial-ended' ? 'trial has ended' : 'subscription has ended'));
+  }
   assert(!message.html.includes('payment successful'));
 }
-console.log('PASS: both billing templates, escaping, correct plan, billing CTA and plain-text alternatives.');
+console.log('PASS: all billing templates, escaping, grace/warning copy, correct plan, billing CTA and plain-text alternatives.');

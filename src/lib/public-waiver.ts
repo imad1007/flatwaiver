@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { subscriptionIsUsable } from "@/lib/types";
+import { canAcceptPublicSignatures } from "@/lib/billing-lifecycle";
 import type { OrgBranding, PhotoMode, TemplateVersion } from "@/lib/types";
 
 export interface PublicBranding {
@@ -66,7 +66,7 @@ export async function getPublishedWaiverBySlug(
       .single(),
     admin
       .from("subscriptions")
-      .select("status")
+      .select("status, trial_ends_at, public_signing_suspended_at")
       .eq("org_id", template.org_id)
       .maybeSingle(),
   ]);
@@ -102,6 +102,6 @@ export async function getPublishedWaiverBySlug(
     version: version as TemplateVersion,
     branding: { color, logoUrl, logoPath: rawBranding.logo_path ?? null },
     photoMode: (template.photo_mode as PhotoMode) ?? "off",
-    acceptingSignatures: subscriptionIsUsable(sub?.status),
+    acceptingSignatures: canAcceptPublicSignatures(sub),
   };
 }

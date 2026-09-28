@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/billing-expiry",
-      "schedule": "15 9 * * *"
+      "schedule": "15 * * * *"
     },
     {
       "path": "/api/cron/reminders",

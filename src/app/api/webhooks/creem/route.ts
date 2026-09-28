@@ -62,8 +62,12 @@ function statusForEvent(eventType: string, objectStatus: unknown): SubscriptionS
     case "subscription.paused":
       return "past_due";
     case "subscription.canceled":
-    case "subscription.expired":
       return "canceled";
+    case "subscription.expired":
+      // Creem documents this event as a retry-period signal whose object may
+      // remain active. Follow the object status; terminal cancellation arrives
+      // as subscription.canceled.
+      return mapCreemStatus(typeof objectStatus === "string" ? objectStatus : "");
     case "subscription.update":
     default:
       return mapCreemStatus(typeof objectStatus === "string" ? objectStatus : "");
@@ -76,6 +80,8 @@ type SubUpdate = {
   creem_customer_id?: string | null;
   creem_subscription_id?: string | null;
   current_period_end?: string | null;
+  billing_grace_started_at?: string | null;
+  public_signing_suspended_at?: string | null;
 };
 
 async function updateByOrg(
@@ -112,6 +118,8 @@ async function applyEvent(
       creem_customer_id: idOf(object.customer),
       creem_subscription_id: idOf(object.subscription),
       current_period_end: periodEndOf(object.subscription),
+      billing_grace_started_at: null,
+      public_signing_suspended_at: null,
       updated_at: new Date().toISOString(),
     });
     return;
@@ -126,6 +134,10 @@ async function applyEvent(
       current_period_end: periodEndOf(object),
       updated_at: new Date().toISOString(),
     };
+    if (update.status === "active") {
+      update.billing_grace_started_at = null;
+      update.public_signing_suspended_at = null;
+    }
     const orgId = orgIdOf(object.metadata);
     if (orgId) {
       await updateByOrg(admin, orgId, update);

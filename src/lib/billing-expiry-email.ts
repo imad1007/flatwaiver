@@ -1,4 +1,4 @@
-export type BillingExpiryKind = "trial-ended" | "subscription-ended";
+export type BillingExpiryKind = "trial-ended" | "suspension-warning" | "subscription-ended";
 
 function escape(value: string): string {
   return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -14,14 +14,22 @@ export function billingExpiryEmail(opts: {
   supportEmail: string;
 }) {
   const trial = opts.kind === "trial-ended";
-  const subject = trial ? `Your ${opts.appName} trial has ended` : `Your ${opts.appName} subscription has ended`;
-  const title = trial ? "Your trial has ended." : "Let’s get you back up and running.";
-  const label = trial ? "FREE TRIAL ENDED" : "SUBSCRIPTION ENDED";
-  const intro = trial
-    ? `The free trial for ${opts.orgName} has ended. Choose a plan to continue using your workspace and collecting signed waivers.`
-    : `The subscription for ${opts.orgName} has ended. Resubscribe to restore access to your workspace and resume collecting signed waivers.`;
-  const cta = trial ? "Choose your plan" : "Resume your subscription";
-  const reassurance = "Your existing waivers and signed records stay stored in your account. You can manage your subscription from the billing page.";
+  const warning = opts.kind === "suspension-warning";
+  const subject = warning
+    ? "Action required: Your FlatWaiver waivers will be suspended in 24 hours"
+    : trial ? `Your ${opts.appName} trial has ended` : `Your ${opts.appName} subscription has ended`;
+  const title = warning ? "Public waiver signing will pause in 24 hours."
+    : trial ? "Your trial has ended." : "Let’s get you back up and running.";
+  const label = warning ? "ACTION REQUIRED" : trial ? "FREE TRIAL ENDED" : "SUBSCRIPTION ENDED";
+  const intro = warning
+    ? `The trial for ${opts.orgName} ended 48 hours ago. Unless you subscribe, its public waiver pages will be suspended in 24 hours.`
+    : trial
+      ? `The free trial for ${opts.orgName} has ended. Public waiver signing remains available during a temporary 72-hour grace period.`
+      : `The subscription for ${opts.orgName} has ended. Resubscribe to restore public waiver signing.`;
+  const cta = warning ? "Subscribe before suspension" : trial ? `Subscribe for $${opts.monthlyUsd}/month` : "Resume your subscription";
+  const reassurance = warning
+    ? "No data will be deleted. Existing waivers and signed records remain securely stored, and public signing resumes automatically after payment."
+    : "FlatWaiver is $19/month with unlimited waivers, templates, and storage. Your existing waivers and signed records remain securely stored.";
   const text = `${subject}\n\n${intro}\n\n${reassurance}\n\n$${opts.monthlyUsd}/month, flat\nUnlimited signed waivers\nUnlimited waiver templates\nUnlimited storage\n\n${cta}: ${opts.billingUrl}\n\nAlready renewed? Your billing page shows your latest status.\nNeed a hand? Reply to this email or contact ${opts.supportEmail}.\n\n${opts.appName}`;
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f5f4fa;color:#202034;font-family:Arial,Helvetica,sans-serif;">
@@ -32,7 +40,7 @@ export function billingExpiryEmail(opts: {
 <tr><td style="background:#ffffff;border:1px solid #e7e5f1;border-radius:20px;overflow:hidden;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="height:6px;background:#6048ff;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:32px 24px 12px;"><span style="display:inline-block;padding:8px 12px;border-radius:20px;background:${trial ? "#fff3e4" : "#fff0f1"};color:${trial ? "#985516" : "#ae394c"};font-size:11px;font-weight:700;letter-spacing:1px;">${label}</span>
+<tr><td style="padding:32px 24px 12px;"><span style="display:inline-block;padding:8px 12px;border-radius:20px;background:${trial || warning ? "#fff3e4" : "#fff0f1"};color:${trial || warning ? "#985516" : "#ae394c"};font-size:11px;font-weight:700;letter-spacing:1px;">${label}</span>
 <h1 style="margin:22px 0 16px;font-size:30px;line-height:1.2;letter-spacing:-0.8px;">${title}</h1>
 <p style="margin:0;font-size:16px;line-height:1.7;color:#56556b;">${escape(intro)}</p></td></tr>
 <tr><td style="padding:12px 24px 24px;"><p style="margin:0;font-size:14px;line-height:1.7;color:#68677c;">${reassurance}</p></td></tr>

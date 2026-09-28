@@ -1,11 +1,13 @@
-/** App access requires an active subscription or an unexpired trial. */
+/**
+ * Billing never hides an organization's existing records. Creation, publishing,
+ * and public signing have their own server-side gates.
+ */
 export function hasAppAccess(
   subscription: { status: string; trial_ends_at: string | null } | null,
   now = Date.now(),
 ): boolean {
-  if (subscription?.status === "active") return true;
-  if (subscription?.status !== "trialing" || !subscription.trial_ends_at) return false;
-  return Date.parse(subscription.trial_ends_at) > now;
+  void now;
+  return subscription !== null;
 }
 
 export function requiresAppAccess(pathname: string): boolean {

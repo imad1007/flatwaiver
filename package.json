@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify:billing-offer": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-billing-offer.mjs",
+    "verify:billing-lifecycle": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-billing-lifecycle.mjs",
     "verify:csv-safety": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-csv-safety.mjs",
     "verify:signing-validation": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-signing-validation.mjs",
     "verify:renewal-idempotency": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-renewal-idempotency.mjs",

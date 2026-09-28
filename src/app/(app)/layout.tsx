@@ -11,6 +11,7 @@ import type { NotificationItem } from "@/components/notifications-menu";
 import { APP } from "@/lib/config";
 import { businessNameMissing } from "@/lib/types";
 import { hasAppAccess } from "@/lib/billing-access";
+import { billingLifecyclePhase } from "@/lib/billing-lifecycle";
 import { daysLeftUntil } from "@/lib/dates";
 
 /** ISO timestamp N days ago. Module scope so the impure time read stays out of render. */
@@ -53,7 +54,7 @@ export default async function AppLayout({
       admin.from("organizations").select("name").eq("id", profile.org_id).single(),
       admin
         .from("subscriptions")
-        .select("status, trial_ends_at")
+        .select("status, trial_ends_at, public_signing_suspended_at")
         .eq("org_id", profile.org_id)
         .maybeSingle(),
       admin
@@ -82,6 +83,7 @@ export default async function AppLayout({
 
   // Header notifications — real signals only (no decorative badges).
   const notifications: NotificationItem[] = [];
+  const lifecyclePhase = billingLifecyclePhase(subscription);
   if (subscription?.status === "trialing" && subscription.trial_ends_at) {
     const daysLeft = daysLeftUntil(subscription.trial_ends_at);
     if (daysLeft <= 5) {
@@ -93,7 +95,7 @@ export default async function AppLayout({
             : `Trial ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
         description:
           daysLeft <= 0
-            ? "Upgrade to resume collecting signatures."
+            ? lifecyclePhase === "suspended" ? "Subscribe to restore public signing." : "Subscribe before public signing is suspended."
             : "Upgrade to keep collecting signatures.",
         href: "/settings/billing",
       });
@@ -126,6 +128,7 @@ export default async function AppLayout({
         <TrialBanner
           status={subscription?.status ?? null}
           trialEndsAt={subscription?.trial_ends_at ?? null}
+          publicSigningSuspendedAt={subscription?.public_signing_suspended_at ?? null}
         />
       }
     >
@@ -137,11 +140,27 @@ export default async function AppLayout({
 function TrialBanner({
   status,
   trialEndsAt,
+  publicSigningSuspendedAt,
 }: {
   status: string | null;
   trialEndsAt: string | null;
+  publicSigningSuspendedAt: string | null;
 }) {
   if (status === "active") return null;
+
+  const phase = billingLifecyclePhase({
+    status: status ?? "",
+    trial_ends_at: trialEndsAt,
+    public_signing_suspended_at: publicSigningSuspendedAt,
+  });
+
+  if (status === "trialing" && phase === "suspended") {
+    return <TrialPill expired><span>Public waiver signing is suspended.</span><Link href="/settings/billing" className="font-medium underline underline-offset-2 hover:opacity-80">Subscribe to restore it</Link></TrialPill>;
+  }
+
+  if (status === "trialing" && (phase === "grace" || phase === "warning")) {
+    return <TrialPill><span>{phase === "warning" ? "Public signing pauses within 24 hours." : "Your trial ended. Public signing remains available during the grace period."}</span><Link href="/settings/billing" className="font-semibold underline underline-offset-2 hover:opacity-80">Subscribe · ${APP.priceMonthlyUsd}/mo</Link></TrialPill>;
+  }
 
   if (!hasAppAccess({ status: status ?? "", trial_ends_at: trialEndsAt })) {
     return (
