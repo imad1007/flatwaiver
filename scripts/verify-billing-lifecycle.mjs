@@ -48,17 +48,9 @@ await db.exec(`
     org_id uuid primary key, status text not null, trial_ends_at timestamptz,
     current_period_end timestamptz, creem_subscription_id text, stripe_subscription_id text
   );
-  create table public.billing_expiry_emails(
-    id uuid primary key default gen_random_uuid(), org_id uuid not null,
-    recipient_id uuid not null, kind text not null check (kind in ('trial-ended','subscription-ended')),
-    episode text not null, recipient_email text not null, org_name text not null,
-    status text not null default 'pending' check (status in ('pending','sending','sent','skipped','review')),
-    first_attempt_at timestamptz, locked_until timestamptz, sent_at timestamptz,
-    provider_id text, created_at timestamptz not null default now(),
-    unique(org_id, recipient_id, kind, episode)
-  );
   create role anon; create role authenticated; create role service_role;
 `);
+await db.exec(migration);
 await db.exec(migration);
 
 const ids = [1,2,3,4].map((n) => `00000000-0000-4000-8000-00000000000${n}`);

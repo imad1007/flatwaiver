@@ -1,15 +1,39 @@
 -- Trial grace/suspension is independent from template publication state.
 -- Creem webhook status remains the authoritative paid-state source.
 alter table public.subscriptions
-  add column billing_grace_started_at timestamptz,
-  add column public_signing_suspended_at timestamptz;
+  add column if not exists billing_grace_started_at timestamptz,
+  add column if not exists public_signing_suspended_at timestamptz;
 
-create index subscriptions_trial_lifecycle
+create index if not exists subscriptions_trial_lifecycle
   on public.subscriptions(trial_ends_at)
   where status = 'trialing' and trial_ends_at is not null;
 
+-- Some production projects were bootstrapped before migration 0017 was
+-- applied. Keep this migration self-contained for those projects while
+-- preserving every existing delivery row when the table already exists.
+create table if not exists public.billing_expiry_emails (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references public.organizations(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null,
+  episode text not null,
+  recipient_email text not null,
+  org_name text not null,
+  status text not null default 'pending'
+    check (status in ('pending','sending','sent','skipped','review')),
+  first_attempt_at timestamptz,
+  locked_until timestamptz,
+  sent_at timestamptz,
+  provider_id text,
+  created_at timestamptz not null default now(),
+  unique (org_id, recipient_id, kind, episode)
+);
+alter table public.billing_expiry_emails enable row level security;
+revoke all on public.billing_expiry_emails from public, anon, authenticated;
+grant all on public.billing_expiry_emails to service_role;
+
 alter table public.billing_expiry_emails
-  drop constraint billing_expiry_emails_kind_check;
+  drop constraint if exists billing_expiry_emails_kind_check;
 alter table public.billing_expiry_emails
   add constraint billing_expiry_emails_kind_check
   check (kind in ('trial-ended', 'suspension-warning', 'subscription-ended'));
