@@ -16,10 +16,12 @@ for (const kind of ['trial-ended', 'suspension-warning', 'subscription-ended']) 
   if (kind === 'suspension-warning') {
     assert.equal(message.subject, 'Action required: Your FlatWaiver waivers will be suspended in 24 hours');
     assert(message.text.includes('No data will be deleted'));
+    assert(message.text.includes('ended six days ago'));
     assert(message.text.includes('resumes automatically after payment'));
   } else {
     assert(message.subject.includes(kind === 'trial-ended' ? 'trial has ended' : 'subscription has ended'));
   }
+  if (kind === 'trial-ended') assert(message.text.includes('seven-day post-trial grace period'));
   assert(!message.html.includes('payment successful'));
 }
 console.log('PASS: all billing templates, escaping, grace/warning copy, correct plan, billing CTA and plain-text alternatives.');

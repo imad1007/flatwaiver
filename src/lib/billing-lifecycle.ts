@@ -1,5 +1,5 @@
-export const TRIAL_WARNING_HOURS = 48;
-export const TRIAL_SUSPENSION_HOURS = 72;
+export const TRIAL_WARNING_HOURS = 6 * 24;
+export const TRIAL_SUSPENSION_HOURS = 7 * 24;
 
 export type BillingLifecycleSubscription = {
   status: string;
@@ -26,7 +26,7 @@ export function billingLifecyclePhase(
   const trialEnd = Date.parse(subscription.trial_ends_at);
   if (!Number.isFinite(trialEnd)) return "suspended";
   if (now < trialEnd) return "trial";
-  if (subscription.public_signing_suspended_at) return "suspended";
+  // Derive trial suspension from the deadline, including flags left by the old three-day policy.
 
   const elapsedHours = (now - trialEnd) / 3_600_000;
   if (elapsedHours >= TRIAL_SUSPENSION_HOURS) return "suspended";

@@ -22,9 +22,9 @@ export function billingExpiryEmail(opts: {
     : trial ? "Your trial has ended." : "Let’s get you back up and running.";
   const label = warning ? "ACTION REQUIRED" : trial ? "FREE TRIAL ENDED" : "SUBSCRIPTION ENDED";
   const intro = warning
-    ? `The trial for ${opts.orgName} ended 48 hours ago. Unless you subscribe, its public waiver pages will be suspended in 24 hours.`
+    ? `The trial for ${opts.orgName} ended six days ago. Unless you subscribe, its public waiver pages will be suspended in 24 hours.`
     : trial
-      ? `The free trial for ${opts.orgName} has ended. Public waiver signing remains available during a temporary 72-hour grace period.`
+      ? `The free trial for ${opts.orgName} has ended. Public waiver signing remains available during a separate seven-day post-trial grace period.`
       : `The subscription for ${opts.orgName} has ended. Resubscribe to restore public waiver signing.`;
   const cta = warning ? "Subscribe before suspension" : trial ? `Subscribe for $${opts.monthlyUsd}/month` : "Resume your subscription";
   const reassurance = warning

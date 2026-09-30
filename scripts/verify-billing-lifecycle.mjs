@@ -5,18 +5,23 @@ import { billingLifecyclePhase, canAcceptPublicSignatures } from "../src/lib/bil
 
 const now = Date.parse("2026-09-28T12:00:00Z");
 const sub = (status, trial_ends_at, public_signing_suspended_at = null) => ({ status, trial_ends_at, public_signing_suspended_at });
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-28T13:00:00Z"), now), "trial");
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-28T11:00:00Z"), now), "grace");
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-26T11:00:00Z"), now), "warning");
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-26T12:00:00Z"), now), "warning");
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-25T11:00:00Z"), now), "suspended");
-assert.equal(billingLifecyclePhase(sub("trialing", "2026-09-25T12:00:00Z"), now), "suspended");
-assert.equal(billingLifecyclePhase(sub("active", "2026-09-20T00:00:00Z", "2026-09-24T00:00:00Z"), now), "active");
-assert.equal(canAcceptPublicSignatures(sub("active", null), now), true);
-assert.equal(canAcceptPublicSignatures(sub("trialing", "2026-09-25T11:00:00Z"), now), false);
-assert.equal(canAcceptPublicSignatures(sub("canceled", null), now), false);
+const end = now + 14 * 86400000;
+const trial = sub("trialing", new Date(end).toISOString());
+const { APP } = await import("../src/lib/config.ts");
+assert.equal(APP.trialDays, 14);
+for (const [days, phase] of [[13,"trial"],[14,"grace"],[15,"grace"],[20,"warning"],[21,"suspended"],[22,"suspended"]]) {
+  const time = now + days * 86400000;
+  assert.equal(billingLifecyclePhase(trial,time), phase);
+  assert.equal(canAcceptPublicSignatures(trial,time), phase !== "suspended");
+  assert.equal(canAcceptPublicSignatures({...trial,status:"active",public_signing_suspended_at:new Date(now).toISOString()},time), true);
+}
+assert.equal(canAcceptPublicSignatures(trial,end+7*86400000-1),true);
+assert.equal(billingLifecyclePhase({...trial,public_signing_suspended_at:new Date(end).toISOString()},end+4*86400000),"grace");
+assert.equal(canAcceptPublicSignatures(sub("active",null)),true);
+assert.equal(canAcceptPublicSignatures(sub("canceled",null)),false);
 
 const migration = await readFile(new URL("../supabase/migrations/0023_billing_lifecycle.sql", import.meta.url), "utf8");
+const graceMigration = await readFile(new URL("../supabase/migrations/0024_seven_day_post_trial_grace.sql", import.meta.url), "utf8");
 const cron = await readFile(new URL("../src/app/api/cron/billing-expiry/route.ts", import.meta.url), "utf8");
 const webhook = await readFile(new URL("../src/app/api/webhooks/creem/route.ts", import.meta.url), "utf8");
 const signRoute = await readFile(new URL("../src/app/api/sign/[slug]/route.ts", import.meta.url), "utf8");
@@ -51,7 +56,8 @@ await db.exec(`
   create role anon; create role authenticated; create role service_role;
 `);
 await db.exec(migration);
-await db.exec(migration);
+await db.exec(graceMigration);
+await db.exec(graceMigration);
 
 const ids = [1,2,3,4].map((n) => `00000000-0000-4000-8000-00000000000${n}`);
 for (let i = 0; i < ids.length; i++) {
@@ -61,7 +67,7 @@ for (let i = 0; i < ids.length; i++) {
 }
 await db.query("insert into public.waiver_templates values ('10000000-0000-4000-8000-000000000001',$1,'published'),('10000000-0000-4000-8000-000000000002',$2,'draft'),('10000000-0000-4000-8000-000000000003',$3,'archived')", ids.slice(0,3));
 await db.query("insert into public.signed_waivers values ('20000000-0000-4000-8000-000000000001',$1)", [ids[2]]);
-await db.query("insert into public.subscriptions(org_id,status,trial_ends_at) values ($1,'trialing',now()-interval '1 hour'),($2,'trialing',now()-interval '49 hours'),($3,'trialing',now()-interval '73 hours')", ids.slice(0,3));
+await db.query("insert into public.subscriptions(org_id,status,trial_ends_at) values ($1,'trialing',now()-interval '1 hour'),($2,'trialing',now()-interval '145 hours'),($3,'trialing',now()-interval '169 hours')", ids.slice(0,3));
 await db.query("insert into public.subscriptions(org_id,status,trial_ends_at,billing_grace_started_at,public_signing_suspended_at) values ($1,'active',now()-interval '80 hours',now()-interval '80 hours',now()-interval '8 hours')", [ids[3]]);
 
 await db.query("select * from public.process_billing_lifecycle(20)");
@@ -82,6 +88,24 @@ const templates = await db.query("select status from public.waiver_templates ord
 assert.deepEqual(templates.rows.map((r) => r.status), ["published", "draft", "archived"]);
 const history = await db.query("select count(*)::int count from public.signed_waivers");
 assert.equal(history.rows[0].count, 1, "signed history remains untouched");
+// Verify the SQL scheduler at exact boundaries in one fixed-time transaction.
+await db.exec("begin");
+for (const [days, suspended, kinds] of [[-1,false,[]],[0,false,["trial-ended"]],[1,false,["trial-ended"]],[6,false,["suspension-warning"]],[7,true,[]],[8,true,[]]]) {
+  await db.exec("delete from public.billing_expiry_emails");
+  await db.query("update public.subscriptions set status='trialing',trial_ends_at=now()-($1::int * interval '1 day'),public_signing_suspended_at=null where org_id=$2",[days,ids[0]]);
+  await db.query("select * from public.process_billing_lifecycle(20)");
+  const state=await db.query("select public_signing_suspended_at is not null suspended from public.subscriptions where org_id=$1",[ids[0]]);
+  assert.equal(state.rows[0].suspended,suspended);
+  const candidates=await db.query("select kind from public.billing_expiry_candidates where org_id=$1 order by kind",[ids[0]]);
+  assert.deepEqual(candidates.rows.map(r=>r.kind),kinds);
+}
+await db.exec("rollback");
+const trialEndsBefore = await db.query("select org_id,trial_ends_at from public.subscriptions order by org_id");
+await db.query("update public.subscriptions set status='active' where org_id in ($1,$2)",[ids[1],ids[2]]);
+await db.query("select * from public.process_billing_lifecycle(20)");
+const paid = await db.query("select public_signing_suspended_at,billing_grace_started_at from public.subscriptions where status='active'");
+assert.ok(paid.rows.every(r=>r.public_signing_suspended_at===null && r.billing_grace_started_at===null));
+assert.deepEqual((await db.query("select org_id,trial_ends_at from public.subscriptions order by org_id")).rows,trialEndsBefore.rows);
 await db.close();
 
-console.log("Billing lifecycle passed: grace, 48h warning, 72h suspension, payment reactivation, idempotency, race locks and API enforcement.");
+console.log("Billing lifecycle passed: 14-day trial, six-day warning, seven-day post-trial suspension, payment reactivation, idempotency, race locks and API enforcement.");
