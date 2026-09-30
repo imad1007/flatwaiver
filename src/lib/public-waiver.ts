@@ -42,7 +42,7 @@ export class PublicWaiverLoadError extends Error {
 export async function getPublishedWaiverBySlug(
   slug: string
 ): Promise<PublicWaiver | null> {
-  const admin = createAdminClient();
+  const admin = createAdminClient({ noStore: true });
 
   const { data: template, error: templateError } = await admin
     .from("waiver_templates")

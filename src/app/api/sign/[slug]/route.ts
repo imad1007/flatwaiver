@@ -74,6 +74,25 @@ export async function POST(
 ) {
   const { slug } = await params;
 
+  // 3. Resolve template — must be published; capture current version NOW.
+  let waiver;
+  try {
+    waiver = await getPublishedWaiverBySlug(slug);
+  } catch (error) {
+    if (error instanceof PublicWaiverLoadError) {
+      return jsonError("The waiver service is temporarily unavailable. Please try again.", 503);
+    }
+    throw error;
+  }
+  if (!waiver) {
+    return jsonError("This waiver is no longer available.", 404);
+  }
+  // Rechecked server-side for every submission. An old browser tab cannot
+  // bypass a billing suspension by posting directly to this endpoint.
+  if (!waiver.acceptingSignatures) {
+    return jsonError("This waiver is temporarily unavailable.", 403);
+  }
+
   const clientIp = getClientIp(request);
   const userAgent = request.headers.get("user-agent");
 
@@ -143,24 +162,6 @@ export async function POST(
     }
   }
 
-  // 3. Resolve template — must be published; capture current version NOW.
-  let waiver;
-  try {
-    waiver = await getPublishedWaiverBySlug(slug);
-  } catch (error) {
-    if (error instanceof PublicWaiverLoadError) {
-      return jsonError("The waiver service is temporarily unavailable. Please try again.", 503);
-    }
-    throw error;
-  }
-  if (!waiver) {
-    return jsonError("This waiver is no longer available.", 404);
-  }
-  // Rechecked server-side for every submission. An old browser tab cannot
-  // bypass a billing suspension by posting directly to this endpoint.
-  if (!waiver.acceptingSignatures) {
-    return jsonError("This waiver is temporarily unavailable.", 403);
-  }
   const version = waiver.version;
 
   // Validate field values against this version's field definitions.
