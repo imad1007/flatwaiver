@@ -109,7 +109,7 @@ function BillingSuspension({ canManageBilling }: { canManageBilling: boolean }) 
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Signing temporarily paused</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight">This waiver is temporarily unavailable</h1>
         <p className="mt-3 leading-7 text-muted-foreground">
-          This waiver is temporarily unavailable because this organization&apos;s FlatWaiver subscription requires attention.
+          This waiver is currently unavailable because the account subscription requires payment.
         </p>
         {canManageBilling && (
           <Link href="/settings/billing" className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">

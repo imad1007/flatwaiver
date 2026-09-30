@@ -66,7 +66,8 @@ export async function getPublishedWaiverBySlug(
       .single(),
     admin
       .from("subscriptions")
-      .select("status, trial_ends_at, public_signing_suspended_at")
+      // Access depends on the paid status and deadline, never cron markers.
+      .select("status, trial_ends_at")
       .eq("org_id", template.org_id)
       .maybeSingle(),
   ]);

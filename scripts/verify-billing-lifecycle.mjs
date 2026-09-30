@@ -37,7 +37,7 @@ assert.match(cron, /process_billing_lifecycle/);
 assert.match(webhook, /public_signing_suspended_at: null/);
 assert.ok(signRoute.indexOf("if (!waiver.acceptingSignatures)") < signRoute.indexOf('.from("signatures")'), "billing is checked before evidence uploads");
 assert.match(signRoute, /jsonError\("This waiver is temporarily unavailable\.", 403\)/);
-assert.match(publicPage, /This waiver is temporarily unavailable because this organization&apos;s FlatWaiver subscription requires attention\./);
+assert.match(publicPage, /This waiver is currently unavailable because the account subscription requires payment\./);
 assert.match(publicPage, /\.eq\("org_id", orgId\)[\s\S]*\.eq\("role", "owner"\)/);
 assert.equal(JSON.parse(vercel).crons.find((job) => job.path === "/api/cron/billing-expiry").schedule, "15 * * * *");
 

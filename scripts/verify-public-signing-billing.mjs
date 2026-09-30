@@ -6,7 +6,7 @@ import { canAcceptPublicSignatures } from "../src/lib/billing-lifecycle.ts";
 
 function load(file, dependencies) {
   const source = ts.transpileModule(fs.readFileSync(file, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const exports = {};
   vm.runInNewContext(source, { exports, require: (name) => {
@@ -29,7 +29,7 @@ const admin = {
       subscriptions: subscription,
     };
     assert.ok(table in data, "No signature table access when blocked");
-    const query = { select() { return this; }, eq() { return this; },
+    const query = { select(columns) { if (table === "subscriptions") assert.equal(columns, "status, trial_ends_at"); return this; }, eq() { return this; },
       single: async () => ({ data: data[table], error: null }),
       maybeSingle: async () => ({ data: data[table], error: null }) };
     return query;
@@ -58,6 +58,17 @@ const route = load("src/app/api/sign/[slug]/route.ts", {
   "@/lib/signing-validation": { isRealIsoDate: forbidden },
   "@/lib/types": {},
 });
+const jsx = await import("react/jsx-runtime");
+const { renderToStaticMarkup } = await import("react-dom/server");
+const page = load("src/app/w/[slug]/page.tsx", {
+  "react/jsx-runtime": jsx,
+  "next/link": { default: () => null },
+  "lucide-react": { CreditCard: () => null, ShieldCheck: () => null },
+  "@/lib/public-waiver": loader,
+  "@/components/signing-form": { SigningForm: forbidden },
+  "@/lib/config": { APP: { name: "FlatWaiver" } },
+  "@/lib/supabase/server": { createClient: async () => ({ auth: { getUser: async () => ({ data: { user: null } }) } }) },
+});
 subscription = {
   status: "trialing", trial_ends_at: "2026-09-21T10:35:50.235Z",
   billing_grace_started_at: null, public_signing_suspended_at: null,
@@ -68,6 +79,9 @@ const originalNow = Date.now;
 Date.now = () => Date.parse("2026-09-30T12:00:00Z");
 try {
   assert.equal((await loader.getPublishedWaiverBySlug("test")).acceptingSignatures, false);
+  const html = renderToStaticMarkup(await page.default({ params: Promise.resolve({ slug: "test" }), searchParams: Promise.resolve({}) }));
+  assert.ok(html.includes("This waiver is currently unavailable because the account subscription requires payment."));
+  assert.ok(!html.includes("<form"));
   for (let i = 0; i < 2; i++) {
     const response = await route.POST(new Request("https://example.test/api/sign/test", { method: "POST", body: "{}" }), { params: Promise.resolve({ slug: "test" }) });
     assert.equal(response.status, 403);
