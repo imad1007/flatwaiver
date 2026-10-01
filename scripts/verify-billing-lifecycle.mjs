@@ -39,7 +39,7 @@ assert.ok(signRoute.indexOf("if (!waiver.acceptingSignatures)") < signRoute.inde
 assert.match(signRoute, /jsonError\("This waiver is temporarily unavailable\.", 403\)/);
 assert.match(publicPage, /This waiver is currently unavailable because the account subscription requires payment\./);
 assert.match(publicPage, /\.eq\("org_id", orgId\)[\s\S]*\.eq\("role", "owner"\)/);
-assert.equal(JSON.parse(vercel).crons.find((job) => job.path === "/api/cron/billing-expiry").schedule, "15 * * * *");
+assert.equal(JSON.parse(vercel).crons.find((job) => job.path === "/api/cron/billing-expiry").schedule, "15 9 * * *");
 
 const db = new PGlite();
 await db.exec(`
