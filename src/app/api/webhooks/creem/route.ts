@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapCreemStatus } from "@/lib/creem";
 import type { SubscriptionStatus } from "@/lib/types";
+import { tiktokEnabled, tiktokPaymentCandidate } from "@/lib/tiktok-pixel";
 
 export const runtime = "nodejs";
 
@@ -164,6 +165,21 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
   const eventId = event.id;
+
+  // Store only verified live payment references. Keep this before the billing
+  // dedupe return so a redelivery can repair a failed telemetry write.
+  // Best effort: advertising infrastructure must not prevent billing updates.
+  if (tiktokEnabled(process.env.VERCEL_ENV, process.env.TIKTOK_PIXEL_ENABLED)) {
+    const candidate = tiktokPaymentCandidate(event.eventType, event.object as unknown as Record<string, unknown>);
+    if (candidate) {
+      try {
+        const { error } = await admin.from("tiktok_measurements").upsert({
+          kind: "payment", source_id: candidate.transactionId, subscription_id: candidate.subscriptionId,
+        }, { onConflict: "kind,source_id", ignoreDuplicates: true });
+        if (error) console.warn("[tiktok] payment candidate write failed");
+      } catch { console.warn("[tiktok] payment candidate write failed"); }
+    }
+  }
 
   // Idempotency: claim the event id before applying. A redelivery hits the
   // primary-key conflict and is acknowledged without re-applying.

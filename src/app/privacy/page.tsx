@@ -85,6 +85,17 @@ export default function PrivacyPage() {
               separate from public signing pages and signed-document screens.
               You can withdraw optional-cookie consent using Cookie settings.
             </p>
+            <p className="mt-2">
+              With the same optional-cookie consent, TikTok Pixel may measure
+              visits to selected business pages, completed business registrations,
+              and confirmed subscription payments. Conversion data includes a
+              random event identifier and, for payments, the amount and currency.
+              TikTok also receives browser and network information and may use
+              cookies to attribute visits to ads. We do not include email addresses,
+              waiver contents, signatures, health information, or private form
+              answers in TikTok events. TikTok tracking is excluded from public
+              signing and signed-document pages. You can withdraw consent below.
+            </p>
             <CookieSettings />
           </section>
 

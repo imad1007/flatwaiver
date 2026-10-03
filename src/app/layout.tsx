@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { OpenAIPixel } from "@/components/openai-pixel";
+import { TikTokPixel } from "@/components/tiktok-pixel";
+import { tiktokEnabled } from "@/lib/tiktok-pixel";
 import { pixelEnabled } from "@/lib/openai-pixel";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -84,6 +86,7 @@ export default function RootLayout({
         <CookieConsent />
         <Analytics />
         <OpenAIPixel enabled={pixelEnabled(process.env.VERCEL_ENV, process.env.OPENAI_ADS_PIXEL_ENABLED)} />
+        <TikTokPixel enabled={tiktokEnabled(process.env.VERCEL_ENV, process.env.TIKTOK_PIXEL_ENABLED)} />
         <LiveChat />
       </body>
     </html>
