@@ -7,7 +7,9 @@ Settings > Billing. Templates include the current flat plan from `APP` config.
 
 1. Apply `supabase/migrations/0017_billing_expiry_emails.sql`.
 2. Configure `RESEND_API_KEY` and a strong `CRON_SECRET` in Vercel production.
-   The sender domain for `NEXT_PUBLIC_APP_URL` must be verified in Resend.
+   Set `RESEND_FROM_EMAIL=noreply@getflatwaiver.com` and verify `getflatwaiver.com`
+   in Resend. The sender is independent of `NEXT_PUBLIC_APP_URL`; support reply-to
+   addresses and billing links are unchanged.
 3. Deploy. Vercel calls `/api/cron/billing-expiry` daily at 09:15 UTC.
 
 The daily check processes up to 20 owner notices per run, including previously

@@ -1,3 +1,9 @@
+/** Read at call time so CLI scripts can load .env before resolving the sender. */
+export function transactionalEmailFrom(): string {
+  const address = process.env.RESEND_FROM_EMAIL?.trim() || "noreply@getflatwaiver.com";
+  return `${APP.name} <${address}>`;
+}
+
 export const APP = {
   name: "FlatWaiver",            // rename here only
   priceMonthlyUsd: 19,

@@ -2,7 +2,7 @@ import nextEnv from '@next/env';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { Resend } from 'resend';
 import { billingExpiryEmail } from '../src/lib/billing-expiry-email.ts';
-import { APP } from '../src/lib/config.ts';
+import { APP, transactionalEmailFrom } from '../src/lib/config.ts';
 
 nextEnv.loadEnvConfig(process.cwd());
 const send = process.argv.includes('--send');
@@ -17,7 +17,7 @@ for (const kind of ['trial-ended', 'suspension-warning', 'subscription-ended']) 
   console.log(`Rendered output/emails/${kind}.html`);
   if (resend) {
     const { data, error } = await resend.emails.send({
-      from: `${APP.name} <notifications@${new URL(APP.siteUrl).hostname.replace(/^www\./, '')}>`,
+      from: transactionalEmailFrom(),
       to, replyTo: APP.supportEmail, ...message, subject: `[Preview] ${message.subject}`,
     }, { idempotencyKey: `billing-preview-v1/${kind}/${to}` });
     if (error) throw new Error(`Preview rejected: ${error.message}`);

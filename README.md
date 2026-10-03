@@ -43,8 +43,10 @@ the product is a one-line change.
    `customer.subscription.deleted`; put the signing secret in `STRIPE_WEBHOOK_SECRET`.
 4. **Turnstile** — create a widget for your domain; keys go in
    `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`.
-5. **Resend** — verify your sending domain; emails send from
-   `notifications@<your-app-domain>`.
+5. **Resend** — verify `getflatwaiver.com` as your sending domain and set
+   `RESEND_FROM_EMAIL=noreply@getflatwaiver.com` (also the default).
+   Application and billing-preview emails share this sender; support/reply-to
+   addresses and website links are configured separately and remain unchanged.
 
 ```bash
 npm install

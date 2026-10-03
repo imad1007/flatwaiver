@@ -1,7 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
-import { APP } from "@/lib/config";
+import { APP, transactionalEmailFrom } from "@/lib/config";
 import { billingExpiryEmail, type BillingExpiryKind } from "@/lib/billing-expiry-email";
 
 /** Billing notices throw on rejection so the durable queue never marks failures sent. */
@@ -21,15 +21,7 @@ export async function sendBillingExpiryEmail(opts: {
   return result.data.id;
 }
 
-const FROM = `${APP.name} <notifications@${emailDomain()}>`;
-
-function emailDomain(): string {
-  try {
-    return new URL(APP.url).hostname.replace(/^www\./, "");
-  } catch {
-    return "example.com";
-  }
-}
+const FROM = transactionalEmailFrom();
 
 function resendClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
