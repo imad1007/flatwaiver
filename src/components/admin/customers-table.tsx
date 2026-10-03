@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search, RefreshCw, ArrowRight, SlidersHorizontal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ const defaults = { query: "", plan: "all", activity: "all", access: "all", sort:
 export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number }) {
   const [filters, setFilters] = useState(defaults);
   const [page, setPage] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const filtered = filterCustomers(rows, filters, now);
@@ -46,7 +48,7 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[["all", "All customers"], ["trialing", "Live trials"], ["trial_ended", "Trials ended · no subscription"], ["active", "Active plans"]].map(([key, label]) => (
-          <button key={key} onClick={() => update("plan", key)} aria-pressed={filters.plan === key} className={cn("rounded-2xl border bg-card p-4 text-left transition-colors hover:border-primary/50", filters.plan === key ? "border-primary ring-1 ring-primary/20" : "border-border")}>
+          <button key={key} onClick={() => update("plan", key)} aria-pressed={filters.plan === key} className={cn("rounded-xl border bg-card p-4 text-left transition-all hover:border-primary/50", filters.plan === key ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border")}>
             <span className="block text-xs font-medium text-muted-foreground">{label}</span>
             <span className={cn("mt-2 block text-3xl font-semibold tabular-nums", key === "trial_ended" && "text-orange-600 dark:text-orange-400")}>{fmt(count(key))}</span>
           </button>
@@ -59,9 +61,10 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
             <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
             <Input aria-label="Search customers by name or email" placeholder="Search business or owner email…" value={filters.query} onChange={e => update("query", e.target.value)} className="h-10 pl-9" />
           </div>
+          <Button variant={showFilters ? "secondary" : "outline"} aria-expanded={showFilters} aria-controls="customer-filters" onClick={() => setShowFilters(!showFilters)}><SlidersHorizontal className="size-4" />Filters{Object.entries(filters).filter(([key, value]) => key !== "query" && key !== "sort" && value !== "all").length > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{Object.entries(filters).filter(([key, value]) => key !== "query" && key !== "sort" && value !== "all").length}</span>}</Button>
           <Button variant="outline" disabled={pending} onClick={() => startTransition(() => router.refresh())}><RefreshCw className={cn("size-4", pending && "animate-spin")} />Refresh</Button>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div id="customer-filters" className={cn("grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4", showFilters ? "grid" : "hidden")}>
           {select("Plan status", "plan", { all: "All plans", ...CUSTOMER_PLANS, ending_soon: "Trial ends in 7 days" })}
           {select("Waiver activity", "activity", { all: "Any activity", unused: "No signatures yet", month: "Signed this month" })}
           {select("Account access", "access", { all: "All accounts", enabled: "Not suspended", suspended: "Suspended" })}
@@ -74,6 +77,7 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-4"><div><h2 className="text-sm font-semibold">Customer directory</h2><p className="mt-1 text-xs text-muted-foreground">Open a customer to see waiver performance and account details.</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{fmt(filtered.length)} workspaces</span></div>
         <Table>
           <TableHeader><TableRow>
             <TableHead>Business / owner</TableHead><TableHead>Plan status</TableHead>
@@ -86,8 +90,10 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
                 const plan = customerPlan(row, now);
                 return <TableRow key={row.orgId}>
                   <TableCell className="min-w-52 max-w-80 py-4">
-                    <p className="truncate font-medium" title={row.name}>{row.name}</p>
-                    <p className="truncate text-xs text-muted-foreground" title={row.ownerEmail ?? undefined}>{row.ownerEmail ?? "No owner email"}</p>
+                    <Link href={`/admin/customers/${row.orgId}`} className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-primary">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">{row.name.slice(0, 1).toUpperCase()}</span>
+                      <span className="min-w-0"><span className="block truncate font-medium group-hover:text-primary" title={row.name}>{row.name}</span><span className="block truncate text-xs text-muted-foreground" title={row.ownerEmail ?? undefined}>{row.ownerEmail ?? "No owner email"}</span></span>
+                    </Link>
                     {row.suspended && <span className="mt-1 inline-block rounded bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Suspended</span>}
                   </TableCell>
                   <TableCell className="min-w-40">
@@ -95,7 +101,7 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
                     {row.status === "trialing" && <p className="mt-1 text-xs text-muted-foreground">{plan === "trial_ended" ? "Ended" : "Ends"} {date(row.trialEndsAt)}</p>}
                     {row.status === "active" && row.currentPeriodEnd && <p className="mt-1 text-xs text-muted-foreground">Period ends {date(row.currentPeriodEnd)}</p>}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums"><p className="font-medium">{fmt(row.signatureCount)}</p><p className="text-xs text-muted-foreground">{fmt(row.signaturesThisMonth)} this month</p></TableCell>
+                  <TableCell className="text-right tabular-nums"><Link href={`/admin/customers/${row.orgId}`} className="font-semibold hover:text-primary hover:underline" aria-label={`${fmt(row.signatureCount)} signed waivers for ${row.name}`}>{fmt(row.signatureCount)}</Link><p className="text-xs text-muted-foreground">{fmt(row.signaturesThisMonth)} this month</p></TableCell>
                   <TableCell className="text-right tabular-nums"><p>{fmt(row.publishedCount)} live</p><p className="text-xs text-muted-foreground">{fmt(row.templateCount)} total</p></TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{row.lastSignedAt ? date(row.lastSignedAt) : "No signatures yet"}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{date(row.createdAt)}</TableCell>

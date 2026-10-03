@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import { Ban, MoreHorizontal, RotateCcw, Trash2, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -71,6 +71,8 @@ export function CustomerRowActions({
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onClick={() => router.push(`/admin/customers/${orgId}`)}><ArrowUpRight className="size-4" />View customer</DropdownMenuItem>
+          <DropdownMenuSeparator />
           {suspended ? (
             <DropdownMenuItem
               disabled={!ownerUserId || pending}
