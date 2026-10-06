@@ -498,10 +498,10 @@ export function WaiverEditor({
       {recovery && (
         <div
           role="status"
-          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-info/30 bg-info/10 px-4 py-3"
+          className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2.5"
         >
           <div>
-            <p className="text-sm font-semibold">Unsaved changes are available</p>
+            <p className="text-sm font-semibold">Resume your previous edits</p>
             <p className="text-xs text-muted-foreground">
               This tab kept a backup from {new Date(recovery.savedAt).toLocaleString()}.
             </p>
@@ -518,9 +518,11 @@ export function WaiverEditor({
       )}
 
       {/* Import diagnostics stay available without competing with the document. */}
+      {(warnings.length > 0 || template.source_pdf_path) && (
+      <div className="mt-3 flex flex-wrap items-start gap-3 rounded-xl border border-border bg-card px-3 py-2">
       {warnings.length > 0 && (
-        <details className="group mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-semibold text-amber-800 dark:text-amber-300">
+        <details className="group min-w-0 flex-1 text-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-2 font-medium text-amber-800 dark:text-amber-300">
             <AlertTriangle className="size-4" />
             {warnings.length} import issue{warnings.length === 1 ? "" : "s"}
             <span className="ml-auto text-xs font-normal text-muted-foreground group-open:hidden">Review</span>
@@ -533,19 +535,26 @@ export function WaiverEditor({
         </details>
       )}
       {template.source_pdf_path && (
-        <div className="mt-3 flex justify-end">
+        <div className="ml-auto shrink-0">
           <FileDownloadButton
             bucket="uploads"
             path={template.source_pdf_path}
             label="Compare with original"
+            variant="outline"
           />
         </div>
       )}
+      </div>
+      )}
 
       {/* Builder workspace */}
-      <div className="mt-6 grid items-start gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="mt-4 grid items-start gap-5 xl:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-2xl border border-border bg-card p-3 shadow-card xl:sticky xl:top-20 xl:block">
-          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Add a block</p>
+          <div className="mb-3 border-b border-border px-2 pb-3">
+            <p className="text-sm font-semibold">Build your waiver</p>
+            <p className="mt-1 text-xs text-muted-foreground">Choose a block to add it.</p>
+          </div>
+          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Document blocks</p>
           <div className="space-y-1.5">
             <PaletteButton icon={Heading2} label="Heading" onClick={() => addBlock("heading")} />
             <PaletteButton icon={Pilcrow} label="Rich text" onClick={() => addBlock("paragraph")} />
@@ -568,12 +577,12 @@ export function WaiverEditor({
         </aside>
 
         {/* Editor pane */}
-        <main className="min-w-0 max-w-4xl">
+        <main className="min-w-0 w-full max-w-4xl justify-self-center">
           {/* Blocks */}
-          <section id="waiver-content" className="scroll-mt-24 rounded-t-2xl border border-border bg-card px-6 pt-7 pb-4 shadow-card sm:px-10 sm:pt-10">
+          <section id="waiver-content" className="scroll-mt-24 rounded-t-2xl border border-border bg-card px-6 pt-5 pb-4 shadow-sm sm:px-10 sm:pt-6">
             <SectionTitle
-              title="Waiver text"
-              sub="The legal content signers read, in order. Drag to reorder."
+              title="Waiver document"
+              sub="Click any text to edit. Drag blocks to change their order."
             />
             <DndContext
               sensors={sensors}
@@ -892,7 +901,7 @@ function SortableBlockCard({
         isDragging && "z-10 border-primary/40 bg-card opacity-80 shadow-pop"
       )}
     >
-      <div className="flex h-7 items-center gap-1 opacity-50 transition-opacity group-hover/block:opacity-100 group-focus-within/block:opacity-100">
+      <div className="flex h-8 items-center gap-1 text-muted-foreground">
         <button
           {...attributes}
           {...listeners}
@@ -901,7 +910,7 @@ function SortableBlockCard({
         >
           <GripVertical className="size-4" />
         </button>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {block.type}
         </span>
         <div className="ml-auto flex items-center gap-0.5">
@@ -1274,7 +1283,7 @@ function PaletteButton({ icon: Icon, label, onClick }: { icon: typeof Heading2; 
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-left text-sm font-medium text-muted-foreground transition-all hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
+      className="group flex w-full items-center gap-2.5 rounded-lg border border-transparent px-2 py-1 text-left text-sm font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
         <Icon className="size-4" />
@@ -1306,7 +1315,7 @@ function EditorIconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "flex size-7 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-25",
+        "flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-25",
         destructive && "hover:bg-destructive/10 hover:text-destructive",
       )}
     >

@@ -10,10 +10,12 @@ export function FileDownloadButton({
   bucket,
   path,
   label,
+  variant = "primary",
 }: {
   bucket: "uploads" | "signatures" | "signed-pdfs";
   path: string;
   label: string;
+  variant?: "primary" | "outline";
 }) {
   const errorId = useId();
   const [busy, setBusy] = useState(false);
@@ -62,7 +64,7 @@ export function FileDownloadButton({
         onClick={handleClick}
         disabled={busy}
         aria-describedby={error ? errorId : undefined}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${variant === "outline" ? "border border-border bg-background text-foreground hover:bg-muted" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
       >
         {busy ? "Preparing…" : label}
       </button>
