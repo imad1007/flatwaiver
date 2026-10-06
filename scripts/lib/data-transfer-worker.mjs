@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { signerPhone } from "../../src/lib/csv.ts";
 import { mkdtemp, readFile, writeFile, rm, stat, open } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
@@ -594,7 +595,7 @@ async function commitImport(db, job, directory) {
     lease_token: null,
   });
 }
-function normalizeNative(r, template) {
+export function normalizeNative({ template_versions, ...r }, template) {
   return {
     id: r.id,
     record_origin: "native",
@@ -604,7 +605,7 @@ function normalizeNative(r, template) {
     waiver_title: template?.name,
     participant_name: r.signer_name,
     participant_email: r.signer_email,
-    participant_phone: r.field_values?.phone ?? null,
+    participant_phone: signerPhone(r.field_values, template_versions?.fields) || null,
     date_of_birth: r.signer_dob,
     original_signed_at: r.signed_at,
     created_at: r.created_at,
@@ -739,6 +740,7 @@ async function exportJob(db, job, directory) {
               filters,
               native,
             ),
+          native ? "*, template_versions(fields)" : "*",
         )) {
           const t = templates.get(raw.template_id);
           if (

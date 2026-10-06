@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { csvEscape } from "./csv.ts";
+import { csvEscape, phoneCsvText } from "./csv.ts";
 import {
   draftContentSchema,
   draftHasMeaningfulContent,
@@ -346,7 +346,7 @@ export function csvRecord(row, customKeys) {
     row.waiver_title,
     row.participant_name,
     row.participant_email,
-    row.participant_phone,
+    phoneCsvText(row.participant_phone ?? ""),
     row.date_of_birth,
     row.original_signed_at,
     row.created_at ?? row.imported_at,

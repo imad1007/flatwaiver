@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { csvEscape } from "@/lib/csv";
+import { csvEscape, signerPhone, phoneCsvText } from "@/lib/csv";
 
 export const runtime = "nodejs";
 
@@ -23,6 +23,7 @@ const HEADER = [
   "consent_given",
   "flagged",
   "pdf_sha256",
+  "Phone Number",
 ];
 
 /**
@@ -66,10 +67,11 @@ export async function GET(request: Request) {
   }
 
   const versionNumbers = new Map<string, number>();
+  const versionFields = new Map<string, unknown>();
   for (let offset = 0; ; offset += BATCH_SIZE) {
     const { data, error } = await supabase
       .from("template_versions")
-      .select("id, version_number")
+      .select("id, version_number, fields")
       .order("id")
       .range(offset, offset + BATCH_SIZE - 1);
     if (error) {
@@ -77,6 +79,7 @@ export async function GET(request: Request) {
     }
     for (const versionRow of data ?? []) {
       versionNumbers.set(versionRow.id, versionRow.version_number);
+      versionFields.set(versionRow.id, versionRow.fields);
     }
     if (!data || data.length < BATCH_SIZE) break;
   }
@@ -92,7 +95,7 @@ export async function GET(request: Request) {
         let query = supabase
           .from("signed_waivers")
           .select(
-            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256"
+            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256, field_values"
           )
           .order("signed_at", { ascending: false })
           .range(offset, offset + BATCH_SIZE - 1);
@@ -141,6 +144,7 @@ export async function GET(request: Request) {
             r.consent_given ? "true" : "false",
             r.flagged ? "true" : "false",
             r.pdf_sha256,
+            phoneCsvText(signerPhone(r.field_values, versionFields.get(r.template_version_id))),
           ]
             .map(csvEscape)
             .join(",");
