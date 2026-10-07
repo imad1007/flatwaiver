@@ -122,6 +122,7 @@ export default function MartialArtsPage() {
       <section className={sectionClass}>
         <h2 className={headingClass}>Frequently asked questions</h2>
         <div className="mt-6 divide-y rounded-2xl border px-5 sm:px-8">{faqs.map(([question, answer]) => <details key={question} className="py-5"><summary className="cursor-pointer font-semibold">{question}</summary><p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{answer}</p></details>)}</div>
+        <Link href="/industries" className="mt-8 inline-block text-sm underline underline-offset-4">Explore all industries</Link>
       </section>
     </main>
     <MarketingFooter />

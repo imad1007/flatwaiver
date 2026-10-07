@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { APP } from "@/lib/config";
 import { getAllBlogListItems } from "@/lib/blog-merge";
+import { industries } from "@/lib/industries";
 
 // Revalidate so admin-authored posts enter the sitemap without a redeploy.
 export const revalidate = 600;
@@ -18,6 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // so the sitemap reports real freshness (bump the date when you edit one).
   const pages: { path: string; priority: number; lastModified?: string }[] = [
     { path: "/", priority: 1 },
+    { path: "/industries", priority: 0.8, lastModified: "2026-10-07" },
+    ...industries.map(({ slug }) => ({ path: `/industries/${slug}`, priority: 0.8, lastModified: "2026-10-07" })),
     { path: "/industries/martial-arts", priority: 0.8, lastModified: "2026-09-10" },
     { path: "/industries/climbing-gyms", priority: 0.8, lastModified: "2026-10-02" },
     { path: "/security", priority: 0.8 },

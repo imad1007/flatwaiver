@@ -120,7 +120,7 @@ export default function ClimbingGymsPage() {
       <section className={section}>
         <h2 className={heading}>Climbing gym waiver questions</h2>
         <div className="mt-7 divide-y rounded-2xl border px-5 sm:px-8">{faqs.map(([question, answer]) => <details key={question} className="py-5"><summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-primary">{question}</summary><p className="mt-3 max-w-3xl leading-7 text-muted-foreground">{answer}</p></details>)}</div>
-        <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 text-sm"><Link href="/blog/waiver-software-for-climbing-gyms" className="underline underline-offset-4">Climbing gym setup and buying guide</Link><Link href="/industries/martial-arts" className="underline underline-offset-4">Waivers for martial arts schools</Link></div>
+        <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 text-sm"><Link href="/blog/waiver-software-for-climbing-gyms" className="underline underline-offset-4">Climbing gym setup and buying guide</Link><Link href="/industries/martial-arts" className="underline underline-offset-4">Waivers for martial arts schools</Link><Link href="/industries" className="underline underline-offset-4">Explore all industries</Link></div>
       </section>
     </main>
     <MarketingFooter />

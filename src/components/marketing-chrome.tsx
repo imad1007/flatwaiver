@@ -62,6 +62,7 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
     heading: "Get started",
     links: [
       { label: "Start free trial", href: "/signup" },
+      { label: "All industries", href: "/industries" },
       { label: "Climbing gyms", href: "/industries/climbing-gyms" },
       { label: "Log in", href: "/login" },
     ],

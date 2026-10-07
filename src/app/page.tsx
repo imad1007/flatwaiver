@@ -393,7 +393,11 @@ function Industries() {
               key={label}
               className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-muted-foreground"
             >
-              {label === "Martial arts" ? <Link href="/industries/martial-arts" className="hover:underline">{label}</Link> : label}
+              {label === "Martial arts" ? <Link href="/industries/martial-arts" className="hover:underline">{label}</Link>
+                : label === "Gyms & fitness" ? <Link href="/industries/fitness-studios" className="hover:underline">{label}</Link>
+                : label === "Climbing facilities" ? <Link href="/industries/climbing-gyms" className="hover:underline">{label}</Link>
+                : label === "Trampoline parks" ? <Link href="/industries/trampoline-parks" className="hover:underline">{label}</Link>
+                : label}
             </span>
           ))}
         </div>
@@ -401,6 +405,7 @@ function Industries() {
           Explore <Link href="/blog/gym-waiver-software" className="underline underline-offset-2">waiver software for gyms</Link>{" "}
           and <Link href="/blog/waiver-software-for-climbing-gyms" className="underline underline-offset-2">climbing gym waiver software</Link>.
         </p>
+        <p className="mt-3 text-center text-sm"><Link href="/industries" className="font-medium text-primary underline underline-offset-4">Find the waiver workflow for your industry</Link></p>
       </div>
     </section>
   );
