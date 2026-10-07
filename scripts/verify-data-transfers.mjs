@@ -370,6 +370,12 @@ try {
     signedImagePath,
     signedImageId,
   ]);
+  const groupEvidence = [
+    { full_name: "Group participant one", signature_path: signedImagePath, is_minor: false },
+    { full_name: "Group participant two", signature_path: `${org}/${signedImageId}-second.png`, is_minor: false },
+  ];
+  objects.set("signatures/" + groupEvidence[1].signature_path, png);
+  await pg.query("update signed_waivers set participants=$1 where id=$2", [JSON.stringify(groupEvidence), signedImageId]);
   const foreignId = randomUUID();
   const foreignOrg = randomUUID();
   await pg.query("insert into organizations values($1,'Unrelated tenant')", [
@@ -393,6 +399,9 @@ try {
     .trim()
     .split("\n")
     .map(JSON.parse);
+  const exportedGroup = originals.find(r => r.id === signedImageId);
+  assert.deepEqual(exportedGroup.participants.map(p => p.full_name), groupEvidence.map(p => p.full_name));
+  for (const p of exportedGroup.participants) assert.deepEqual(await backupZip.file(p.signature_filename).async("nodebuffer"), png);
   assert.equal(originals.length, 504);
   assert(!originals.some((r) => r.id === foreignId));
   const missingFile = await JSZip.loadAsync(archive);
@@ -484,6 +493,13 @@ try {
         objects.get("signatures/" + restored.signature_path),
         png,
       );
+    if (original.participants) {
+      assert.deepEqual(restored.source_evidence.group_participants.map(p => p.full_name), original.participants.map(p => p.full_name));
+      for (const p of restored.source_evidence.group_participants) {
+        assert.ok(p.signature_path.startsWith(`${otherOrg}/imported/`));
+        assert.deepEqual(objects.get("signatures/" + p.signature_path), png);
+      }
+    }
   }
   const restoredTemplate = (
     await pg.query("select * from waiver_templates where org_id=$1", [otherOrg])

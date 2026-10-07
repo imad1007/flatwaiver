@@ -327,6 +327,9 @@ export const CSV_COLUMNS = [
   "record_origin",
   "original_signed_at",
   "imported_at",
+  "participant_count",
+  "participant_names",
+  "participants_json",
 ];
 export function sourceLabel(provider) {
   return (
@@ -340,6 +343,7 @@ export function sourceLabel(provider) {
   );
 }
 export function csvRecord(row, customKeys) {
+  const participants = groupParticipants(row);
   return csvLine([
     row.id,
     row.template_id,
@@ -362,8 +366,18 @@ export function csvRecord(row, customKeys) {
     row.record_origin === "native" ? "native" : "imported",
     row.original_signed_at,
     row.record_origin === "native" ? null : row.imported_at,
+    participants?.length ?? (row.participant_name ? 1 : 0),
+    participants?.map(p => p.full_name) ?? (row.participant_name ? [row.participant_name] : []),
+    participants ?? [],
     ...customKeys.map((k) => row.field_values?.[k]),
   ]);
+}
+/** Restored groups stay imported evidence, while retaining their participant data. */
+export function groupParticipants(row) {
+  const participants = row.participants ?? row.source_evidence?.group_participants
+    ?? row.source_evidence?.backup_exported_record?.participants;
+  return Array.isArray(participants) && participants.length >= 1 && participants.length <= 10
+    && participants.every(p => p && typeof p.full_name === "string") ? participants : null;
 }
 export function filterQuery(query, filters, native = true) {
   const dateColumn = native ? "signed_at" : "original_signed_at";
@@ -376,7 +390,7 @@ export function filterQuery(query, filters, native = true) {
   if (filters.template) query = query.eq("template_id", filters.template);
   if (filters.q)
     query = query.ilike(
-      native ? "signer_name" : "participant_name",
+      native ? "participant_search" : "participant_name",
       `%${filters.q.replace(/[%_\\]/g, "\\$&")}%`,
     );
   if (filters.email)

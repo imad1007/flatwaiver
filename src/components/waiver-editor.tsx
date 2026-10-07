@@ -152,6 +152,7 @@ export function WaiverEditor({
   const [{ blocks, fields }, setItems] = useState(() => toItems(initial));
   const [consentText, setConsentText] = useState(initial.consent_text);
   const [minorMode, setMinorMode] = useState(initial.minor_mode);
+  const [groupSigning, setGroupSigning] = useState(initial.group_signing_enabled ?? false);
   const [language, setLanguage] = useState(signerLanguage(initial.signer_language));
   const [translateContent, setTranslateContent] = useState(initial.translate_content ?? false);
   const [translating, setTranslating] = useState(false);
@@ -175,16 +176,18 @@ export function WaiverEditor({
       fields: fields.map((f) => f.field),
       consent_text: consentText,
       minor_mode: minorMode,
+      group_signing_enabled: groupSigning,
       signer_language: language,
       translate_content: translateContent,
       warnings: warnings.length ? warnings : undefined,
     }),
-    [blocks, consentText, fields, minorMode, language, translateContent, name, template.name, warnings]
+    [blocks, consentText, fields, minorMode, groupSigning, language, translateContent, name, template.name, warnings]
   );
   const currentFingerprint = JSON.stringify(currentDraft);
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     JSON.stringify({
       ...initial,
+      group_signing_enabled: initial.group_signing_enabled ?? false,
       signer_language: signerLanguage(initial.signer_language),
       translate_content: initial.translate_content ?? false,
       title: template.name.trim() || initial.title,
@@ -312,6 +315,7 @@ export function WaiverEditor({
     setName(draft.title);
     setItems(toItems(draft));
     setConsentText(draft.consent_text);
+    setGroupSigning(draft.group_signing_enabled ?? false);
     setLanguage(signerLanguage(draft.signer_language));
     setTranslationPreview(null);
   }
@@ -350,6 +354,7 @@ export function WaiverEditor({
     setItems(toItems(recovery.draft));
     setConsentText(recovery.draft.consent_text);
     setMinorMode(recovery.draft.minor_mode);
+    setGroupSigning(recovery.draft.group_signing_enabled ?? false);
     setLanguage(signerLanguage(recovery.draft.signer_language));
     setTranslateContent(recovery.draft.translate_content ?? false);
     setWarnings(recovery.draft.warnings ?? []);
@@ -738,7 +743,7 @@ export function WaiverEditor({
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-muted/40 p-4 sm:p-6">
             <div className={cn("mx-auto bg-background shadow-card transition-[max-width]", device === "mobile" ? "max-w-[390px] rounded-[1.75rem] border-4 border-foreground/70 p-5 dark:border-foreground/30" : "max-w-3xl rounded-xl border border-border p-8")}>
-              <SignerPreview name={name} blocks={blocks.map((b) => b.block)} fields={fields.map((f) => f.field)} consentText={consentText} language={language} minorMode={minorMode} />
+              <SignerPreview name={name} blocks={blocks.map((b) => b.block)} fields={fields.map((f) => f.field)} consentText={consentText} language={language} minorMode={minorMode} groupSigningEnabled={groupSigning} />
             </div>
           </div>
         </DialogContent>
@@ -780,6 +785,7 @@ export function WaiverEditor({
               {translateContent && <div className="mt-4 space-y-3"><Button type="button" disabled={translating || isPending || language === "ar" || language === "ur"} onClick={translateEntireWaiver}>{translating ? "Translating…" : "Generate translation"}</Button>{translationPreview && <div className="rounded-lg border border-border p-3"><p className="text-sm font-semibold">Translation ready for review</p><p className="mt-1 text-xs text-muted-foreground">Nothing changes until you apply it.</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={translationPreview.source !== currentFingerprint} onClick={() => { setTranslationUndo(currentDraft); loadTranslatedDraft(translationPreview.draft); }}>Use translation</Button><Button size="sm" variant="outline" onClick={() => setTranslationPreview(null)}>Discard</Button></div></div>}{translationUndo && <Button type="button" variant="outline" onClick={() => { loadTranslatedDraft(translationUndo); setTranslationUndo(null); }}>Restore original draft</Button>}</div>}
               {translateContent && (language === "ar" || language === "ur") && <p className="mt-3 text-xs text-muted-foreground">Automatic document translation is not available for this language yet. The signer interface will still use the selected language.</p>}
             </SettingsSection>
+            <SettingsSection title="Group / multiple participant signing"><label className="flex items-center gap-3 text-sm"><Switch checked={groupSigning} onCheckedChange={setGroupSigning} />Enable 1-10 participants on one waiver</label><p className="mt-2 text-xs text-muted-foreground">Publish a new version to apply this setting. Custom fields and photo apply to the primary participant/contact.</p></SettingsSection>
             <SettingsSection title="Minor participants"><label className="flex items-center gap-3 text-sm"><Switch checked={minorMode === "allowed"} onCheckedChange={(checked) => setMinorMode(checked ? "allowed" : "disallowed")} />Allow signing for minors and collect guardian details</label></SettingsSection>
             {settings}
             <SettingsSection title="Publishing responsibility">
@@ -1194,6 +1200,7 @@ function SignerPreview({
   fields,
   consentText,
   minorMode,
+  groupSigningEnabled,
   language,
 }: {
   name: string;
@@ -1201,6 +1208,7 @@ function SignerPreview({
   fields: WaiverField[];
   consentText: string;
   minorMode: "allowed" | "disallowed";
+  groupSigningEnabled: boolean;
   language: import("@/lib/signer-language").SignerLanguage;
 }) {
   const t = (text: string) => signerText(text, language);
@@ -1236,6 +1244,7 @@ function SignerPreview({
         </div>
       )}
 
+      {groupSigningEnabled && <div className="space-y-2 rounded-lg border border-border p-3"><p className="font-medium">{t("Group participants")}</p><label>{t("Number of participants")}<select disabled className="ml-3 rounded border px-3 py-2"><option>1</option></select></label><p>{t("Participant")} 1</p><p className="text-xs text-muted-foreground">{t("Custom fields and photo apply to the primary participant/contact (Participant 1).")}</p></div>}
       {minorMode === "allowed" && (
         <div className="rounded-lg border border-border bg-card p-3 text-sm">
           <label className="flex items-center gap-2.5">

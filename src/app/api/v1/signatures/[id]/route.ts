@@ -27,7 +27,7 @@ export async function GET(
   const { data, error } = await admin
     .from("signed_waivers")
     .select(
-      "id, template_id, signer_name, signer_email, is_minor, flagged, tag, signing_channel, signed_at, pdf_path, pdf_sha256"
+      "id, template_id, signer_name, signer_email, is_minor, flagged, tag, signing_channel, participants, signed_at, pdf_path, pdf_sha256"
     )
     .eq("id", id)
     .eq("org_id", auth.orgId)

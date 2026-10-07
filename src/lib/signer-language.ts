@@ -18,6 +18,14 @@ export function signerDirection(language: SignerLanguage): "rtl" | "ltr" {
 // Translate only known interface labels. Never translate stored waiver clauses,
 // custom consent, field keys or submitted option values.
 const french: Record<string, string> = {
+  "Number of participants": "Nombre de participants",
+  "Participant": "Participant",
+  "Group participants": "Participants du groupe",
+  "Participant name": "Nom du participant",
+  "Full name is required.": "Le nom complet est obligatoire.",
+  "Guardian name, relationship, and signature are required.": "Le nom, le lien avec le participant et la signature du représentant légal sont obligatoires.",
+  "Custom fields and photo apply to the primary participant/contact (Participant 1).": "Les champs personnalisés et la photo concernent le participant principal/contact (participant 1).",
+  "Hidden participants are kept until you clear or submit the form. Only the selected number will be submitted.": "Les participants masqués sont conservés jusqu’à l’effacement ou l’envoi du formulaire. Seul le nombre sélectionné sera envoyé.",
   "Signature": "Signature",
   "Language": "Langue",
   "Waiver text and custom fields remain in their original language.": "Les clauses et les champs personnalisés restent dans leur langue d’origine.",

@@ -7,6 +7,7 @@ import {
   SignatureCanvas,
   type SignatureCanvasHandle,
 } from "@/components/signature-canvas";
+import { GroupParticipants, type GroupParticipantsHandle } from "@/components/group-participants";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { BlockView, FieldInput, signerInputClass } from "@/components/waiver-render";
 import {
@@ -36,6 +37,7 @@ async function fileToResizedDataUrl(file: File, maxDim = 1200, quality = 0.8): P
 }
 
 export interface SigningFormProps {
+  groupSigningEnabled?: boolean;
   defaultLanguage?: SignerLanguage;
   slug: string;
   waiverName: string;
@@ -75,6 +77,7 @@ export function SigningForm(props: SigningFormProps) {
 
   const photoMode = props.photoMode ?? "off";
 
+  const groupRef = useRef<GroupParticipantsHandle>(null);
   const signatureRef = useRef<SignatureCanvasHandle>(null);
   const guardianSignatureRef = useRef<SignatureCanvasHandle>(null);
   const medicalDetailRef = useRef<HTMLTextAreaElement>(null);
@@ -165,7 +168,10 @@ export function SigningForm(props: SigningFormProps) {
       }
     }
 
-    const signatureDataUrl = signatureRef.current?.getDataUrl() ?? null;
+    const group = props.groupSigningEnabled ? groupRef.current?.collect() : undefined;
+    if (group?.error) { setError(group.error); return; }
+    const participants = group?.participants;
+    const signatureDataUrl = participants?.[0]?.signatureDataUrl ?? signatureRef.current?.getDataUrl() ?? null;
     if (!signatureDataUrl) {
       setError(t("Please draw or type your signature."));
       return;
@@ -200,7 +206,9 @@ export function SigningForm(props: SigningFormProps) {
         body: JSON.stringify({
           submissionId: submissionIdRef.current,
           turnstileToken,
-          signerName: signerName.trim(),
+          signerName: participants?.[0]?.fullName ?? signerName.trim(),
+          participantCount: participants?.length,
+          participants,
           isMinor,
           guardianName: isMinor ? guardianName.trim() : undefined,
           guardianRelationship: isMinor ? guardianRelationship.trim() : undefined,
@@ -294,6 +302,7 @@ export function SigningForm(props: SigningFormProps) {
         ))}
       </div>
 
+      {props.groupSigningEnabled && <p className="text-sm font-medium">{t("Custom fields and photo apply to the primary participant/contact (Participant 1).")}</p>}
       {/* Dynamic fields */}
       {props.fields.length > 0 && (
         <div className="space-y-4">
@@ -356,7 +365,7 @@ export function SigningForm(props: SigningFormProps) {
       )}
 
       {/* Minor / guardian flow */}
-      {props.minorMode === "allowed" && (
+      {!props.groupSigningEnabled && props.minorMode === "allowed" && (
         <div className="rounded-xl border border-border bg-card p-5">
           <label className="flex items-center gap-3">
             <input
@@ -463,7 +472,7 @@ export function SigningForm(props: SigningFormProps) {
       </div>
 
       {/* Name + signature */}
-      <div className="space-y-4">
+      {props.groupSigningEnabled ? <GroupParticipants key={formKey} ref={groupRef} language={language} minorMode={props.minorMode} kiosk={props.kiosk} /> : <div className="space-y-4">
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-foreground/90">
             {t("Full legal name")}
@@ -478,7 +487,7 @@ export function SigningForm(props: SigningFormProps) {
           />
         </label>
         <SignatureCanvas ref={signatureRef} language={language} label={t("Your signature")} />
-      </div>
+      </div>}
 
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
 

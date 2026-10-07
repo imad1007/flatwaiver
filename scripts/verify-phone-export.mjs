@@ -59,12 +59,13 @@ const { GET } = await import(`data:text/javascript;base64,${Buffer.from(compiled
 const response = await GET(new Request("https://example.test/api/signatures/export?q=Signer&email=test&from=2026-10-01&to=2026-10-02&template=t&flagged=1"));
 const parsed = parseCsv(await response.text());
 assert.equal(parsed.rows.length, 503);
-assert.equal(parsed.headers.at(-1), "Phone Number");
-assert.equal(parsed.headers.length, 17);
-assert.equal(parsed.rows[0].at(-1), "'0412 345 678");
-assert.equal(parsed.rows[1].at(-1), "'+61 (412) 345-678");
-assert.equal(parsed.rows[2].at(-1), "");
-for (const column of ["signer_name", "signer_email", "signed_at", "template_id", "flagged"])
+const phoneColumn = parsed.headers.indexOf("Phone Number");
+assert.equal(phoneColumn, 16);
+assert.equal(parsed.headers.length, 20);
+assert.equal(parsed.rows[0][phoneColumn], "'0412 345 678");
+assert.equal(parsed.rows[1][phoneColumn], "'+61 (412) 345-678");
+assert.equal(parsed.rows[2][phoneColumn], "");
+for (const column of ["participant_search", "signer_email", "signed_at", "template_id", "flagged"])
   assert.ok(calls.some((call) => call[2] === column), `Missing filter ${column}`);
 for (const phone of ["0412345678", "+61 (412) 345-678", ""]) {
   const record = csvRecord({ participant_phone: phone, record_origin: "imported" }, []);

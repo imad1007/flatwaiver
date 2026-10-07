@@ -56,6 +56,7 @@ const route = load("src/app/api/sign/[slug]/route.ts", {
   "@/lib/webhooks": { dispatchWebhooks: forbidden },
   "@/lib/config": { APP: {} },
   "@/lib/signing-validation": { isRealIsoDate: forbidden },
+  "@/lib/group-signing": { validateGroupSubmission: forbidden, decodeSignature: forbidden },
   "@/lib/types": {},
 });
 const jsx = await import("react/jsx-runtime");

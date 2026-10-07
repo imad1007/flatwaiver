@@ -42,13 +42,13 @@ export default async function SignaturesPage({
   let query = supabase
     .from("signed_waivers")
     .select(
-      "id, signer_name, signer_email, is_minor, flagged, signed_at, signing_channel, template_id",
+      "id, signer_name, signer_email, is_minor, flagged, signed_at, signing_channel, template_id, participants",
       { count: "exact" }
     )
     .order("signed_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  if (q) query = query.ilike("signer_name", `%${q}%`);
+  if (q) query = query.ilike("participant_search", `%${q}%`);
   if (email) query = query.ilike("signer_email", `%${email}%`);
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
@@ -228,7 +228,7 @@ export default async function SignaturesPage({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold">{s.signer_name}</p>
+                  <p className="truncate font-semibold">{s.signer_name}</p>{s.participants && <p className="text-xs text-muted-foreground">Group waiver - {s.participants.length} participants</p>}
                   <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {s.signer_email ?? "No email provided"}
                   </p>
@@ -299,6 +299,7 @@ export default async function SignaturesPage({
                       className="inline-flex items-center gap-2 font-medium hover:underline"
                     >
                       {s.signer_name}
+                        {s.participants && <span className="text-xs text-muted-foreground">Group - {s.participants.length}</span>}
                       {s.flagged && (
                         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                           Flagged

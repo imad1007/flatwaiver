@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     .order("signed_at", { ascending: false })
     .range(0, MAX_FILES); // one extra row to detect overflow
 
-  if (q) query = query.ilike("signer_name", `%${q}%`);
+  if (q) query = query.ilike("participant_search", `%${q}%`);
   if (email) query = query.ilike("signer_email", `%${email}%`);
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);

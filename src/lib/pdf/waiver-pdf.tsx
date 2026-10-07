@@ -14,6 +14,7 @@ import { MultilingualText as Text } from "./multilingual-text";
 import type { SigningChannel, WaiverBlock, WaiverField } from "@/lib/types";
 
 export interface SignedPdfInput {
+  participants?: import("@/lib/group-signing").ParticipantSubmission[];
   orgName: string;
   /** Org branding: optional logo (data URL) + hex accent color. */
   logoDataUrl: string | null;
@@ -146,7 +147,7 @@ function WaiverPdf({
 
         {filledFields.length > 0 && (
           <>
-            <Text style={styles.sectionTitle} minPresenceAhead={48}>Signer information</Text>
+            <Text style={styles.sectionTitle} minPresenceAhead={48}>{input.participants ? "Primary participant / contact information" : "Signer information"}</Text>
             {filledFields.map((f) => (
               <View key={f.key} style={styles.row}>
                 <Text style={styles.label}>{f.label}</Text>
@@ -162,7 +163,21 @@ function WaiverPdf({
             the name/email/timestamp rows, and the signature image never split
             across a page break. If it doesn't fit in the space left on the
             current page, the entire block moves to the next page intact. */}
-        <View wrap={false} style={styles.signatureCard}>
+        {input.participants ? <>
+          <Text style={styles.sectionTitle} minPresenceAhead={120}>GROUP PARTICIPANTS ({input.participants.length})</Text>
+          {input.participants.map((participant, index) => <View key={index} wrap={false} style={styles.signatureCard}>
+            <Text style={styles.heading}>{index + 1}. {participant.fullName}</Text>
+            <Text>Participant signature — {displayDate(input.signedAtIso)}</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={participant.signatureDataUrl} style={styles.signatureImage} />
+            {participant.isMinor && <>
+              <Text style={styles.heading}>Parent / guardian: {participant.guardianName}</Text>
+              <Text>Relationship: {participant.guardianRelationship}</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={participant.guardianSignatureDataUrl!} style={styles.signatureImage} />
+            </>}
+          </View>)}
+        </> : <View wrap={false} style={styles.signatureCard}>
           <Text style={{ ...styles.heading, marginTop: 0 }}>Participant signature</Text>
           <View style={styles.row}>
             <Text style={styles.label}>Full legal name</Text>
@@ -180,7 +195,7 @@ function WaiverPdf({
           </View>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={input.signatureDataUrl} style={styles.signatureImage} />
-        </View>
+        </View>}
 
         {input.isMinor && (
           <View wrap={false} style={styles.signatureCard}>
@@ -214,6 +229,7 @@ function WaiverPdf({
 
         <EvidenceRow label="Signer name" value={input.signerName} />
         <EvidenceRow label="Signer email" value={input.signerEmail ?? "—"} />
+        {input.participants && <EvidenceRow label="Group participants" value={input.participants.map((p, i) => `${i + 1}. ${p.fullName}`).join("; ")} />}
         <EvidenceRow label="Signed at (UTC)" value={input.signedAtIso} />
         <EvidenceRow label="IP address" value={input.ip ?? "—"} />
         <EvidenceRow label="User agent" value={input.userAgent ?? "—"} />

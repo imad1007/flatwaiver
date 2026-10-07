@@ -63,6 +63,7 @@ export const SignatureCanvas = forwardRef<
     padRef.current = pad;
 
     function resize() {
+      if (!el.offsetWidth || !el.offsetHeight) return;
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       const data = pad.toData();
       el.width = el.offsetWidth * ratio;
@@ -72,8 +73,11 @@ export const SignatureCanvas = forwardRef<
     }
     resize();
     window.addEventListener("resize", resize);
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
     return () => {
       window.removeEventListener("resize", resize);
+      observer.disconnect();
       pad.off();
       padRef.current = null;
     };

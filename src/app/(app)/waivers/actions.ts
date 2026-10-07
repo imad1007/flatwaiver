@@ -140,10 +140,12 @@ export async function publishTemplate(templateId: string, rawDraft: unknown, nam
       p_consent_text: draft.consent_text,
       p_minor_mode: draft.minor_mode,
       p_signer_language: draft.signer_language ?? "en",
+      p_group_signing_enabled: draft.group_signing_enabled ?? false,
       p_content_sha256: contentSha256(
         draft.blocks,
         draft.fields,
         draft.consent_text,
+        draft.group_signing_enabled ?? false,
       ),
     },
   );

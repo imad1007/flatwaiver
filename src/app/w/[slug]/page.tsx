@@ -72,6 +72,7 @@ export default async function PublicSigningPage({
         blocks={waiver.version.body}
         fields={waiver.version.fields}
         consentText={waiver.version.consent_text}
+        groupSigningEnabled={waiver.version.group_signing_enabled ?? false}
         minorMode={waiver.version.minor_mode}
         channel="link"
         photoMode={waiver.photoMode}

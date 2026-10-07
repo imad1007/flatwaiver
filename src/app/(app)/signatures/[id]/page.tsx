@@ -74,6 +74,15 @@ export default async function SignatureDetailPage({
     photoLoadFailed = Boolean(error || !photoUrl);
   }
 
+  const participantImages = await Promise.all((sig.participants ?? []).map(async participant => {
+    const signUrl = async (path: string | null) => {
+      if (!path || !path.startsWith(`${sig.org_id}/`)) return null;
+      const { data } = await createAdminClient().storage.from("signatures").createSignedUrl(path, 600);
+      return data?.signedUrl ?? null;
+    };
+    return { ...participant, signatureUrl: await signUrl(participant.signature_path), guardianUrl: await signUrl(participant.guardian_signature_path) };
+  }));
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link href="/signatures" className="text-sm text-muted-foreground hover:underline">
@@ -118,9 +127,24 @@ export default async function SignatureDetailPage({
         </div>
       )}
 
+      {sig.participants && <section className="mt-8 space-y-5 rounded-xl border border-border p-6">
+        <h2 className="font-bold">Group waiver - {sig.participants.length} participants</h2>
+        {participantImages.map((p, i) => <div key={i} className="border-t border-border pt-4">
+          <h3 className="font-semibold">Participant {i + 1}: {p.full_name}</h3>
+          {p.signatureUrl ? (
+            // Private evidence URL: display the stored bytes without image optimization.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.signatureUrl} alt={`Participant ${i + 1} signature`} className="mt-2 h-24 max-w-full object-contain" />
+          ) : <p>Signature preview unavailable. Download the signed PDF to inspect it.</p>}
+          {p.is_minor && <><p className="mt-2 text-sm">Guardian: {p.guardian_name} ({p.guardian_relationship})</p>{p.guardianUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.guardianUrl} alt={`Participant ${i + 1} guardian signature`} className="mt-2 h-24 max-w-full object-contain" />
+          ) : <p>Guardian signature preview unavailable. Download the signed PDF.</p>}</>}
+        </div>)}
+      </section>}
       {/* Signer details */}
       <section className="mt-8 rounded-xl border border-border p-6">
-        <h2 className="font-bold">Signer</h2>
+        <h2 className="font-bold">{sig.participants ? "Primary participant / contact" : "Signer"}</h2>
         <dl className="mt-4 space-y-2 text-sm">
           <DetailRow label="Full legal name" value={sig.signer_name} />
           <DetailRow label="Email" value={sig.signer_email ?? "—"} />

@@ -24,6 +24,9 @@ const HEADER = [
   "flagged",
   "pdf_sha256",
   "Phone Number",
+  "participant_count",
+  "participant_names",
+  "participants_json",
 ];
 
 /**
@@ -95,12 +98,12 @@ export async function GET(request: Request) {
         let query = supabase
           .from("signed_waivers")
           .select(
-            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256, field_values"
+            "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256, field_values, participants"
           )
           .order("signed_at", { ascending: false })
           .range(offset, offset + BATCH_SIZE - 1);
 
-        if (q) query = query.ilike("signer_name", `%${q}%`);
+        if (q) query = query.ilike("participant_search", `%${q}%`);
         if (email) query = query.ilike("signer_email", `%${email}%`);
         if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
         if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
@@ -145,6 +148,9 @@ export async function GET(request: Request) {
             r.flagged ? "true" : "false",
             r.pdf_sha256,
             phoneCsvText(signerPhone(r.field_values, versionFields.get(r.template_version_id))),
+            String(r.participants?.length ?? 1),
+            JSON.stringify(r.participants?.map((p: { full_name: string }) => p.full_name) ?? [r.signer_name]),
+            JSON.stringify(r.participants ?? []),
           ]
             .map(csvEscape)
             .join(",");

@@ -93,7 +93,7 @@ for (const [key, values] of Object.entries(translationRows)) {
   assert.ok(signerText(key, 'fr'), `fr: ${key}`);
 }
 // Every translated interface call has a nonempty entry in all ten languages.
-for (const file of ['src/components/signing-form.tsx', 'src/components/signature-canvas.tsx', 'src/components/waiver-editor.tsx']) {
+for (const file of ['src/components/signing-form.tsx', 'src/components/group-participants.tsx', 'src/components/signature-canvas.tsx', 'src/components/waiver-editor.tsx']) {
   const text = readFileSync(file, 'utf8');
   for (const match of text.matchAll(/\bt\("([^"]+)"\)/g)) {
     assert.ok(Object.hasOwn(translationRows, match[1]), `${file}: missing ${match[1]}`);

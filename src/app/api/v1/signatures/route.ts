@@ -60,7 +60,7 @@ export async function GET(request: Request) {
   let q = admin
     .from("signed_waivers")
     .select(
-      "id, template_id, signer_name, signer_email, is_minor, flagged, tag, signing_channel, signed_at"
+      "id, template_id, signer_name, signer_email, is_minor, flagged, tag, signing_channel, participants, signed_at"
     )
     .eq("org_id", auth.orgId)
     .order("signed_at", { ascending: false })

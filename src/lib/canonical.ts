@@ -28,9 +28,10 @@ export function sha256Hex(data: string | Buffer | Uint8Array): string {
 export function contentSha256(
   body: unknown,
   fields: unknown,
-  consentText: string
+  consentText: string,
+  groupSigningEnabled = false
 ): string {
   return sha256Hex(
-    canonicalJson({ body, fields, consent_text: consentText })
+    canonicalJson({ body, fields, consent_text: consentText, ...(groupSigningEnabled ? { group_signing_enabled: true } : {}) })
   );
 }

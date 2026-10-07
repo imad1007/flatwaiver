@@ -15,6 +15,7 @@ import {
   csvLine,
   csvRecord,
   CSV_COLUMNS,
+  groupParticipants,
   optionsSchema,
   filterQuery,
   validateImportedRecord,
@@ -176,6 +177,16 @@ async function inspectRecord(data, files, used) {
     data.signature_filename = sig.name;
     data.expected_signature_sha256 = sig.hash;
     used.add(sig.name);
+  }
+  for (const participant of groupParticipants(data) ?? []) {
+    for (const key of ["signature", "guardian_signature"]) {
+      const filename = participant[`${key}_filename`];
+      if (!filename) continue;
+      const image = files.get(filename);
+      if (!image || image.hash !== participant[`${key}_sha256`]) throw new Error("Missing or invalid group signature in backup");
+      await checkDocument(image, filename);
+      used.add(filename);
+    }
   }
   if (!data.original_signed_at)
     warnings.push("Original signing date was not supplied.");
@@ -382,6 +393,7 @@ async function prepareImport(db, job, directory) {
             backup_record: r.source_evidence,
             exported_origin: r.record_origin,
             exported_source: r.source_provider,
+            ...(groupParticipants(r) ? { group_participants: groupParticipants(r).map(p => ({ ...p })) } : {}),
           },
           pdf_filename: r.pdf_filename,
           signature_filename: r.signature_filename,
@@ -569,6 +581,18 @@ async function commitImport(db, job, directory) {
             );
             d.signature_sha256 = d.expected_signature_sha256;
           }
+          if (job.format === "restore" && d.source_evidence?.group_participants) {
+            for (const participant of d.source_evidence.group_participants) {
+              for (const key of ["signature", "guardian_signature"]) {
+                const filename = participant[`${key}_filename`];
+                if (!filename) continue;
+                const file = files.get(filename);
+                if (!file || file.hash !== participant[`${key}_sha256`]) throw new Error("Missing or invalid group signature in backup");
+                await checkDocument(file, filename);
+                participant[`${key}_path`] = await immutableFile(db, job, item, file, filename, "signatures", directory, file.hash);
+              }
+            }
+          }
         }
         const itemBytes = Buffer.byteLength(JSON.stringify(d));
         if (batch.length && batchBytes + itemBytes > 2 * 1024 ** 2)
@@ -604,6 +628,7 @@ export function normalizeNative({ template_versions, ...r }, template) {
     template_id: r.template_id,
     waiver_title: template?.name,
     participant_name: r.signer_name,
+    participants: r.participants ?? null,
     participant_email: r.signer_email,
     participant_phone: signerPhone(r.field_values, template_versions?.fields) || null,
     date_of_birth: r.signer_dob,
@@ -755,6 +780,7 @@ async function exportJob(db, job, directory) {
                 record_origin: "imported",
                 source_provider: raw.source_provider,
               };
+          r.participants = groupParticipants(r)?.map(p => ({ ...p })) ?? null;
           if (++count > LIMITS.rows)
             throw new Error(
               "Export exceeds 100,000 records. Narrow the date range.",
@@ -794,6 +820,19 @@ async function exportJob(db, job, directory) {
               r.signature_filename = `signatures/${r.id}.${r.signature_path.split(".").at(-1)}`;
               r.signature_sha256 = sig.hash;
               await add(r.signature_filename, sig.local, sig.hash);
+            }
+          }
+          if (job.format === "backup" && r.participants) {
+            for (const [i, participant] of r.participants.entries()) {
+              for (const key of ["signature_path", "guardian_signature_path"]) {
+                const path = participant[key];
+                if (!path) continue;
+                const image = await download(db, "signatures", path, job.org_id, directory);
+                const filename = `signatures/${r.id}-participant-${i + 1}-${key}.png`;
+                await add(filename, image.local, image.hash);
+                participant[key.replace("_path", "_filename")] = filename;
+                participant[key.replace("_path", "_sha256")] = image.hash;
+              }
             }
           }
           delete r.pdf_path;

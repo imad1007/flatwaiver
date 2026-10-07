@@ -65,6 +65,7 @@ export default async function KioskPage({
         blocks={waiver.version.body}
         fields={waiver.version.fields}
         consentText={waiver.version.consent_text}
+        groupSigningEnabled={waiver.version.group_signing_enabled ?? false}
         minorMode={waiver.version.minor_mode}
         channel="kiosk"
         photoMode={waiver.photoMode}

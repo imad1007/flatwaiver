@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireOrgRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FileDownloadButton } from "@/components/file-download-button";
-import { sourceLabel } from "@/lib/data-transfer-core.mjs";
+import { sourceLabel, groupParticipants } from "@/lib/data-transfer-core.mjs";
 
 export default async function ImportedRecord({
   params,
@@ -20,6 +20,7 @@ export default async function ImportedRecord({
     .maybeSingle();
   if (error) throw new Error("Couldn't load this imported record.");
   if (!r) notFound();
+  const participants = groupParticipants(r);
   const details = {
     Waiver: r.waiver_title,
     Email: r.participant_email,
@@ -72,6 +73,11 @@ export default async function ImportedRecord({
           </div>
         ))}
       </dl>
+      {participants && <section className="mt-6 space-y-3 rounded-xl border p-5">
+        <h2 className="font-semibold">Imported group waiver - {participants.length} participants</h2>
+        {participants.map((p: { full_name: string }, i: number) => <p key={i}>Participant {i + 1}: {p.full_name}</p>)}
+        <p className="text-sm text-muted-foreground">All participant signatures are preserved in the original PDF and source evidence.</p>
+      </section>}
       <section className="mt-6">
         <h2 className="font-semibold">Imported responses</h2>
         <pre className="mt-2 whitespace-pre-wrap break-all rounded-xl bg-muted p-4 text-xs">

@@ -40,6 +40,7 @@ export const fieldSchema = z
   });
 
 export const draftContentSchema = z.object({
+  group_signing_enabled: z.boolean().default(false),
   translate_content: z.boolean().optional(),
   signer_language: z.enum(["en", "fr", "es", "pt", "zh", "hi", "ar", "bn", "ru", "ur"]).optional(),
   title: z.string().min(1).max(200),

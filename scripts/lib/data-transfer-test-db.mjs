@@ -16,7 +16,7 @@ export async function testDatabase() {
       slug text,status text,draft_content jsonb,current_version_id uuid,expiry_months integer,photo_mode text);
     create table template_versions(id uuid primary key,template_id uuid,version_number integer,body jsonb,fields jsonb,consent_text text,minor_mode text);
     create table signed_waivers(id uuid primary key,org_id uuid,template_id uuid,template_version_id uuid,signer_name text,signer_email text,
-      signer_dob date,field_values jsonb,pdf_path text,pdf_sha256 text,signature_path text,signed_at timestamptz,created_at timestamptz,flagged boolean);
+      signer_dob date,field_values jsonb,pdf_path text,pdf_sha256 text,signature_path text,signed_at timestamptz,created_at timestamptz,flagged boolean,participants jsonb,participant_search text generated always as (signer_name) stored);
     create function public.forbid_change() returns trigger language plpgsql as $$begin raise exception 'immutable';end$$;
     grant usage on schema public,auth to authenticated;
     grant select on profiles to authenticated;

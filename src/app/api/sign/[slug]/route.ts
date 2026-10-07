@@ -11,6 +11,8 @@ import {
 } from "@/lib/email";
 import { dispatchWebhooks } from "@/lib/webhooks";
 import { APP } from "@/lib/config";
+import { validateGroupSubmission, decodeSignature } from "@/lib/group-signing";
+import type { GroupParticipant } from "@/lib/types";
 import { isRealIsoDate } from "@/lib/signing-validation";
 import {
   evaluateFlags,
@@ -29,6 +31,8 @@ const MAX_SIGNATURE_DATA_URL_LENGTH =
   "data:image/png;base64,".length + Math.ceil(MAX_SIGNATURE_BYTES / 3) * 4;
 
 const basePayloadSchema = z.object({
+  participants: z.unknown().optional(),
+  participantCount: z.unknown().optional(),
   submissionId: z.string().uuid().optional(),
   turnstileToken: z.string().min(1),
   signerName: z.string().trim().min(1).max(200),
@@ -99,7 +103,18 @@ export async function POST(
   // Parse body
   let rawBody: unknown;
   try {
-    rawBody = await request.json();
+    const reader = request.body?.getReader();
+    if (!reader) return jsonError("Invalid request body.", 400);
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > 36 * 1024 * 1024) { await reader.cancel(); return jsonError("Submission is too large.", 413); }
+      chunks.push(value);
+    }
+    rawBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch {
     return jsonError("Invalid request body.", 400);
   }
@@ -108,6 +123,12 @@ export async function POST(
     return jsonError("Invalid submission. Check your entries and try again.", 400);
   }
   const payload = parsed.data;
+  const group = validateGroupSubmission(waiver.version.group_signing_enabled === true, waiver.version.minor_mode, payload.participantCount, payload.participants);
+  if ("error" in group) return jsonError(group.error!, 400);
+  const participants = group.participants;
+  if (participants.length && (payload.signerName !== participants[0].fullName || payload.signatureDataUrl !== participants[0].signatureDataUrl || payload.isMinor || payload.guardianName || payload.guardianRelationship || payload.guardianSignatureDataUrl)) {
+    return jsonError("Primary participant information does not match the group.", 400);
+  }
 
   // 1. Turnstile
   const turnstileOk = await verifyTurnstile(payload.turnstileToken, clientIp);
@@ -233,6 +254,27 @@ export async function POST(
     uncommittedSignaturePaths.push(guardianSignaturePath);
   }
 
+  const storedParticipants: GroupParticipant[] = [];
+  for (let i = 0; i < participants.length; i++) {
+    const participant = participants[i];
+    const participantPath = i === 0 ? signaturePath : `${basePath}/participant-${i + 1}.png`;
+    const guardianPath = participant.isMinor ? `${basePath}/participant-${i + 1}-guardian.png` : null;
+    const uploads = [
+      ...(i === 0 ? [] : [{ path: participantPath, image: participant.signatureDataUrl }]),
+      ...(guardianPath ? [{ path: guardianPath, image: participant.guardianSignatureDataUrl! }] : []),
+    ];
+    for (const upload of uploads) {
+      const { error } = await admin.storage.from("signatures").upload(upload.path, decodeSignature(upload.image)!, { contentType: "image/png" });
+      if (error) {
+        await cleanupUncommittedFiles(admin, uncommittedSignaturePaths);
+        return jsonError(`Failed to store Participant ${i + 1} signature.`, 500);
+      }
+      uncommittedSignaturePaths.push(upload.path);
+    }
+    storedParticipants.push({ full_name: participant.fullName, signature_path: participantPath, is_minor: participant.isMinor,
+      guardian_name: participant.guardianName ?? null, guardian_relationship: participant.guardianRelationship ?? null, guardian_signature_path: guardianPath });
+  }
+
   // Optional captured photo/ID (private, org-prefixed, alongside the signature).
   let photoPath: string | null = null;
   if (photoBuf) {
@@ -282,6 +324,7 @@ export async function POST(
   let pdfSha256: string;
   try {
     ({ pdf, pdfSha256 } = await renderSignedPdf({
+      participants: participants.length ? participants : undefined,
       orgName: waiver.orgName,
       logoDataUrl,
       brandColor: waiver.branding.color,
@@ -324,18 +367,19 @@ export async function POST(
 
   const { error: insertError } = await admin.from("signed_waivers").insert({
     id: recordId,
+    participants: storedParticipants.length ? storedParticipants : null,
     org_id: waiver.orgId,
     template_id: waiver.templateId,
     template_version_id: version.id,
     signer_name: payload.signerName,
     signer_email: signerEmail,
     signer_dob: signerDob,
-    is_minor: payload.isMinor,
-    guardian_name: payload.isMinor ? payload.guardianName : null,
-    guardian_relationship: payload.isMinor ? payload.guardianRelationship : null,
+    is_minor: participants[0]?.isMinor ?? payload.isMinor,
+    guardian_name: participants.length ? storedParticipants[0].guardian_name : payload.isMinor ? payload.guardianName : null,
+    guardian_relationship: participants.length ? storedParticipants[0].guardian_relationship : payload.isMinor ? payload.guardianRelationship : null,
     field_values: payload.fieldValues,
     signature_path: signaturePath,
-    guardian_signature_path: guardianSignaturePath,
+    guardian_signature_path: participants.length ? storedParticipants[0].guardian_signature_path : guardianSignaturePath,
     photo_path: photoPath,
     pdf_path: pdfPath,
     pdf_sha256: pdfSha256,
@@ -385,11 +429,12 @@ export async function POST(
   // Outbound webhooks (best-effort; never fails the signature).
   await dispatchWebhooks(waiver.orgId, {
     event: "signature.created",
+    ...(participants.length ? { participant_count: participants.length, participants: participants.map(p => ({ full_name: p.fullName, is_minor: p.isMinor })) } : {}),
     id: recordId,
     waiver: { id: waiver.templateId, name: waiver.name },
     signer_name: payload.signerName,
     signer_email: signerEmail,
-    is_minor: payload.isMinor,
+    is_minor: participants[0]?.isMinor ?? payload.isMinor,
     flagged,
     tag: payload.tag && payload.tag.length > 0 ? payload.tag : null,
     channel: payload.channel,

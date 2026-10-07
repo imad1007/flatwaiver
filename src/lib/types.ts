@@ -71,6 +71,7 @@ export function evaluateFlags(
 export type MinorMode = "allowed" | "disallowed";
 
 export interface DraftContent {
+  group_signing_enabled?: boolean;
   translate_content?: boolean;
   signer_language?: import("./signer-language").SignerLanguage;
   title: string;
@@ -153,6 +154,7 @@ export interface WaiverTemplate {
 }
 
 export interface TemplateVersion {
+  group_signing_enabled?: boolean;
   signer_language?: import("./signer-language").SignerLanguage;
   id: string;
   template_id: string;
@@ -165,7 +167,17 @@ export interface TemplateVersion {
   created_at: string;
 }
 
+export interface GroupParticipant {
+  full_name: string;
+  signature_path: string;
+  is_minor: boolean;
+  guardian_name: string | null;
+  guardian_relationship: string | null;
+  guardian_signature_path: string | null;
+}
+
 export interface SignedWaiver {
+  participants?: GroupParticipant[] | null;
   id: string;
   org_id: string;
   template_id: string;
