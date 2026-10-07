@@ -2,7 +2,7 @@
 // column names (e.g. signing_channel) from leaking into the public contract.
 
 export interface PublicSignatureRow {
-  participants?: { full_name: string; is_minor: boolean }[] | null;
+  participants?: { full_name: string; date_of_birth?: string | null; is_minor: boolean }[] | null;
   id: string;
   template_id: string;
   signer_name: string;
@@ -25,7 +25,7 @@ export function shapeSignature(row: PublicSignatureRow) {
     tag: row.tag,
     channel: row.signing_channel,
     signed_at: row.signed_at,
-    ...(row.participants ? { participant_count: row.participants.length, participants: row.participants.map(p => ({ full_name: p.full_name, is_minor: p.is_minor })) } : {}),
+    ...(row.participants ? { participant_count: row.participants.length, participants: row.participants.map(p => ({ full_name: p.full_name, date_of_birth: p.date_of_birth ?? null, is_minor: p.is_minor })) } : {}),
   };
 }
 

@@ -89,7 +89,7 @@ function WaiverPdf({
   stampedHash: string | null;
 }) {
   const filledFields = input.fields.filter(
-    (f) => input.fieldValues[f.key] !== undefined && input.fieldValues[f.key] !== ""
+    (f) => !(input.participants && f.type === "date_of_birth") && input.fieldValues[f.key] !== undefined && input.fieldValues[f.key] !== ""
   );
 
   return (
@@ -167,6 +167,7 @@ function WaiverPdf({
           <Text style={styles.sectionTitle} minPresenceAhead={120}>GROUP PARTICIPANTS ({input.participants.length})</Text>
           {input.participants.map((participant, index) => <View key={index} wrap={false} style={styles.signatureCard}>
             <Text style={styles.heading}>{index + 1}. {participant.fullName}</Text>
+            <Text>Date of birth: {participant.dateOfBirth ?? "Not recorded"}</Text>
             <Text>Participant signature — {displayDate(input.signedAtIso)}</Text>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={participant.signatureDataUrl} style={styles.signatureImage} />

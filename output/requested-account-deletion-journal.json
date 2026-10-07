@@ -1,0 +1,173 @@
+{
+  "plan": {
+    "users": [
+      "0cd23605-abf1-4f53-9650-b98eb30fcda1",
+      "a990875c-d226-49bb-9c50-afacad82eaef",
+      "9696e3f7-ed2f-47a2-92be-1cbc6f07742b"
+    ],
+    "executed": false,
+    "templates": 14,
+    "organizations": [
+      "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29",
+      "ba7091de-27df-4cde-9594-d5bea51c44d8",
+      "74997ef3-b9eb-4b03-ad2b-1625ad32ba68"
+    ],
+    "signed_waivers": 267,
+    "storage_objects": 34
+  },
+  "templates": [
+    "a28ccae0-b284-4f99-a784-7ea40eefeae0",
+    "5ee2dd84-bc4d-426f-95d6-e9fd0dda6456",
+    "34ecfe74-d50e-49f4-9cd7-b44b641ac7f1",
+    "8085cf44-5dcd-448c-81f1-d238cb871b89",
+    "10d993df-06ff-49c7-82c9-9e823a8c6dea",
+    "16deed79-945d-4b05-ba38-6d926632415c",
+    "7cf6252d-0e4e-4c06-8d12-75c188b89b96",
+    "f0cc4071-2298-46ca-97fa-7933f460a6a6",
+    "c9bac60a-c61f-4185-94d1-5080b093a26a",
+    "71973bee-0492-44e3-959c-e439d3f9f591",
+    "74ee4423-5d64-496d-b140-621e8a379aec",
+    "4558841c-e709-42f7-8d2c-05ca0d5e421d",
+    "d5a60e42-fec7-4684-b72e-4284e9418af4",
+    "a1fe1180-f65a-4e5a-9dbb-e15c3b85300e"
+  ],
+  "jobs": [],
+  "files": [
+    {
+      "bucket": "uploads",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/05680c76-dd82-412e-b7d1-d4b81a4d9787.png"
+    },
+    {
+      "bucket": "uploads",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/40497e3d-1e2c-48a4-a6b0-2e50c8f8923d.png"
+    },
+    {
+      "bucket": "uploads",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/762241ed-c7b0-4332-93ff-0309c3d9c192.docx"
+    },
+    {
+      "bucket": "uploads",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/8b8a4dd2-9db3-46a9-8e96-56639f05616c.png"
+    },
+    {
+      "bucket": "uploads",
+      "path": "ba7091de-27df-4cde-9594-d5bea51c44d8/d46793ab-9e89-43c9-abc8-a569ef161eac.pdf"
+    },
+    {
+      "bucket": "uploads",
+      "path": "74997ef3-b9eb-4b03-ad2b-1625ad32ba68/0574465f-43bf-436a-a3af-5605a5213e93.jpg"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/2043e1bb-1574-4d93-a3da-aa6dbca93c3c/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/47319abc-499c-4d31-beee-0ff7de1ad5dd/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/54371214-0ed0-48ee-b2ae-d1bb6bc5ebd6/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/54af208c-64b7-4ec1-a5a5-7ed52e06a0fd/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/5afc3fa3-4d4f-48b9-ab30-601803e9aafe/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/643e48b4-9bd0-43d7-b253-cf0e8d5899aa/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/8aae21c0-1c16-442e-a733-7f15b57953a7/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/ae355f97-b6aa-4887-a64f-c521257786dc/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/bc24451e-be78-4ac2-bb30-82396db53733/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/e1b1c3de-b626-44a5-9cff-37fd9f38ccf0/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/ec0de351-0e8a-459e-8d3e-f51b4fcdb7da/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/seed/demo-signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "ba7091de-27df-4cde-9594-d5bea51c44d8/ec055ae4-d1b9-494a-8819-85dd0c1e5b80/signature.png"
+    },
+    {
+      "bucket": "signatures",
+      "path": "74997ef3-b9eb-4b03-ad2b-1625ad32ba68/d5b6a0a1-9d27-4868-914e-08ffd95a3d95/signature.png"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/2043e1bb-1574-4d93-a3da-aa6dbca93c3c/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/47319abc-499c-4d31-beee-0ff7de1ad5dd/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/54371214-0ed0-48ee-b2ae-d1bb6bc5ebd6/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/54af208c-64b7-4ec1-a5a5-7ed52e06a0fd/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/5afc3fa3-4d4f-48b9-ab30-601803e9aafe/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/643e48b4-9bd0-43d7-b253-cf0e8d5899aa/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/8aae21c0-1c16-442e-a733-7f15b57953a7/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/ae355f97-b6aa-4887-a64f-c521257786dc/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/bc24451e-be78-4ac2-bb30-82396db53733/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/e1b1c3de-b626-44a5-9cff-37fd9f38ccf0/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/ec0de351-0e8a-459e-8d3e-f51b4fcdb7da/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "fe1e2721-df27-4fe2-a466-cd2dbd0d9c29/seed/demo-signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "ba7091de-27df-4cde-9594-d5bea51c44d8/ec055ae4-d1b9-494a-8819-85dd0c1e5b80/signed.pdf"
+    },
+    {
+      "bucket": "signed-pdfs",
+      "path": "74997ef3-b9eb-4b03-ad2b-1625ad32ba68/d5b6a0a1-9d27-4868-914e-08ffd95a3d95/signed.pdf"
+    }
+  ]
+}

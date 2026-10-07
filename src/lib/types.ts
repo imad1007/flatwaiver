@@ -169,6 +169,8 @@ export interface TemplateVersion {
 
 export interface GroupParticipant {
   full_name: string;
+  /** Absent on historical group records; never backfill signed evidence. */
+  date_of_birth?: string | null;
   signature_path: string;
   is_minor: boolean;
   guardian_name: string | null;

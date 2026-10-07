@@ -75,7 +75,7 @@ export default async function ImportedRecord({
       </dl>
       {participants && <section className="mt-6 space-y-3 rounded-xl border p-5">
         <h2 className="font-semibold">Imported group waiver - {participants.length} participants</h2>
-        {participants.map((p: { full_name: string }, i: number) => <p key={i}>Participant {i + 1}: {p.full_name}</p>)}
+        {participants.map((p: { full_name: string; date_of_birth?: unknown }, i: number) => <div key={i}><p>Participant {i + 1}: {p.full_name}</p><p className="text-sm text-muted-foreground">Date of birth: {typeof p.date_of_birth === "string" && p.date_of_birth ? p.date_of_birth : "Not recorded"}</p></div>)}
         <p className="text-sm text-muted-foreground">All participant signatures are preserved in the original PDF and source evidence.</p>
       </section>}
       <section className="mt-6">

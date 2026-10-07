@@ -131,6 +131,7 @@ export default async function SignatureDetailPage({
         <h2 className="font-bold">Group waiver - {sig.participants.length} participants</h2>
         {participantImages.map((p, i) => <div key={i} className="border-t border-border pt-4">
           <h3 className="font-semibold">Participant {i + 1}: {p.full_name}</h3>
+          <p className="mt-2 text-sm">Date of birth: {p.date_of_birth ?? "Not recorded"}</p>
           {p.signatureUrl ? (
             // Private evidence URL: display the stored bytes without image optimization.
             // eslint-disable-next-line @next/next/no-img-element

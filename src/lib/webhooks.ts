@@ -7,7 +7,7 @@ import { assertSafeWebhookUrl } from "@/lib/webhook-url";
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 export interface SignatureCreatedPayload {
-  participants?: { full_name: string; is_minor: boolean }[];
+  participants?: { full_name: string; date_of_birth?: string | null; is_minor: boolean }[];
   participant_count?: number;
   event: "signature.created";
   id: string;

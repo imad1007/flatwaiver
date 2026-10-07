@@ -6,7 +6,7 @@ import * as groupSigning from '../src/lib/group-signing.ts';
 import * as types from '../src/lib/types.ts';
 import { isRealIsoDate } from '../src/lib/signing-validation.ts';
 const require = createRequire(import.meta.url);
-let enabled = true, accepting = true, saved, pdfInput, rateCount = 0, calls = 0;
+let webhook, fields = [], enabled = true, accepting = true, saved, pdfInput, rateCount = 0, calls = 0;
 const uploads = [];
 const admin = { from(table) {
   calls++;
@@ -23,11 +23,11 @@ const dependencies = {
   '@/lib/supabase/admin': { createAdminClient: () => admin },
   '@/lib/public-waiver': { PublicWaiverLoadError: class extends Error {}, getPublishedWaiverBySlug: async () => ({
     templateId: 'template', orgId: 'org', orgName: 'Org', name: 'Waiver', acceptingSignatures: accepting, photoMode: 'off', branding: {},
-    version: { id: 'version', version_number: 1, fields: [], body: [], consent_text: 'Consent', minor_mode: 'allowed', group_signing_enabled: enabled },
+    version: { id: 'version', version_number: 1, fields, body: [], consent_text: 'Consent', minor_mode: 'allowed', group_signing_enabled: enabled },
   }) },
   '@/lib/turnstile': { verifyTurnstile: async () => true },
   '@/lib/pdf/waiver-pdf': { renderSignedPdf: async input => { pdfInput = input; return { pdf: Buffer.from('%PDF-test'), pdfSha256: 'hash' }; } },
-  '@/lib/email': {}, '@/lib/webhooks': { dispatchWebhooks: async () => {} }, '@/lib/config': { APP: {} },
+  '@/lib/email': {}, '@/lib/webhooks': { dispatchWebhooks: async (_org, payload) => { webhook = payload; } }, '@/lib/config': { APP: {} },
   '@/lib/signing-validation': { isRealIsoDate }, '@/lib/group-signing': groupSigning, '@/lib/types': types,
 };
 const loaded = { exports: {} };
@@ -35,7 +35,7 @@ const source = ts.transpileModule(fs.readFileSync('src/app/api/sign/[slug]/route
 new Function('require', 'module', 'exports', source)(id => { assert.ok(id in dependencies, id); return dependencies[id]; }, loaded, loaded.exports);
 const png = await require('sharp')({ create: { width: 100, height: 30, channels: 3, background: '#123456' } }).png().toBuffer();
 const signature = 'data:image/png;base64,' + png.toString('base64');
-const participant = i => ({ fullName: `Person ${i}`, signatureDataUrl: signature, isMinor: false });
+const participant = i => ({ fullName: `Person ${i}`, dateOfBirth: `1990-02-${String(i).padStart(2, "0")}`, signatureDataUrl: signature, isMinor: false });
 const base = { turnstileToken: 'token', signerName: 'Person 1', isMinor: false, fieldValues: {}, signatureDataUrl: signature, consentGiven: true, channel: 'link' };
 const post = body => loaded.exports.POST(new Request('https://example.test/api/sign/group', { method: 'POST', headers: { 'x-real-ip': '127.0.0.1' }, body: JSON.stringify(body) }), { params: Promise.resolve({ slug: 'group' }) });
 for (const count of [1, 2, 10]) {
@@ -44,6 +44,10 @@ for (const count of [1, 2, 10]) {
   assert.equal((await post({ ...base, participantCount: count, participants })).status, 200);
   assert.deepEqual(saved.participants.map(p => p.full_name), participants.map(p => p.fullName));
   assert.equal(pdfInput.participants.length, count);
+  assert.deepEqual(saved.participants.map(p => p.date_of_birth), participants.map(p => p.dateOfBirth));
+  assert.deepEqual(pdfInput.participants.map(p => p.dateOfBirth), participants.map(p => p.dateOfBirth));
+  assert.equal(saved.signer_dob, participants[0].dateOfBirth);
+  assert.deepEqual(webhook.participants.map(p=>p.date_of_birth),participants.map(p=>p.dateOfBirth));
   assert.equal(uploads.filter(u => u.bucket === 'signatures').length, count);
   assert.ok(uploads.every(u => u.path.startsWith(`org/${saved.id}/`)));
 }
@@ -62,7 +66,22 @@ for (const body of [
   { ...base, participantCount: 1, participants: [{ ...participant(1), signatureDataUrl: '' }] },
   { ...base, participantCount: 1, participants: [participant(1)], signerName: 'Mismatch' },
 ]) { const before = uploads.length; assert.equal((await post(body)).status, 400); assert.equal(uploads.length, before); }
+fields = [{ key: 'dob', type: 'date_of_birth', label: 'Date of birth', required: true }];
+assert.equal((await post({ ...base, participantCount: 2, participants: [participant(1), participant(2)], fieldValues: { dob: '1970-01-01' } })).status, 200);
+assert.equal(saved.field_values.dob, participant(1).dateOfBirth);
+for (const dob of [undefined, '', '2023-02-29', '9999-01-01']) {
+ const before = uploads.length;
+ const response = await post({ ...base, participantCount: 2, participants: [participant(1), { ...participant(2), dateOfBirth: dob }] });
+ assert.equal(response.status,400);
+ assert.match((await response.json()).error,/Participant 2:.*date of birth/);
+ assert.equal(uploads.length,before);
+}
 enabled = false;
+assert.equal((await post({ ...base, fieldValues: { dob: '1984-06-15' } })).status, 200);
+assert.equal(saved.signer_dob, '1984-06-15');
+assert.equal(saved.participants, null);
+assert.equal((await post(base)).status, 400);
+fields = [];
 assert.equal((await post({ ...base, participantCount: 1, participants: [participant(1)] })).status, 400);
 assert.equal((await post(base)).status, 200);
 assert.equal(saved.participants, null); assert.equal(pdfInput.participants, undefined);

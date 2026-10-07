@@ -185,6 +185,14 @@ export async function POST(
 
   const version = waiver.version;
 
+  // Participant 1 is the existing primary signer. Derive its template DOB
+  // responses from structured evidence rather than asking for a second DOB.
+  if (participants.length) {
+    for (const field of version.fields) {
+      if (field.type === "date_of_birth") payload.fieldValues[field.key] = participants[0].dateOfBirth;
+    }
+  }
+
   // Validate field values against this version's field definitions.
   const fieldError = validateFieldValues(version.fields, payload.fieldValues);
   if (fieldError) return jsonError(fieldError, 400);
@@ -271,7 +279,7 @@ export async function POST(
       }
       uncommittedSignaturePaths.push(upload.path);
     }
-    storedParticipants.push({ full_name: participant.fullName, signature_path: participantPath, is_minor: participant.isMinor,
+    storedParticipants.push({ full_name: participant.fullName, date_of_birth: participant.dateOfBirth, signature_path: participantPath, is_minor: participant.isMinor,
       guardian_name: participant.guardianName ?? null, guardian_relationship: participant.guardianRelationship ?? null, guardian_signature_path: guardianPath });
   }
 
@@ -295,9 +303,9 @@ export async function POST(
   const signerEmail = emailField
     ? nonEmptyString(payload.fieldValues[emailField.key])
     : null;
-  const signerDob = dobField
+  const signerDob = participants[0]?.dateOfBirth ?? (dobField
     ? nonEmptyString(payload.fieldValues[dobField.key])
-    : null;
+    : null);
 
   // Org logo for the PDF header (best-effort — never blocks signing)
   let logoDataUrl: string | null = null;
@@ -429,7 +437,7 @@ export async function POST(
   // Outbound webhooks (best-effort; never fails the signature).
   await dispatchWebhooks(waiver.orgId, {
     event: "signature.created",
-    ...(participants.length ? { participant_count: participants.length, participants: participants.map(p => ({ full_name: p.fullName, is_minor: p.isMinor })) } : {}),
+    ...(participants.length ? { participant_count: participants.length, participants: participants.map(p => ({ full_name: p.fullName, date_of_birth: p.dateOfBirth, is_minor: p.isMinor })) } : {}),
     id: recordId,
     waiver: { id: waiver.templateId, name: waiver.name },
     signer_name: payload.signerName,

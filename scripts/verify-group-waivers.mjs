@@ -6,6 +6,7 @@ import ts from 'typescript';
 import { PGlite } from '@electric-sql/pglite';
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import { validateGroupSubmission, decodeSignature } from '../src/lib/group-signing.ts';
+import { shapeSignature } from '../src/lib/public-api.ts';
 import { contentSha256 } from '../src/lib/canonical.ts';
 import { csvRecord, CSV_COLUMNS, parseCsv } from '../src/lib/data-transfer-core.mjs';
 const require = createRequire(import.meta.url);
@@ -35,7 +36,12 @@ function load(file) {
 }
 const png = await require('sharp')({ create: { width: 100, height: 30, channels: 3, background: '#123456' } }).png().toBuffer();
 const signature = 'data:image/png;base64,' + png.toString('base64');
-const participant = i => ({ fullName: `Person ${i}`, signatureDataUrl: signature, isMinor: false });
+const participant = i => ({ fullName: `Person ${i}`, dateOfBirth: `1990-02-${String(i).padStart(2, "0")}`, signatureDataUrl: signature, isMinor: false });
+for (const dob of [undefined, null, '', '2023-02-29', '2000-02-30', '0000-01-01', '9999-01-01', '1990-1-01', 123, '1990-01-01T00:00:00Z']) {
+ assert.match(validateGroupSubmission(true, 'allowed', 1, [{ ...participant(1), dateOfBirth: dob }]).error, /Participant 1:.*date of birth/);
+}
+assert.equal(validateGroupSubmission(true, 'allowed', 1, [{ ...participant(1), dateOfBirth: '2000-02-29' }]).error, undefined);
+assert.equal(validateGroupSubmission(true, 'allowed', 1, [{ ...participant(1), dateOfBirth: new Date().toISOString().slice(0,10) }]).error, undefined);
 assert.ok(decodeSignature(signature));
 assert.equal(decodeSignature(signature + '!'), null);
 assert.equal(decodeSignature('data:image/png;base64,' + png.subarray(0, 45).toString('base64')), null);
@@ -61,7 +67,9 @@ const { signerText } = load('src/lib/signer-language.ts');
 for (const text of ['Number of participants', 'Group participants', 'Participant name', 'Full name is required.']) assert.notEqual(signerText(text, 'fr'), text);
 assert.equal(signerText('Number of participants', 'fr'), 'Nombre de participants');
 assert.ok(signerText('Guardian name, relationship, and signature are required.', 'fr').includes('représentant légal'));
-const stored = Array.from({ length: 10 }, (_, i) => ({ full_name: `Person ${i + 1}`, signature_path: `org/id/participant-${i + 1}.png`, is_minor: false, guardian_name: null, guardian_relationship: null, guardian_signature_path: null }));
+const stored = Array.from({ length: 10 }, (_, i) => ({ full_name: `Person ${i + 1}`, date_of_birth: `1990-02-${String(i + 1).padStart(2, "0")}`, signature_path: `org/id/participant-${i + 1}.png`, is_minor: false, guardian_name: null, guardian_relationship: null, guardian_signature_path: null }));
+assert.deepEqual(shapeSignature({ participants: stored }).participants.map(p=>[p.full_name,p.date_of_birth]),stored.map(p=>[p.full_name,p.date_of_birth]));
+assert.equal(shapeSignature({participants:[{full_name:'Legacy',is_minor:false}]}).participants[0].date_of_birth,null);
 const csv = parseCsv(CSV_COLUMNS.join(',') + '\r\n' + csvRecord({ record_origin: 'native', participant_name: 'Person 1', participants: stored }, []));
 assert.equal(csv.rows[0][CSV_COLUMNS.indexOf('participant_count')], '10');
 assert.deepEqual(JSON.parse(csv.rows[0][CSV_COLUMNS.indexOf('participants_json')]), stored);
@@ -96,9 +104,22 @@ const insert = async (participants, version = ver, tenant = org) => {
   return id;
 };
 await db.exec('set role service_role');
-for (const count of [1, 2, 10]) await insert(stored.slice(0, count));
+const legacy = stored.slice(0, 1).map(p => { const legacy = { ...p }; delete legacy.date_of_birth; return legacy; });
+const legacyId = await insert(legacy);
+const beforeMigration = (await db.query('select participants from signed_waivers where id=$1', [legacyId])).rows[0];
+await db.exec('reset role');
+await db.exec(fs.readFileSync('supabase/migrations/0027_participant_dates_of_birth.sql', 'utf8'));
+assert.deepEqual((await db.query('select participants from signed_waivers where id=$1', [legacyId])).rows[0], beforeMigration);
+await db.exec('set role service_role');
+for (const count of [2, 10]) {
+ const id = await insert(stored.slice(0, count));
+ assert.deepEqual((await db.query('select participants from signed_waivers where id=$1', [id])).rows[0].participants.map(p=>p.date_of_birth), stored.slice(0,count).map(p=>p.date_of_birth));
+}
 await insert(null, old);
 await db.exec('reset role');
+for (const dob of ['', '2023-02-29', '2000-02-30', '0000-01-01', '9999-01-01', '1990-1-01', 123, {}, '1990-01-01T00:00:00Z']) {
+ await assert.rejects(insert([{ ...stored[0], date_of_birth: dob }]));
+}
 await assert.rejects(insert([], ver));
 await assert.rejects(insert([...stored, stored[0]]));
 await assert.rejects(insert(stored.slice(0, 1), old));
@@ -135,6 +156,8 @@ for (const count of [undefined, 1, 2, 10]) {
   const tree = textNodes(trees.at(-1));
   for (let i = 1; i <= (count ?? 1); i++) assert.ok(tree.includes(`Person ${i}`));
   assert.equal(tree.includes('GROUP PARTICIPANTS'), Boolean(count));
+  if (count) for (let i=1;i<=count;i++) assert.ok(tree.includes(participant(i).dateOfBirth));
+  else assert.ok(!tree.includes('Date of birth:'));
   if (count === 10 && process.argv.includes('--pdf-preview')) {
     fs.mkdirSync('tmp/pdfs', { recursive: true });
     fs.writeFileSync('tmp/pdfs/group-waiver-qa.pdf', result.pdf);

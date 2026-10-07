@@ -18,6 +18,7 @@ export function signerDirection(language: SignerLanguage): "rtl" | "ltr" {
 // Translate only known interface labels. Never translate stored waiver clauses,
 // custom consent, field keys or submitted option values.
 const french: Record<string, string> = {
+  "Enter a valid date of birth that is not in the future.": "Saisissez une date de naissance valide qui ne soit pas dans le futur.",
   "Number of participants": "Nombre de participants",
   "Participant": "Participant",
   "Group participants": "Participants du groupe",

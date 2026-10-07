@@ -4,7 +4,7 @@ import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { SignatureCanvas, type SignatureCanvasHandle } from "./signature-canvas";
 import { signerInputClass } from "./waiver-render";
 import { signerText, type SignerLanguage } from "@/lib/signer-language";
-import type { ParticipantSubmission } from "@/lib/group-signing";
+import { participantDobSchema, type ParticipantSubmission } from "@/lib/group-signing";
 
 export interface GroupParticipantsHandle {
   collect: () => { participants: ParticipantSubmission[]; error?: never } | { error: string; participants?: never };
@@ -16,7 +16,7 @@ export const GroupParticipants = forwardRef<GroupParticipantsHandle, {
   const t = (s: string) => signerText(s, language);
   const [count, setCount] = useState(1);
   const [mountedCount, setMountedCount] = useState(1);
-  const [entries, setEntries] = useState(() => Array.from({ length: 10 }, () => ({ fullName: "", isMinor: false, guardianName: "", guardianRelationship: "" })));
+  const [entries, setEntries] = useState(() => Array.from({ length: 10 }, () => ({ fullName: "", dateOfBirth: "", isMinor: false, guardianName: "", guardianRelationship: "" })));
   const signatures = useRef<(SignatureCanvasHandle | null)[]>([]);
   const guardians = useRef<(SignatureCanvasHandle | null)[]>([]);
   function update(i: number, patch: Partial<typeof entries[number]>) {
@@ -28,13 +28,14 @@ export const GroupParticipants = forwardRef<GroupParticipantsHandle, {
       const entry = entries[i];
       const prefix = `${t("Participant")} ${i + 1}: `;
       if (!entry.fullName.trim()) return { error: prefix + t("Full name is required.") };
+      if (!participantDobSchema.safeParse(entry.dateOfBirth).success) return { error: prefix + t("Enter a valid date of birth that is not in the future.") };
       const signatureDataUrl = signatures.current[i]?.getDataUrl();
       if (!signatureDataUrl) return { error: prefix + t("Please draw or type your signature.") };
       const guardianSignatureDataUrl = entry.isMinor ? guardians.current[i]?.getDataUrl() : undefined;
       if (entry.isMinor && (!entry.guardianName.trim() || !entry.guardianRelationship.trim() || !guardianSignatureDataUrl)) {
         return { error: prefix + t("Guardian name, relationship, and signature are required.") };
       }
-      participants.push({ fullName: entry.fullName.trim(), signatureDataUrl, isMinor: entry.isMinor,
+      participants.push({ fullName: entry.fullName.trim(), dateOfBirth: entry.dateOfBirth, signatureDataUrl, isMinor: entry.isMinor,
         ...(entry.isMinor ? { guardianName: entry.guardianName.trim(), guardianRelationship: entry.guardianRelationship.trim(), guardianSignatureDataUrl: guardianSignatureDataUrl! } : {}) });
     }
     return { participants };
@@ -51,6 +52,9 @@ export const GroupParticipants = forwardRef<GroupParticipantsHandle, {
       <legend className="px-2 font-semibold">{t("Participant")} {i + 1}</legend>
       <label className="block"><span className="mb-1 block text-sm font-medium">{t("Participant name")}</span>
         <input value={entry.fullName} maxLength={200} aria-required="true" autoComplete={kiosk ? "off" : "name"} onChange={e => update(i, { fullName: e.target.value })} className={signerInputClass} />
+      </label>
+      <label className="block"><span className="mb-1 block text-sm font-medium">{t("Date of birth")} <span aria-hidden="true">*</span></span>
+        <input type="date" value={entry.dateOfBirth} min="0001-01-01" max={new Date().toISOString().slice(0, 10)} aria-required="true" autoComplete={kiosk ? "off" : `section-participant-${i + 1} bday`} onChange={e => update(i, { dateOfBirth: e.target.value })} className={`${signerInputClass} min-w-0 max-w-full`} />
       </label>
       <SignatureCanvas ref={handle => { signatures.current[i] = handle; }} language={language} label={`${t("Participant")} ${i + 1}: ${t("Signature")}`} />
       {minorMode === "allowed" && <label className="flex items-center gap-3"><input type="checkbox" checked={entry.isMinor} onChange={e => update(i, { isMinor: e.target.checked })} className="size-5" />{t("The participant is under 18")}</label>}

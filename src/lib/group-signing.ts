@@ -3,8 +3,14 @@ import { z } from "zod";
 export const MAX_SIGNATURE_BYTES = 1024 * 1024;
 export const signatureSchema = z.string().startsWith("data:image/png;base64,")
   .max(22 + Math.ceil(MAX_SIGNATURE_BYTES / 3) * 4);
+// Calendar dates stay as YYYY-MM-DD strings: never convert DOBs to local time.
+export const participantDobSchema = z.iso.date().refine(
+  value => value >= "0001-01-01" && value <= new Date().toISOString().slice(0, 10),
+  "Enter a valid date of birth that is not in the future.",
+);
 export const participantSchema = z.object({
   fullName: z.string().trim().min(1).max(200),
+  dateOfBirth: participantDobSchema,
   signatureDataUrl: signatureSchema,
   isMinor: z.boolean(),
   guardianName: z.string().trim().min(1).max(200).optional(),
@@ -54,7 +60,7 @@ export function validateGroupSubmission(enabled: boolean, minorMode: string, cou
     const prefix = `Participant ${i + 1}: `;
     if (!parsed.success) {
       const key = parsed.error.issues[0]?.path[0];
-      return { error: prefix + (key === "fullName" ? "Full name is required (maximum 200 characters)." : key === "signatureDataUrl" ? "A valid signature is required." : "Invalid participant information.") };
+      return { error: prefix + (key === "fullName" ? "Full name is required (maximum 200 characters)." : key === "dateOfBirth" ? "Enter a valid date of birth that is not in the future." : key === "signatureDataUrl" ? "A valid signature is required." : "Invalid participant information.") };
     }
     const p = parsed.data;
     if (!decodeSignature(p.signatureDataUrl)) return { error: prefix + "Invalid signature image." };

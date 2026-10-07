@@ -2,6 +2,7 @@
 // Column order: Spanish, Portuguese, Chinese, Hindi, Arabic, Bengali, Russian, Urdu.
 export const additionalLanguages = ["es", "pt", "zh", "hi", "ar", "bn", "ru", "ur"] as const;
 export const translationRows: Record<string, readonly [string, string, string, string, string, string, string, string]> = {
+  "Enter a valid date of birth that is not in the future.": ["Introduce una fecha de nacimiento válida que no sea futura.", "Insira uma data de nascimento válida que não seja futura.", "请输入有效且不晚于今天的出生日期。", "जन्म की मान्य तारीख दर्ज करें जो भविष्य की न हो।", "أدخل تاريخ ميلاد صالحًا لا يقع في المستقبل.", "ভবিষ্যতের নয় এমন একটি বৈধ জন্মতারিখ লিখুন।", "Введите корректную дату рождения, которая не находится в будущем.", "درست تاریخ پیدائش درج کریں جو مستقبل کی نہ ہو۔"],
   "Number of participants": ["Número de participantes", "Número de participantes", "参与人数", "प्रतिभागियों की संख्या", "عدد المشاركين", "অংশগ্রহণকারীর সংখ্যা", "Количество участников", "شرکاء کی تعداد"],
   "Participant": ["Participante", "Participante", "参与者", "प्रतिभागी", "المشارك", "অংশগ্রহণকারী", "Участник", "شریک"],
   "Group participants": ["Participantes del grupo", "Participantes do grupo", "团体参与者", "समूह के प्रतिभागी", "مشاركو المجموعة", "দলের অংশগ্রহণকারীরা", "Участники группы", "گروپ کے شرکاء"],

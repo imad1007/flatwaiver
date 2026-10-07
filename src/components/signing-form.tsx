@@ -307,6 +307,8 @@ export function SigningForm(props: SigningFormProps) {
       {props.fields.length > 0 && (
         <div className="space-y-4">
           {props.fields.map((field) => {
+            // Participant 1 supplies existing primary DOB fields in group mode.
+            if (props.groupSigningEnabled && field.type === "date_of_birth") return null;
             // Medical-condition conditional: the detail box only exists when
             // the answer is yes, and is then mandatory (see lib/types.ts).
             if (medicalConditional && field.key === MEDICAL_CONDITION_DETAIL_KEY) {
