@@ -1,3 +1,4 @@
+import { WaiverParticipantList } from "@/components/waiver-participant-list";
 import Link from "next/link";
 import { FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +47,7 @@ export default async function SignaturesPage({
       { count: "exact" }
     )
     .order("signed_at", { ascending: false })
+    .order("id", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   if (q) query = query.ilike("participant_search", `%${q}%`);
@@ -228,7 +230,8 @@ export default async function SignaturesPage({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold">{s.signer_name}</p>{s.participants && <p className="text-xs text-muted-foreground">Group waiver - {s.participants.length} participants</p>}
+                  <p className="break-words font-semibold">{s.signer_name}</p>
+                  <WaiverParticipantList participants={s.participants} />
                   <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {s.signer_email ?? "No email provided"}
                   </p>
@@ -299,13 +302,14 @@ export default async function SignaturesPage({
                       className="inline-flex items-center gap-2 font-medium hover:underline"
                     >
                       {s.signer_name}
-                        {s.participants && <span className="text-xs text-muted-foreground">Group - {s.participants.length}</span>}
+                        {s.participants?.length > 0 && <span className="text-xs text-muted-foreground">Primary signer</span>}
                       {s.flagged && (
                         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                           Flagged
                         </span>
                       )}
                     </Link>
+                    <WaiverParticipantList participants={s.participants} href={`/signatures/${s.id}`} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{s.signer_email ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
