@@ -49,7 +49,9 @@ export default async function CheckinPage({
       .from("checkins")
       .select("id, signed_waiver_id, checked_in_at")
       .gte("checked_in_at", todayStart.toISOString())
-      .order("checked_in_at", { ascending: false }),
+      .order("checked_in_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(0, 999),
     supabase.from("waiver_templates").select("id, name"),
   ]);
 
@@ -80,6 +82,20 @@ export default async function CheckinPage({
   const signatures = signaturesResult.data;
   const templates = templatesResult.data;
   const checkins = (checkinsResult.data ?? []) as CheckinRow[];
+  // PostgREST caps each response. Read every batch so a busy day's older
+  // check-ins and the distinct-waiver total do not silently disappear.
+  let batchSize = checkins.length;
+  while (batchSize === 1000) {
+    const { data, error } = await supabase.from("checkins")
+      .select("id, signed_waiver_id, checked_in_at")
+      .gte("checked_in_at", todayStart.toISOString())
+      .order("checked_in_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(checkins.length, checkins.length + 999);
+    if (error) return <DataLoadError retryHref={q ? `/checkin?q=${encodeURIComponent(q)}` : "/checkin"} />;
+    batchSize = data?.length ?? 0;
+    checkins.push(...(data ?? []));
+  }
   const latestCheckin = new Map<string, CheckinRow>();
   for (const c of checkins) {
     if (!latestCheckin.has(c.signed_waiver_id)) latestCheckin.set(c.signed_waiver_id, c);
@@ -110,7 +126,8 @@ export default async function CheckinPage({
           name="q"
           defaultValue={q}
           placeholder="Search participants by name…"
-          className="min-w-64 rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
+          aria-label="Search participants by name"
+          className="min-w-0 w-full sm:w-64 rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
         />
         <button
           type="submit"

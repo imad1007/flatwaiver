@@ -5,11 +5,12 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const jsx = require('react/jsx-runtime');
 const { renderToStaticMarkup } = require('react-dom/server');
-let rows = [], calls = [], role = 'staff', controls = [];
+let rows = [], calls = [], role = 'staff', controls = [], busyDay = false;
+const attendance = Array.from({length:1001}, (_,i)=>({id:`attendance-${i}`,signed_waiver_id:i===1000?'group':`waiver-${i}`,checked_in_at:'2026-10-08T12:00:00Z'}));
 const db = { from(table) {
-  const chain = {};
-  for (const method of ['select','order','range','ilike','gte','lte','eq']) chain[method] = (...args) => { calls.push([table,method,...args]); return chain; };
-  chain.then = resolve => resolve({ error:null, data: table === 'signed_waivers' ? rows : table === 'checkins' ? [{ id:'attendance', signed_waiver_id:'group', checked_in_at:'2026-10-08T12:00:00Z' }] : [{id:'template',name:'Swimming'}], count:101 });
+  const chain = {}; let offset=0;
+  for (const method of ['select','order','range','ilike','gte','lte','eq']) chain[method] = (...args) => { calls.push([table,method,...args]); if(method==='range') offset=args[0]; return chain; };
+  chain.then = resolve => resolve({ error:null, data: table === 'signed_waivers' ? rows : table === 'checkins' ? busyDay ? attendance.slice(offset,offset+1000) : [{ id:'attendance', signed_waiver_id:'group', checked_in_at:'2026-10-08T12:00:00Z' }] : [{id:'template',name:'Swimming'}], count:101 });
   return chain;
 } };
 const deps = {
@@ -65,3 +66,10 @@ rows[0].participants[1].full_name='<script>alert(1)</script>';
 const html=renderToStaticMarkup(await signatures({searchParams:Promise.resolve({})}));
 assert.ok(html.includes('&lt;script&gt;') && !html.includes('<script>'));
 console.log('PASS: single/2/10/12 participants, legacy DOB, links, no sensitive markup, paginated server search/filter queries, one group check-in, viewer permissions, XSS escaping');
+
+busyDay=true;calls=[];controls=[];
+const busyHtml=renderToStaticMarkup(await checkin({searchParams:Promise.resolve({q:'Member'})}));
+assert.equal(controls[0].checkinId,'attendance-1000');
+assert.ok(busyHtml.includes('1001'));
+assert.ok(calls.some(c=>c[0]==='checkins' && c[1]==='range' && c[2]===1000));
+console.log('PASS: 1001 daily check-ins preserve older group status and full distinct-waiver count');

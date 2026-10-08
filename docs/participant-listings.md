@@ -28,3 +28,11 @@ Migration 0027 remains the separate prerequisite for the earlier DOB feature; th
 6. As viewer, confirm check-in controls are read-only. Switch organizations and verify other organizations' records cannot be searched or opened.
 
 Automated coverage renders 12-participant fixtures as a forward-compatibility check; it does not increase the signing limit. A real browser/mobile smoke test and production-scale query timing remain manual checks.
+
+## Regression review
+
+Fixed Front Desk silently losing check-in status and undercounting the total after the default 1,000-row API cap. Today's check-ins are now fetched in ordered batches; a 1,001-record regression verifies the last group's status and the distinct-waiver total. This preserves the existing count semantics and adds no participant-level queries. The search field now fits narrow containers and has an accessible label.
+
+Added `scripts/verify-checkin-actions.mjs` to exercise the actual check-in/undo actions with organization filters, staff/viewer permissions and sequential duplicate prevention. Listing coverage checks single/2/10/12-person groups, historical DOB omissions, navigation, search/filter/range queries and absence of sensitive data in markup.
+
+The broader responsive contract suite currently fails on an unchanged waiver-editor assertion (`overflow-x-hidden overflow-y-auto`); its Front Desk assertions pass. No unrelated editor changes were made. Browser surfaces are unavailable, so physical/mobile browser rendering is unverified. Production query latency and simultaneous check-in requests remain untested. Existing check-in creation uses a read-before-insert operation without a database uniqueness constraint, so simultaneous requests are not guaranteed to deduplicate; this predates the listing changes. Batch retrieval assumes the default API row cap of at least 1,000 and is not a transaction snapshot while staff make concurrent changes.
