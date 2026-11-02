@@ -9,10 +9,11 @@ let rows = [], calls = [], role = 'staff', controls = [], busyDay = false;
 const attendance = Array.from({length:1001}, (_,i)=>({id:`attendance-${i}`,signed_waiver_id:i===1000?'group':`waiver-${i}`,checked_in_at:'2026-10-08T12:00:00Z'}));
 const db = { from(table) {
   const chain = {}; let offset=0;
-  for (const method of ['select','order','range','ilike','gte','lte','eq']) chain[method] = (...args) => { calls.push([table,method,...args]); if(method==='range') offset=args[0]; return chain; };
+  for (const method of ['select','order','range','ilike','gte','lte','lt','eq','returns']) chain[method] = (...args) => { calls.push([table,method,...args]); if(method==='range') offset=args[0]; return chain; };
   chain.then = resolve => resolve({ error:null, data: table === 'signed_waivers' ? rows : table === 'checkins' ? busyDay ? attendance.slice(offset,offset+1000) : [{ id:'attendance', signed_waiver_id:'group', checked_in_at:'2026-10-08T12:00:00Z' }] : [{id:'template',name:'Swimming'}], count:101 });
   return chain;
 } };
+db.rpc = (name, args) => { calls.push(['rpc',name,args]); return db.from('signed_waivers'); };
 const deps = {
   'react/jsx-runtime':jsx,
   'next/link':{default:({children,...props})=>jsx.jsx('a',{...props,children})},
@@ -46,7 +47,7 @@ for (const count of [0,2,10,12]) {
     assert.equal(html.includes('Primary signer'),count>0);
     assert.ok(!html.includes('1990-02-01') && !html.includes('private-evidence'));
     assert.ok(html.includes('href="/signatures/group"'));
-    assert.ok(calls.some(c=>c[1]==='ilike' && c[2]==='participant_search' && c[3]==='%Member%'));
+    assert.ok(page===checkin ? calls.some(c=>c[0]==='rpc' && c[1]==='search_front_desk_waivers' && c[2].p_query==='Member') : calls.some(c=>c[1]==='ilike' && c[2]==='participant_search' && c[3]==='%Member%'));
     assert.equal(calls.filter(c=>c[1]==='select').length,page===checkin?3:2);
     assert.ok(calls.some(c=>c[1]==='range' && c[2]===(page===checkin?25:50)));
     if(page===checkin) {
@@ -73,3 +74,19 @@ assert.equal(controls[0].checkinId,'attendance-1000');
 assert.ok(busyHtml.includes('1001'));
 assert.ok(calls.some(c=>c[0]==='checkins' && c[1]==='range' && c[2]===1000));
 console.log('PASS: 1001 daily check-ins preserve older group status and full distinct-waiver count');
+
+rows=[{id:'family',signer_name:'Parent Taylor',guardian_name:'Guardian Taylor',template_id:'template',
+ signed_at:'2025-01-01T12:00:00Z',is_minor:false,
+ participants:[{full_name:'Parent Taylor'},{full_name:'Chloe Taylor',is_minor:true,guardian_name:'Guardian Taylor'}],
+ field_values:{child_name:'Chloe Legacy',medical_note:'Do not show'},
+ template_versions:{fields:[{key:'child_name',type:'name',label:'Child name'},{key:'medical_note',type:'text',label:'Medical note'}]}}];
+calls=[];controls=[];
+const childHtml=renderToStaticMarkup(await checkin({searchParams:Promise.resolve({q:'cHlOe',page:'2'})}));
+assert.ok(childHtml.includes('Chloe Taylor') && childHtml.includes('Guardian: Guardian Taylor'));
+assert.ok(childHtml.includes('Child name: Chloe Legacy') && childHtml.includes('Name match'));
+assert.ok(!childHtml.includes('Do not show'));
+assert.ok(childHtml.includes('href="/signatures/family"'));
+assert.ok(calls.some(c=>c[1]==='range' && c[2]===25));
+assert.ok(!calls.some(c=>c[0]==='signed_waivers' && c[1]==='gte'),'Searching must include historical records');
+assert.ok(childHtml.includes('q=cHlOe&amp;page=1'));
+console.log('PASS: matching child, guardian and custom-name display, case-insensitive match labels, historical search and pagination links');

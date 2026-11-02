@@ -1,4 +1,4 @@
-import { WaiverParticipantList } from "@/components/waiver-participant-list";
+import { WaiverParticipantList, WaiverCustomNameMatches } from "@/components/waiver-participant-list";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
@@ -8,6 +8,12 @@ import { EmptyState } from "@/components/empty-state";
 import { DataLoadError } from "@/components/data-load-error";
 import { getOrgCaller } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/permissions";
+import type { SignedWaiver, WaiverField } from "@/lib/types";
+
+type FrontDeskSignature = Pick<SignedWaiver,
+  "id" | "signer_name" | "signer_email" | "is_minor" | "flagged" | "signed_at" |
+  "template_id" | "guardian_name" | "participants" | "field_values"
+> & { template_versions: { fields: WaiverField[] } | { fields: WaiverField[] }[] | null };
 
 interface CheckinRow {
   id: string;
@@ -32,15 +38,15 @@ export default async function CheckinPage({
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
 
-  let sigQuery = supabase
-    .from("signed_waivers")
-    .select("id, signer_name, signer_email, is_minor, flagged, signed_at, template_id, participants", { count: "exact" })
+  // Search all authorized records before pagination, including historical versions.
+  let sigQuery = (q
+    ? supabase.rpc("search_front_desk_waivers", { p_query: q })
+    : supabase.from("signed_waivers"))
+    .select("id, signer_name, signer_email, is_minor, flagged, signed_at, template_id, guardian_name, participants, field_values, template_versions!template_version_id(fields)", { count: "exact" })
     .order("signed_at", { ascending: false })
     .order("id", { ascending: false });
   const pageSize = q ? 25 : 200;
-  sigQuery = q
-    ? sigQuery.ilike("participant_search", `%${q}%`)
-    : sigQuery.gte("signed_at", todayStart.toISOString());
+  if (!q) sigQuery = sigQuery.gte("signed_at", todayStart.toISOString());
   sigQuery = sigQuery.range((page - 1) * pageSize, page * pageSize - 1);
 
   const [signaturesResult, checkinsResult, templatesResult] = await Promise.all([
@@ -101,7 +107,7 @@ export default async function CheckinPage({
     if (!latestCheckin.has(c.signed_waiver_id)) latestCheckin.set(c.signed_waiver_id, c);
   }
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
-  const rows = signatures ?? [];
+  const rows = (signatures ?? []) as FrontDeskSignature[];
   const totalPages = Math.max(1, Math.ceil((signaturesResult.count ?? 0) / pageSize));
   const pageHref = (next: number) => `/checkin?${new URLSearchParams({ ...(q ? { q } : {}), page: String(next) })}`;
 
@@ -125,8 +131,8 @@ export default async function CheckinPage({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="Search participants by name…"
-          aria-label="Search participants by name"
+          placeholder="Search participants or guardians by name…"
+          aria-label="Search participants or guardians by name"
           className="min-w-0 w-full sm:w-64 rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
         />
         <button
@@ -197,7 +203,9 @@ export default async function CheckinPage({
                           </span>
                         )}
                       </Link>
-                      <WaiverParticipantList participants={s.participants} href={`/signatures/${s.id}`} />
+                      {s.guardian_name && <p className="mt-1 text-sm text-muted-foreground">Guardian: {s.guardian_name}</p>}
+                      <WaiverParticipantList participants={s.participants ?? null} href={`/signatures/${s.id}`} query={q} />
+                      <WaiverCustomNameMatches fields={Array.isArray(s.template_versions) ? s.template_versions[0]?.fields : s.template_versions?.fields} values={s.field_values} query={q} />
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {templateNames.get(s.template_id) ?? "—"}
@@ -211,7 +219,7 @@ export default async function CheckinPage({
                           })}
                     </td>
                     <td className="px-4 py-3">
-                      {s.participants?.length > 0 && <p className="mb-1 text-xs text-muted-foreground">Group check-in</p>}
+                      {(s.participants?.length ?? 0) > 0 && <p className="mb-1 text-xs text-muted-foreground">Group check-in</p>}
                       <CheckinButton
                         signedWaiverId={s.id}
                         checkinId={checkin?.id}
