@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { SIGNER_LANGUAGES, signerDirection, signerLanguage, signerFieldLabel, signerText, type SignerLanguage } from "@/lib/signer-language";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   medicalAnswerIsYes,
   MEDICAL_CONDITION_DETAIL_KEY,
   MEDICAL_CONDITION_KEY,
+  type DocumentDisplay,
   type PhotoMode,
   type SigningChannel,
   type WaiverBlock,
@@ -37,6 +38,7 @@ async function fileToResizedDataUrl(file: File, maxDim = 1200, quality = 0.8): P
 }
 
 export interface SigningFormProps {
+  documentDisplay?: DocumentDisplay;
   groupSigningEnabled?: boolean;
   defaultLanguage?: SignerLanguage;
   slug: string;
@@ -57,6 +59,8 @@ export interface SigningFormProps {
 
 export function SigningForm(props: SigningFormProps) {
   const router = useRouter();
+  const documentId = useId();
+  const [documentExpanded, setDocumentExpanded] = useState(false);
   const [language, setLanguage] = useState<SignerLanguage>(props.defaultLanguage ?? "en");
   const t = (text: string) => signerText(text, language);
   const [fieldValues, setFieldValues] = useState<Record<string, string | boolean>>({});
@@ -107,6 +111,7 @@ export function SigningForm(props: SigningFormProps) {
     medicalConditional && medicalAnswerIsYes(fieldValues[MEDICAL_CONDITION_KEY]);
 
   function resetForm() {
+    setDocumentExpanded(false);
     if (kioskResetTimerRef.current) {
       clearTimeout(kioskResetTimerRef.current);
       kioskResetTimerRef.current = null;
@@ -296,7 +301,18 @@ export function SigningForm(props: SigningFormProps) {
         </div>
       )}
       {/* Waiver text */}
-      <div className="min-w-0 space-y-4 overflow-x-hidden rounded-xl border border-border bg-card p-5 leading-relaxed">
+      {props.documentDisplay === "collapsed" && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="font-semibold">{t("Waiver document")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("Review the complete legal document before signing.")}</p>
+          <button type="button" aria-expanded={documentExpanded} aria-controls={documentId}
+            onClick={() => setDocumentExpanded(expanded => !expanded)}
+            className="mt-3 min-h-12 w-full rounded-lg border border-primary px-5 py-3 font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto">
+            {t(documentExpanded ? "Hide Document" : "View Document")}
+          </button>
+        </div>
+      )}
+      <div id={documentId} hidden={props.documentDisplay === "collapsed" && !documentExpanded} className="min-w-0 space-y-4 overflow-x-hidden rounded-xl border border-border bg-card p-5 leading-relaxed">
         {props.blocks.map((block, i) => (
           <BlockView key={i} block={block} />
         ))}

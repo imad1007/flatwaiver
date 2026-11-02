@@ -86,6 +86,7 @@ export const DEFAULT_CONSENT_TEXT =
   "I agree to sign this document electronically and I acknowledge that my electronic signature is legally binding, per the ESIGN Act and UETA.";
 
 export type TemplateStatus = "draft" | "published" | "archived";
+export type DocumentDisplay = "full" | "collapsed";
 export type PhotoMode = "off" | "optional" | "required";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
 export type SigningChannel = "link" | "kiosk" | "qr";
@@ -149,6 +150,7 @@ export interface WaiverTemplate {
   expiry_months: number | null;
   /** Photo/ID capture policy at signing (migration 0013). */
   photo_mode: PhotoMode;
+  document_display?: DocumentDisplay;
   created_at: string;
   updated_at: string;
 }

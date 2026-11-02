@@ -347,3 +347,19 @@ export async function sendResignReminder(signedWaiverId: string) {
   revalidatePath("/signatures/renewals");
   return { ok: true };
 }
+
+/** Presentation policy only; never edits immutable versions. */
+export async function setDocumentDisplay(templateId: string, rawDisplay: string) {
+  await requireOrgRole("staff");
+  const display = z.enum(["full", "collapsed"]).parse(rawDisplay);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("waiver_templates")
+    .update({ document_display: display, updated_at: new Date().toISOString() })
+    .eq("id", templateId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) throw new Error("Couldn't save the document display setting.");
+  revalidatePath(`/waivers/${templateId}`);
+  return { ok: true };
+}

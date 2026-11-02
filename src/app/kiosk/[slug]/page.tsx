@@ -68,6 +68,7 @@ export default async function KioskPage({
         groupSigningEnabled={waiver.version.group_signing_enabled ?? false}
         minorMode={waiver.version.minor_mode}
         channel="kiosk"
+        documentDisplay={waiver.documentDisplay}
         photoMode={waiver.photoMode}
         kiosk
       />

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canAcceptPublicSignatures } from "@/lib/billing-lifecycle";
-import type { OrgBranding, PhotoMode, TemplateVersion } from "@/lib/types";
+import type { DocumentDisplay, OrgBranding, PhotoMode, TemplateVersion } from "@/lib/types";
 
 export interface PublicBranding {
   /** Hex brand color, validated. */
@@ -23,6 +23,7 @@ export interface PublicWaiver {
   branding: PublicBranding;
   /** Photo/ID capture policy for this waiver. */
   photoMode: PhotoMode;
+  documentDisplay: DocumentDisplay;
   /** false when the org's subscription lapsed — signing is paused. */
   acceptingSignatures: boolean;
 }
@@ -46,7 +47,7 @@ export async function getPublishedWaiverBySlug(
 
   const { data: template, error: templateError } = await admin
     .from("waiver_templates")
-    .select("id, org_id, name, slug, status, current_version_id, photo_mode")
+    .select("id, org_id, name, slug, status, current_version_id, photo_mode, document_display")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
@@ -102,6 +103,7 @@ export async function getPublishedWaiverBySlug(
     slug: template.slug,
     version: version as TemplateVersion,
     branding: { color, logoUrl, logoPath: rawBranding.logo_path ?? null },
+    documentDisplay: template.document_display === "collapsed" ? "collapsed" : "full",
     photoMode: (template.photo_mode as PhotoMode) ?? "off",
     acceptingSignatures: canAcceptPublicSignatures(sub),
   };

@@ -75,6 +75,7 @@ export default async function PublicSigningPage({
         groupSigningEnabled={waiver.version.group_signing_enabled ?? false}
         minorMode={waiver.version.minor_mode}
         channel="link"
+        documentDisplay={waiver.documentDisplay}
         photoMode={waiver.photoMode}
         tag={typeof tag === "string" ? tag.slice(0, 200) : undefined}
       />
