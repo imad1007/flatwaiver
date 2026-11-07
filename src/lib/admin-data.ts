@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isMissingTableError } from "@/lib/blog-db";
 import { APP } from "@/lib/config";
 import type { SubscriptionStatus } from "@/lib/types";
+import { countryCode } from "@/lib/country";
 
 /**
  * Cross-tenant read model for the admin panel. Data comes from the
@@ -13,6 +14,7 @@ import type { SubscriptionStatus } from "@/lib/types";
  */
 
 export interface CustomerRow {
+  ownerCountryCode?: string | null;
   orgId: string;
   name: string;
   createdAt: string;
@@ -116,12 +118,26 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   }
 
   const banned = await bannedUserIds();
+  // Do not send raw customer IPs to the directory's client component.
+  const locations = new Map<string, string | null>();
+  const owners = [...new Set(data.map(row => row.owner_user_id).filter((id): id is string => Boolean(id)))];
+  for (let offset = 0; offset < owners.length; offset += 200) {
+    const { data: records, error } = await admin.from("account_locations")
+      .select("user_id, country_code")
+      .in("user_id", owners.slice(offset, offset + 200));
+    if (error) {
+      console.warn("Customer countries could not be loaded");
+      break;
+    }
+    for (const record of records ?? []) locations.set(record.user_id, countryCode(record.country_code));
+  }
   const rows: CustomerRow[] = (data as OverviewRow[]).map((r) => ({
     orgId: r.org_id,
     name: r.name,
     createdAt: r.created_at,
     ownerEmail: r.owner_email,
     ownerUserId: r.owner_user_id,
+    ownerCountryCode: r.owner_user_id ? locations.get(r.owner_user_id) ?? null : null,
     status: r.status,
     trialEndsAt: r.trial_ends_at,
     currentPeriodEnd: r.current_period_end,

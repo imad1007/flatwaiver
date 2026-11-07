@@ -5,6 +5,7 @@ import { AlertCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureBootstrapped } from "@/lib/bootstrap";
+import { recordAccountLocation } from "@/lib/account-location";
 import { isPlatformAdmin } from "@/lib/admin";
 import { AppShell } from "@/components/app-shell";
 import type { NotificationItem } from "@/components/notifications-menu";
@@ -38,6 +39,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   await ensureBootstrapped(user);
+  await recordAccountLocation(user.id);
 
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin

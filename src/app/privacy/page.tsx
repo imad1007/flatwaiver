@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       <MarketingHeader />
       <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
         <h1 className="text-3xl font-bold">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Last updated: September 21, 2026</p>
+        <p className="mt-2 text-sm text-muted-foreground">Last updated: November 7, 2026</p>
 
         <div className="prose-neutral mt-8 space-y-6 leading-relaxed text-foreground/90">
           <section>
@@ -34,6 +34,8 @@ export default function PrivacyPage() {
               <strong>From organization accounts:</strong> email address, password
               (hashed), business name, approximate monthly waiver volume, and billing
               information processed by Stripe. We do not store card numbers.
+              We also store the latest IP address and approximate country observed
+              when you use your account, for account administration and security.
             </p>
             <p className="mt-2">
               <strong>From signers:</strong> when you sign a waiver we collect the

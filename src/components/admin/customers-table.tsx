@@ -1,5 +1,7 @@
 "use client";
 
+import "flag-icons/css/flag-icons.min.css";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CustomerRowActions } from "@/components/admin/customer-row-actions";
 import { customerPlan, CUSTOMER_PLANS, filterCustomers } from "@/lib/customer-table";
 import type { CustomerRow } from "@/lib/admin-data";
+import { CustomerCountry } from "@/components/admin/customer-country";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const date = (value: string | null) => value && Number.isFinite(Date.parse(value))
@@ -92,7 +95,7 @@ export function CustomersTable({ rows, now }: { rows: CustomerRow[]; now: number
                   <TableCell className="min-w-52 max-w-80 py-4">
                     <Link href={`/admin/customers/${row.orgId}`} className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-primary">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">{row.name.slice(0, 1).toUpperCase()}</span>
-                      <span className="min-w-0"><span className="block truncate font-medium group-hover:text-primary" title={row.name}>{row.name}</span><span className="block truncate text-xs text-muted-foreground" title={row.ownerEmail ?? undefined}>{row.ownerEmail ?? "No owner email"}</span></span>
+                      <span className="min-w-0"><span className="flex items-center gap-2"><span className="truncate font-medium group-hover:text-primary" title={row.name}>{row.name}</span><CustomerCountry code={row.ownerCountryCode} /></span><span className="block truncate text-xs text-muted-foreground" title={row.ownerEmail ?? undefined}>{row.ownerEmail ?? "No owner email"}</span></span>
                     </Link>
                     {row.suspended && <span className="mt-1 inline-block rounded bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Suspended</span>}
                   </TableCell>
