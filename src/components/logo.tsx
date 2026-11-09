@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Brand mark: filled shield in the primary color with a white check.
- * Mirrors src/app/icon.svg (the favicon) — keep the two in sync.
+ * In-app vector mark. Favicons use the approved public/flatwaiver-logo.png artwork.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
