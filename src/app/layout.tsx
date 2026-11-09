@@ -6,6 +6,7 @@ import { pixelEnabled } from "@/lib/openai-pixel";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { CookieConsent } from "@/components/cookie-consent";
 import { LiveChat } from "@/components/live-chat";
 import { Toaster } from "@/components/ui/sonner";
@@ -85,6 +86,7 @@ export default function RootLayout({
         <Toaster position="bottom-right" />
         <CookieConsent />
         <Analytics />
+        <VercelAnalytics />
         <OpenAIPixel enabled={pixelEnabled(process.env.VERCEL_ENV, process.env.OPENAI_ADS_PIXEL_ENABLED)} />
         <TikTokPixel enabled={tiktokEnabled(process.env.VERCEL_ENV, process.env.TIKTOK_PIXEL_ENABLED)} />
         <LiveChat />
