@@ -1,0 +1,10 @@
+.content {
+  --dot-color: color-mix(in oklab, var(--foreground) 9%, transparent);
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1.2px);
+  background-size: 28px 28px;
+}
+
+/* One continuous pattern; opaque cards and the hero keep their own surfaces. */
+.content > section {
+  background-color: transparent;
+}

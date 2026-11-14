@@ -74,9 +74,10 @@ export function IndustriesSection() {
 
 export function MobileSigningSection() {
   return (
-    <section aria-labelledby="mobile-signing-heading" className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-      <div className="grid items-center gap-x-14 gap-y-8 lg:grid-cols-2 lg:grid-rows-[1fr_auto_1fr]">
-        <div className="lg:self-end">
+    <section aria-labelledby="mobile-signing-heading" className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
+      <div className="grid items-center gap-x-14 gap-y-7 lg:grid-cols-2">
+        <div className="contents lg:block">
+        <div>
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Sign anywhere, in seconds</p>
           <h2 id="mobile-signing-heading" className="mt-3 max-w-lg text-3xl font-extrabold tracking-tight sm:text-4xl">Less paperwork.<br />More happy customers.</h2>
           <p className="mt-5 max-w-lg leading-relaxed text-muted-foreground">Your guests scan, sign, and get started. No app downloads or signer accounts required.</p>
@@ -89,12 +90,13 @@ export function MobileSigningSection() {
             ))}
           </ul>
         </div>
-        <SigningPreview />
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 lg:col-start-1 lg:row-start-2 lg:-mt-2">
+        <div className="row-start-3 flex flex-wrap items-center gap-x-6 gap-y-4 lg:mt-7">
           <Button size="lg" render={<Link href="/signup" />} className="min-h-12 px-5">Start your free trial <ArrowRight className="size-4" aria-hidden /></Button>
           <Link href="/blog/gym-waiver-software" className={`inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-primary underline underline-offset-4 ${focus}`}>Explore gym waiver software</Link>
           <p className="w-full text-xs text-muted-foreground">14 days free. No credit card required.</p>
         </div>
+        </div>
+        <SigningPreview />
       </div>
     </section>
   );
@@ -103,12 +105,12 @@ export function MobileSigningSection() {
 /** Static, synthetic example based on SigningForm and SignatureCanvas. No live form controls. */
 function SigningPreview() {
   return (
-    <figure className="min-w-0 rounded-3xl border border-border bg-muted/30 px-4 pb-5 pt-6 sm:px-8 lg:row-span-3">
+    <figure className="row-start-2 min-w-0 rounded-3xl border border-border bg-card px-4 pb-5 pt-5 sm:px-8 lg:col-start-2 lg:row-start-1">
       <div className="mb-5 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span className="font-medium text-foreground">The guest experience</span><span className="rounded-full border border-border bg-card px-2.5 py-1">Sample preview</span></div>
       <div aria-hidden="true" className="mx-auto max-w-[284px] rounded-[2.5rem] border border-border bg-background p-2 shadow-pop">
         <div className="overflow-hidden rounded-[2rem] border border-border bg-card">
           <div className="flex items-center justify-center gap-1.5 border-b border-border bg-muted/40 py-3 text-[10px] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-success" />{APP.name} · Secure signing</div>
-          <div className="space-y-4 p-4 text-[11px]">
+          <div className="space-y-3 p-4 text-[11px]">
             <div><p className="text-[10px] text-muted-foreground">Summit Climbing · Sample business</p><p className="mt-1.5 text-lg font-bold tracking-tight">Climbing waiver</p><p className="mt-1 text-muted-foreground">Read carefully before signing.</p></div>
             <div className="rounded-xl border border-border bg-muted/20 p-3"><p className="font-semibold">Assumption of risk</p><p className="mt-2 leading-relaxed text-muted-foreground">I understand that climbing involves risks and acknowledge my responsibility to follow the facility’s safety instructions.</p><p className="mt-2 text-[9px] text-muted-foreground">Illustrative excerpt, not a legal template.</p></div>
             <div className="flex gap-2 rounded-xl border border-border p-3"><span className="flex size-4 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground"><Check className="size-3" /></span><span>I agree to sign electronically.</span></div>

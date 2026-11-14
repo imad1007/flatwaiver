@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import styles from "./homepage.module.css";
 import {
   ArrowRight,
   BadgeCheck,
@@ -190,20 +191,22 @@ export default async function LandingPage() {
       <MarketingHeader />
       <main className="flex-1 overflow-x-clip">
         <Hero />
-        <IndustriesSection />
-        <HowItWorks />
-        <MobileSigningSection />
-        <Comparison />
-        <Features />
-        <HonestyStrip />
-        <TryIt />
-        <Bento />
-        <WhyWeBuiltThis />
-        <Testimonials />
-        <Pricing />
-        <Guides posts={posts} />
-        <Faq />
-        <FinalCta />
+        <div className={styles.content}>
+          <IndustriesSection />
+          <HowItWorks />
+          <MobileSigningSection />
+          <Comparison />
+          <Features />
+          <HonestyStrip />
+          <TryIt />
+          <Bento />
+          <WhyWeBuiltThis />
+          <Testimonials />
+          <Pricing />
+          <Guides posts={posts} />
+          <Faq />
+          <FinalCta />
+        </div>
       </main>
       <MarketingFooter />
     </>
