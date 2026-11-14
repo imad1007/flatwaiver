@@ -26,6 +26,7 @@ import {
   PhoneMockup,
   QrChip,
 } from "@/components/marketing/mockups";
+import { IndustriesSection, MobileSigningSection } from "@/components/marketing/homepage-sections";
 import { HeroDemo } from "@/components/marketing/hero-demo";
 import { DemoSandbox } from "@/components/marketing/demo-sandbox";
 import { Button } from "@/components/ui/button";
@@ -43,24 +44,6 @@ import {
 export const revalidate = 600;
 
 // ─── Content ────────────────────────────────────────────────────────────────
-
-const INDUSTRIES = [
-  "Gyms & fitness",
-  "Climbing facilities",
-  "Trampoline parks",
-  "Martial arts",
-  "Tours & activities",
-  "Rentals",
-  "Gun ranges",
-  "Escape rooms",
-];
-
-const STATS = [
-  { value: `$${APP.priceMonthlyUsd}`, label: "per month. Flat, forever." },
-  { value: "∞", label: "waivers, templates & storage" },
-  { value: "< 5 min", label: "from PDF to live signing link" },
-  { value: "14 days", label: "free trial, no card required" },
-];
 
 const COMPARISON = [
   ...PUBLISHED_COMPETITOR_PRICING.map((competitor) => ({
@@ -207,10 +190,9 @@ export default async function LandingPage() {
       <MarketingHeader />
       <main className="flex-1 overflow-x-clip">
         <Hero />
-        <Industries />
-        <Stats />
+        <IndustriesSection />
         <HowItWorks />
-        <MobileSigning />
+        <MobileSigningSection />
         <Comparison />
         <Features />
         <HonestyStrip />
@@ -380,56 +362,6 @@ function Hero() {
   );
 }
 
-function Industries() {
-  return (
-    <section className="border-y border-border bg-muted/40 py-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Built for businesses collecting liability waivers
-        </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          {INDUSTRIES.map((label) => (
-            <span
-              key={label}
-              className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-muted-foreground"
-            >
-              {label === "Martial arts" ? <Link href="/industries/martial-arts" className="hover:underline">{label}</Link>
-                : label === "Gyms & fitness" ? <Link href="/industries/fitness-studios" className="hover:underline">{label}</Link>
-                : label === "Climbing facilities" ? <Link href="/industries/climbing-gyms" className="hover:underline">{label}</Link>
-                : label === "Trampoline parks" ? <Link href="/industries/trampoline-parks" className="hover:underline">{label}</Link>
-                : label}
-            </span>
-          ))}
-        </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Explore <Link href="/blog/gym-waiver-software" className="underline underline-offset-2">waiver software for gyms</Link>{" "}
-          and <Link href="/blog/waiver-software-for-climbing-gyms" className="underline underline-offset-2">climbing gym waiver software</Link>.
-        </p>
-        <p className="mt-3 text-center text-sm"><Link href="/industries" className="font-medium text-primary underline underline-offset-4">Find the waiver workflow for your industry</Link></p>
-      </div>
-    </section>
-  );
-}
-
-function Stats() {
-  return (
-    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <div className="grid gap-8 text-center sm:grid-cols-4">
-        {STATS.map((stat, i) => (
-          <Reveal key={stat.label} delay={i * 80}>
-            <div>
-              <div className="text-4xl font-extrabold tracking-tight text-brand-600 dark:text-brand-300">
-                {stat.value}
-              </div>
-              <div className="mt-1.5 text-sm text-muted-foreground">{stat.label}</div>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function HowItWorks() {
   const steps = [
     {
@@ -472,53 +404,6 @@ function HowItWorks() {
               </div>
             </Reveal>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MobileSigning() {
-  return (
-    <section aria-labelledby="mobile-signing-heading" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-      <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
-        <figure className="min-w-0">
-          <Image
-            src="/images/gym-digital-waiver-phone.webp"
-            alt="Gym visitor signing a digital participant waiver on a smartphone at the front desk"
-            width={1600}
-            height={900}
-            sizes="(min-width: 1152px) 580px, (min-width: 1024px) 52vw, (min-width: 640px) calc(100vw - 48px), calc(100vw - 32px)"
-            className="h-auto w-full rounded-2xl border border-border shadow-card"
-          />
-          <figcaption className="mt-3 text-xs text-muted-foreground">
-            An illustration of mobile waiver signing at a gym.
-          </figcaption>
-        </figure>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">Ready before the activity starts</p>
-          <h2 id="mobile-signing-heading" className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Digital waivers. Signed on their phone.
-          </h2>
-          <p className="mt-5 leading-relaxed text-muted-foreground">
-            Give visitors a signing link before they arrive, or let them scan a QR code
-            at your front desk. They can read and sign your waiver on their own phone,
-            so your team can focus on welcoming them.
-          </p>
-          <p className="mt-4 leading-relaxed text-muted-foreground">
-            Keep signed waivers in one searchable place and download PDF copies when
-            you need them. For gyms, climbing facilities, and activity businesses,
-            {" "}{APP.name} includes unlimited signed waivers, waiver templates, and storage
-            for ${APP.priceMonthlyUsd}/month.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center gap-5">
-            <Link href="/signup" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90">
-              Start your free trial <ArrowRight className="size-4" />
-            </Link>
-            <Link href="/blog/gym-waiver-software" className="text-sm font-semibold text-primary underline underline-offset-4">
-              Explore gym waiver software
-            </Link>
-          </div>
         </div>
       </div>
     </section>
