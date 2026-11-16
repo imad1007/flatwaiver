@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Image from "next/image";
 import styles from "./homepage.module.css";
 import {
@@ -43,6 +44,19 @@ import {
 // ISR so newly published posts flow into the homepage "Guides" section (and
 // their homepage backlink) without a redeploy.
 export const revalidate = 600;
+
+// Use an absolute homepage URL: Next's internal /index route must never leak
+// into the canonical or Open Graph URL when this page is prerendered.
+export const metadata: Metadata = {
+  alternates: { canonical: `${APP.siteUrl}/` },
+  openGraph: {
+    type: "website",
+    siteName: APP.name,
+    title: `Digital Waiver Software — Unlimited Waivers for $${APP.priceMonthlyUsd}/mo | ${APP.name}`,
+    description: `Electronic waiver software for activity businesses. Collect signatures by link, QR code or kiosk and retrieve signed PDFs. $${APP.priceMonthlyUsd}/month, unlimited waivers.`,
+    url: `${APP.siteUrl}/`,
+  },
+};
 
 // ─── Content ────────────────────────────────────────────────────────────────
 

@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticEntries: MetadataRoute.Sitemap = pages.map(
     ({ path, priority, lastModified }) => ({
-      url: path === "/" ? base : `${base}${path}`,
+      url: path === "/" ? `${base}/` : `${base}${path}`,
       ...(lastModified
         ? { lastModified: new Date(`${lastModified}T00:00:00Z`) }
         : {}),
