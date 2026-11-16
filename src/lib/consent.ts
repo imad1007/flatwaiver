@@ -25,6 +25,7 @@ function readConsent(): Consent {
 export function setConsent(value: "granted" | "denied") {
   document.cookie = `${COOKIE}=${value}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
   if (value === "denied") {
+    try { localStorage.removeItem("fw-acquisition-v1"); } catch { /* Storage may be blocked. */ }
     // Remove our attribution cookie and any legacy SDK identifiers.
     for (const name of ["fw-openai-oppref", "__oppref", "__obref"]) {
       document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;

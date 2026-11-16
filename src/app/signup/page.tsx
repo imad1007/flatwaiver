@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { trackProductEvent } from "@/lib/product-analytics";
 import { fireSignupConversion } from "@/components/signup-conversion";
 import { APP } from "@/lib/config";
 import { AuthShell, authInputClass, authButtonClass } from "@/components/auth-shell";
@@ -70,9 +71,12 @@ function SignupForm() {
         return;
       }
 
-      fireSignupConversion();
-
       if (data.session) {
+        // A confirmed session + a real identity, not a form submission.
+        if (!isInviteSignup && (data.user?.identities?.length ?? 0) > 0) {
+          fireSignupConversion();
+          trackProductEvent("sign_up", { method: "email" });
+        }
         window.location.assign(`/auth/continue?next=${encodeURIComponent(next)}`);
       } else {
         // Email confirmation required by project settings.

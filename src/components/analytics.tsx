@@ -14,8 +14,8 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 /**
  * Google Analytics 4 + Google Ads (one shared gtag.js) + Microsoft Clarity.
  * Each product loads only when its id is set AND the visitor has accepted
- * cookies (see AnalyticsScripts). GA4 Enhanced Measurement captures SPA route
- * changes via History events, so no manual page_view wiring is needed.
+ * cookies (see AnalyticsScripts). Automatic pageviews remain the default; the manual-pageview rollout
+ * flag requires disabling GA4 history measurement first (docs/seo/measurement.md).
  */
 export function Analytics() {
   if (!GA_ID && !ADS_ID && !CLARITY_ID) return null;
