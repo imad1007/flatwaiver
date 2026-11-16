@@ -1,0 +1,113 @@
+{
+  "checkedOn": "2026-11-16",
+  "base": "http://localhost:3010",
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com",
+      "title": "Digital Waiver Software — Unlimited Waivers for $19/mo | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/pricing",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/pricing",
+      "title": "Digital Waiver Software Pricing — $19/Month | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/features/qr-code-waivers",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/features/qr-code-waivers",
+      "title": "QR Code Waiver Signing for Phones &amp; Front Desks | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 0
+    },
+    {
+      "path": "/industries",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/industries",
+      "title": "Digital Waiver Software by Industry | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 0
+    },
+    {
+      "path": "/industries/fitness-studios",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/industries/fitness-studios",
+      "title": "Gym Waiver Software for Fitness Studios &amp; Trainers | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/industries/climbing-gyms",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/industries/climbing-gyms",
+      "title": "Climbing Gym Waiver Software — Unlimited Waivers | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/industries/trampoline-parks",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/industries/trampoline-parks",
+      "title": "Trampoline Park Waiver Software for Family Arrivals | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/gym-waiver-software",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/gym-waiver-software",
+      "title": "Gym Waiver Software in 2026: How to Choose It (and What It Costs) | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/waiver-software-for-climbing-gyms",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/waiver-software-for-climbing-gyms",
+      "title": "Climbing Gym Waiver Software: Pricing &amp; Setup (2026) | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/smartwaiver-pricing",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/smartwaiver-pricing",
+      "title": "Smartwaiver Pricing 2026: Current Plans and Waiver Limits | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/smartwaiver-alternatives",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/smartwaiver-alternatives",
+      "title": "Smartwaiver alternatives for high-volume businesses (2026) | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/flatwaiver-vs-smartwaiver",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/flatwaiver-vs-smartwaiver",
+      "title": "FlatWaiver vs Smartwaiver: an honest 2026 comparison | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    },
+    {
+      "path": "/blog/waiver-software-cost",
+      "status": 200,
+      "canonical": "https://www.flatwaiver.com/blog/waiver-software-cost",
+      "title": "How much does waiver software cost? A 2026 pricing breakdown | FlatWaiver",
+      "robots": "noindex, nofollow",
+      "structuredData": 1
+    }
+  ],
+  "internalLinksChecked": 33,
+  "sitemapUrls": 33,
+  "redirectChecks": "PASS"
+}

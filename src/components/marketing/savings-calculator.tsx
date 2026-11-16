@@ -5,7 +5,6 @@ import {
   COMPARABLE_COMPETITORS,
   COMPETITOR_PRICING_CHECKED_ON,
   publishedPlanCost,
-  SMARTWAIVER_PRICING,
   SMARTWAIVER_PRICING_NOTICE,
 } from "@/lib/competitor-pricing";
 import { APP } from "@/lib/config";
@@ -16,7 +15,6 @@ const MAX_VOLUME = 1_000;
 const CHART_MAX = 160;
 
 export function SavingsCalculator() {
-  const [schedule, setSchedule] = useState<"current" | "announced">("current");
   const [volume, setVolume] = useState(1_000);
   const estimates = COMPARABLE_COMPETITORS.map((competitor) => ({
     name: competitor.name,

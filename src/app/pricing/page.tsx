@@ -6,7 +6,7 @@ import { PricingReference } from "@/components/marketing/pricing-reference";
 import { APP } from "@/lib/config";
 const title = `Digital Waiver Software Pricing — $${APP.priceMonthlyUsd}/Month | ${APP.name}`;
 const description = `One $${APP.priceMonthlyUsd}/month plan for unlimited signed waivers, templates and storage. ${APP.trialDays}-day free trial, no card required. See inclusions, limits and cancellation access.`;
-export const metadata: Metadata = { title, description, alternates: { canonical: `${APP.siteUrl}/pricing` }, openGraph: { title, description, url: `${APP.siteUrl}/pricing`, type: "website" } };
+export const metadata: Metadata = { title, description, alternates: { canonical: `${APP.siteUrl}/pricing` }, openGraph: { title, description, url: `${APP.siteUrl}/pricing`, type: "website", siteName: APP.name }, twitter: { card: "summary_large_image", title, description } };
 export default function PricingPage() {
  const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: APP.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: `${APP.siteUrl}/pricing`, offers: { "@type": "Offer", price: APP.priceMonthlyUsd, priceCurrency: "USD", url: `${APP.siteUrl}/pricing`, description: "Monthly subscription; unlimited signed waivers, templates and storage" } };
  return <><MarketingHeader /><main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
