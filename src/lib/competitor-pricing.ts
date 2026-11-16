@@ -1,5 +1,5 @@
-export const COMPETITOR_PRICING_CHECKED_ON = "September 10, 2026";
-export const SMARTWAIVER_PRICING_NOTICE = "Smartwaiver announced new pricing effective October 8, 2026.";
+export const COMPETITOR_PRICING_CHECKED_ON = "November 16, 2026";
+export const SMARTWAIVER_PRICING_NOTICE = "Smartwaiver rates shown are effective from October 8, 2026; confirm the applicable billing date with the vendor.";
 export const SMARTWAIVER_ANNOUNCEMENT_URL = "https://support.smartwaiver.com/hc/en-us/articles/48619421464845-Smartwaiver-Subscription-Pricing-Update-Overview-FAQs";
 
 // Only tiers with verified allowances participate in volume comparisons.
@@ -12,7 +12,7 @@ const verifiedSmartwaiverPlans = [
   { name: "Premium", monthlyWaivers: 2_500, monthlyUsd: 199 },
 ] as const;
 export const SMARTWAIVER_PRICING = {
-  current: {
+  historical: {
     checkedOn: "2026-09-10",
     announcedOn: null,
     effectiveFrom: null, // Original start date not verified; do not invent it.
@@ -20,7 +20,7 @@ export const SMARTWAIVER_PRICING = {
     plans: verifiedSmartwaiverPlans,
     premierMonthlyUsd: 270,
   },
-  announced: {
+  current: {
     checkedOn: "2026-09-10",
     announcedOn: "2026-09-08",
     effectiveFrom: "2026-10-08",
@@ -47,9 +47,9 @@ export interface PublishedCompetitorPricing {
 export const PUBLISHED_COMPETITOR_PRICING = [
   {
     name: "Smartwaiver",
-    sourceUrl: "https://www.smartwaiver.com/pricing",
-    priceSummary: "$19-$199 verified volume tiers (through Oct 7)",
-    thousandSummary: "$155/mo",
+    sourceUrl: SMARTWAIVER_ANNOUNCEMENT_URL,
+    priceSummary: "$22?$205 verified monthly volume tiers",
+    thousandSummary: "$160/mo",
     plans: SMARTWAIVER_PRICING.current.plans,
   },
   {
@@ -60,7 +60,7 @@ export const PUBLISHED_COMPETITOR_PRICING = [
   },
   {
     name: "WaiverFile",
-    sourceUrl: "https://www.waiverfile.com/Pricing.aspx",
+    sourceUrl: "https://help.waiverfile.com/Pricing.aspx",
     priceSummary: "$19–$249 by monthly volume",
     thousandSummary: "$149/mo",
     plans: [

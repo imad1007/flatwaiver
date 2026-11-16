@@ -1,6 +1,7 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
 import Image from "next/image";
+import { PricingReference } from "@/components/marketing/pricing-reference";
 
 /**
  * Element styling for blog MDX so posts read exactly like the rest of the
@@ -119,4 +120,5 @@ export const mdxComponents: MDXComponents = {
     />
   ),
   Callout,
+  PricingReference,
 };
