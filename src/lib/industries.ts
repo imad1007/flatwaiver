@@ -79,7 +79,7 @@ export const industries: Industry[] = [
       "martial-arts"
     ],
     "seoTitle": "Gym Waiver Software for Fitness Studios & Trainers",
-    "introduction": "Bring your studio?s reviewed participation waiver online. Trial clients can sign before their first workout, drop-ins can use a reception QR code, and coaches can retrieve the signed record before the session.",
+    "introduction": "Bring your studio’s reviewed participation waiver online. Trial clients can sign before their first workout, drop-ins can use a reception QR code, and coaches can retrieve the signed record before the session.",
     "checklistTitle": "Test the first-client handoff during your trial",
     "checklist": [
       "Prepare the reviewed document for one real service: personal training, a studio class or an outdoor bootcamp. Check every converted paragraph against your original.",
@@ -99,7 +99,7 @@ export const industries: Industry[] = [
       },
       {
         "need": "A complete gym-management platform",
-        "detail": "If you need memberships, class payments and attendance automatically connected to waivers, evaluate an integrated system. FlatWaiver?s link-sharing workflow does not synchronize those records."
+        "detail": "If you need memberships, class payments and attendance automatically connected to waivers, evaluate an integrated system. FlatWaiver’s link-sharing workflow does not synchronize those records."
       }
     ],
     "guide": {
@@ -187,7 +187,7 @@ export const industries: Industry[] = [
     "criteriaTitle": "A waiver workflow alongside your class schedule",
     "criteria": [
       {
-        "need": "Pre-class reading on a student?s device",
+        "need": "Pre-class reading on a student’s device",
         "detail": "Use the published link in your existing welcome messages. FlatWaiver collects the agreement online; your team chooses when to send it."
       },
       {
@@ -208,7 +208,7 @@ export const industries: Industry[] = [
     "slug": "trampoline-parks",
     "label": "Trampoline parks",
     "title": "Trampoline Park Waiver Software for Parties and Family Arrivals",
-    "description": "Prepare trampoline party waivers before arrival. Collect guardian signatures, offer QR or kiosk signing and retrieve each participant?s stored signed record.",
+    "description": "Prepare trampoline party waivers before arrival. Collect guardian signatures, offer QR or kiosk signing and retrieve each participant’s stored signed record.",
     "audience": "For trampoline parks and indoor jump venues",
     "headline": "Get the paperwork ready before the party arrives",
     "scenario": "A birthday group reaches reception together, but not every child arrives with the adult who booked the party. Some parents have signed ahead; others still need to read the form. A waiver link in your party instructions gives each responsible adult a way to prepare before the queue forms.",
@@ -273,7 +273,7 @@ export const industries: Industry[] = [
       "paintball"
     ],
     "seoTitle": "Trampoline Park Waiver Software for Family Arrivals",
-    "introduction": "Share your park?s waiver with families before party day. Collect participant and guardian details, give walk-ins a QR or tablet option, and let reception retrieve the signed records before completing admission.",
+    "introduction": "Share your park’s waiver with families before party day. Collect participant and guardian details, give walk-ins a QR or tablet option, and let reception retrieve the signed records before completing admission.",
     "checklistTitle": "Test the arrivals that cause party-day exceptions",
     "checklist": [
       "Review your park document and enable minors. Complete a sample form with a young participant and guardian, then inspect the stored PDF for both sets of details.",
@@ -284,8 +284,8 @@ export const industries: Industry[] = [
     "criteriaTitle": "Check the family workflow before selecting a platform",
     "criteria": [
       {
-        "need": "Guardian details with a young jumper?s record",
-        "detail": "Enable minors to capture participant details and the adult?s name, relationship and signature. Your team verifies authority and arrival requirements."
+        "need": "Guardian details with a young jumper’s record",
+        "detail": "Enable minors to capture participant details and the adult’s name, relationship and signature. Your team verifies authority and arrival requirements."
       },
       {
         "need": "A busy-lobby signing option",
@@ -370,7 +370,7 @@ export const industries: Industry[] = [
       "climbing-gyms"
     ],
     "seoTitle": "Axe Throwing Waiver Software for Group Events",
-    "introduction": "Get individual agreements ready before your lane hosts begin their briefing. Send the venue?s published form with event instructions, offer a reception QR code for late arrivals, and search the signed records when guests check in.",
+    "introduction": "Get individual agreements ready before your lane hosts begin their briefing. Send the venue’s published form with event instructions, offer a reception QR code for late arrivals, and search the signed records when guests check in.",
     "checklistTitle": "Run a small group-event rehearsal",
     "checklist": [
       "Publish your reviewed venue document and check it on a phone. Keep participation terms and your separate lane instructions clear to guests.",
@@ -467,7 +467,7 @@ export const industries: Industry[] = [
       "trampoline-parks"
     ],
     "seoTitle": "Paintball Waiver Software for Fields & Private Games",
-    "introduction": "Prepare the paperwork before players queue for rental equipment. Use your field?s reviewed waiver, share it with private groups and open-play visitors, and check the signed record before your normal admission and briefing steps.",
+    "introduction": "Prepare the paperwork before players queue for rental equipment. Use your field’s reviewed waiver, share it with private groups and open-play visitors, and check the signed record before your normal admission and briefing steps.",
     "checklistTitle": "Rehearse the staging-area handover",
     "checklist": [
       "Prepare the document for the game format you are testing. Compare the converted draft with the original and enable minors when the youth signing process requires it.",
@@ -475,7 +475,7 @@ export const industries: Industry[] = [
       "Test QR and kiosk signing at the actual reception point. Check internet access and decide how staff handle a guest whose paperwork cannot be completed there.",
       "Find adult and guardian sample records, download their PDFs and rehearse the check before equipment is issued. Keep your guest roster and briefing checks separate."
     ],
-    "criteriaTitle": "Evaluate software against your field?s arrival process",
+    "criteriaTitle": "Evaluate software against your field’s arrival process",
     "criteria": [
       {
         "need": "Youth and adult participation forms",
@@ -487,7 +487,7 @@ export const industries: Industry[] = [
       },
       {
         "need": "Offline signing or an automated game roster",
-        "detail": "FlatWaiver?s signing flow is online and does not synchronize an event list with completed signatures. Check those requirements before moving from your current system."
+        "detail": "FlatWaiver’s signing flow is online and does not synchronize an event list with completed signatures. Check those requirements before moving from your current system."
       }
     ],
     "guide": {
@@ -568,7 +568,7 @@ export const industries: Industry[] = [
     "checklistTitle": "Test the flow at the launch location",
     "checklist": [
       "Prepare your reviewed rental document and check its fields. Distinguish self-guided rentals from guided outings if your adviser requires separate wording.",
-      "Send the signing link with arrival directions and test it from a guest?s phone before travel. Do not rely on launch-point connectivity without checking it.",
+      "Send the signing link with arrival directions and test it from a guest’s phone before travel. Do not rely on launch-point connectivity without checking it.",
       "Test QR signing and record lookup at your actual desk. Decide where guests complete the form before putting phones in dry bags.",
       "Retrieve an adult and, where applicable, guardian sample record. Verify the handoff to your own equipment, deposit and launch-readiness checks."
     ],
@@ -672,11 +672,11 @@ export const industries: Industry[] = [
     "criteriaTitle": "Select a waiver tool for your lesson meet-up",
     "criteria": [
       {
-        "need": "Parent signatures before a children?s lesson",
+        "need": "Parent signatures before a children’s lesson",
         "detail": "Enable minors and send the published link to the responsible adult. Your school determines any additional camp permissions."
       },
       {
-        "need": "An earlier season?s signed document",
+        "need": "An earlier season’s signed document",
         "detail": "Search by participant name or email and date or waiver. The stored PDF retains the version signed during that lesson."
       },
       {
@@ -758,7 +758,7 @@ export const industries: Industry[] = [
       "fitness-studios"
     ],
     "seoTitle": "Horseback Riding Waiver Software for Lessons & Trails",
-    "introduction": "Prepare the agreement before riders reach a waiting horse. Share your stable?s reviewed document with lesson or trail instructions, give guardians time to read, and keep the signed record accessible to staff at the office.",
+    "introduction": "Prepare the agreement before riders reach a waiting horse. Share your stable’s reviewed document with lesson or trail instructions, give guardians time to read, and keep the signed record accessible to staff at the office.",
     "checklistTitle": "Rehearse the office-to-instructor handoff",
     "checklist": [
       "Choose the reviewed form for an arena lesson or trail ride. Check that the activity, participant details and consent text match the document you intend riders to sign.",
@@ -766,11 +766,11 @@ export const industries: Industry[] = [
       "Test phone and kiosk signing in the office, away from horse handling. Confirm connectivity and that a completed kiosk form resets.",
       "Have an instructor find a sample record before the mounting checks. Publish a revised version and verify that the earlier signed PDF remains available with its original wording."
     ],
-    "criteriaTitle": "Match the software to your yard?s workflow",
+    "criteriaTitle": "Match the software to your yard’s workflow",
     "criteria": [
       {
-        "need": "Consent before a junior rider?s lesson",
-        "detail": "The minor flow captures the participant?s details and guardian name, relationship and signature. Your yard applies its own authority and arrival checks."
+        "need": "Consent before a junior rider’s lesson",
+        "detail": "The minor flow captures the participant’s details and guardian name, relationship and signature. Your yard applies its own authority and arrival checks."
       },
       {
         "need": "Different lesson and trail documents",
