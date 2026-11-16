@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const NAV_LINKS = [
   { label: "How it works", href: "/#how-it-works" },
   { label: "Compare", href: "/#compare" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Pricing", href: "/pricing" },
   { label: "FAQ", href: "/#faq" },
   { label: "Blog", href: "/blog" },
 ];
@@ -52,7 +52,7 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
     links: [
       { label: "How it works", href: "/#how-it-works" },
       { label: "Compare pricing", href: "/#compare" },
-      { label: "Pricing", href: "/#pricing" },
+      { label: "Pricing", href: "/pricing" },
       { label: "FAQ", href: "/#faq" },
       { label: "Blog", href: "/blog" },
       { label: "Support", href: "/support" },
@@ -63,6 +63,9 @@ const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[
     links: [
       { label: "Start free trial", href: "/signup" },
       { label: "All industries", href: "/industries" },
+      { label: "Gyms & fitness", href: "/industries/fitness-studios" },
+      { label: "Trampoline parks", href: "/industries/trampoline-parks" },
+      { label: "QR code signing", href: "/features/qr-code-waivers" },
       { label: "Climbing gyms", href: "/industries/climbing-gyms" },
       { label: "Log in", href: "/login" },
     ],
@@ -91,7 +94,7 @@ export function MarketingFooter() {
               Unlimited digital waivers for ${APP.priceMonthlyUsd}/month, flat.
               Court-ready records, no per-signature fees, ever.
             </p>
-            <p className="mt-4 text-xs text-muted-foreground/70">
+            <p className="mt-4 text-xs text-muted-foreground">
               Electronic signatures recognized under the ESIGN Act and UETA. Not
               legal advice — have a lawyer review your waiver text.
             </p>
@@ -116,7 +119,7 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground/70">
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground">
           <span>
             © {new Date().getFullYear()} {APP.name}. All rights reserved.
           </span>
