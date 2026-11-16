@@ -1,0 +1,108 @@
+{
+  "checkedOn": "2026-11-16",
+  "sha": "6a37ffba9a88183b209516f245217c7fc4509db8",
+  "responses": [
+    {
+      "url": "https://www.flatwaiver.com/",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/index",
+      "og": "https://www.flatwaiver.com/index",
+      "title": "Digital Waiver Software — Unlimited Waivers for $19/mo | FlatWaiver"
+    },
+    {
+      "url": "https://www.flatwaiver.com/index",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/index",
+      "og": "https://www.flatwaiver.com/index",
+      "title": "Digital Waiver Software — Unlimited Waivers for $19/mo | FlatWaiver"
+    },
+    {
+      "url": "https://flatwaiver.com/index?utm_source=test",
+      "status": 308,
+      "location": "https://www.flatwaiver.com/index?utm_source=test"
+    },
+    {
+      "url": "https://www.flatwaiver.com/?utm_source=test",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/index",
+      "og": "https://www.flatwaiver.com/index",
+      "title": "Digital Waiver Software — Unlimited Waivers for $19/mo | FlatWaiver"
+    },
+    {
+      "url": "https://www.flatwaiver.com/industries/fitness-studios/",
+      "status": 308,
+      "location": "/industries/fitness-studios"
+    },
+    {
+      "url": "https://www.flatwaiver.com/industries/climbing-gyms",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/industries/climbing-gyms",
+      "og": "https://www.flatwaiver.com/industries/climbing-gyms",
+      "title": "Climbing Gym Waiver Software — Unlimited Waivers | FlatWaiver"
+    },
+    {
+      "url": "https://www.flatwaiver.com/industries/trampoline-parks",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/industries/trampoline-parks",
+      "og": "https://www.flatwaiver.com/industries/trampoline-parks",
+      "title": "Trampoline Park Waiver Software for Family Arrivals | FlatWaiver"
+    },
+    {
+      "url": "https://www.flatwaiver.com/blog/waiver-software-cost",
+      "status": 200,
+      "location": null,
+      "canonical": "https://www.flatwaiver.com/blog/waiver-software-cost",
+      "og": "https://www.flatwaiver.com/blog/waiver-software-cost",
+      "title": "How much does waiver software cost? A 2026 pricing breakdown | FlatWaiver"
+    },
+    {
+      "url": "https://www.flatwaiver.com/robots.txt",
+      "status": 200,
+      "location": null,
+      "body": "User-Agent: *\nAllow: /\n\nSitemap: https://www.flatwaiver.com/sitemap.xml\n"
+    },
+    {
+      "url": "https://www.flatwaiver.com/sitemap.xml",
+      "status": 200,
+      "location": null,
+      "urls": [
+        "https://www.flatwaiver.com",
+        "https://www.flatwaiver.com/industries",
+        "https://www.flatwaiver.com/industries/fitness-studios",
+        "https://www.flatwaiver.com/industries/yoga-studios",
+        "https://www.flatwaiver.com/industries/trampoline-parks",
+        "https://www.flatwaiver.com/industries/axe-throwing",
+        "https://www.flatwaiver.com/industries/paintball",
+        "https://www.flatwaiver.com/industries/kayak-rentals",
+        "https://www.flatwaiver.com/industries/surf-schools",
+        "https://www.flatwaiver.com/industries/horseback-riding",
+        "https://www.flatwaiver.com/industries/martial-arts",
+        "https://www.flatwaiver.com/industries/climbing-gyms",
+        "https://www.flatwaiver.com/security",
+        "https://www.flatwaiver.com/blog",
+        "https://www.flatwaiver.com/support",
+        "https://www.flatwaiver.com/privacy",
+        "https://www.flatwaiver.com/terms",
+        "https://www.flatwaiver.com/blog/switch-from-smartwaiver",
+        "https://www.flatwaiver.com/blog/jotform-alternative-for-waivers",
+        "https://www.flatwaiver.com/blog/liability-waiver-google-forms",
+        "https://www.flatwaiver.com/blog/gym-waiver-software",
+        "https://www.flatwaiver.com/blog/smartwaiver-pricing",
+        "https://www.flatwaiver.com/blog/online-waivers",
+        "https://www.flatwaiver.com/blog/electronic-signature-waiver",
+        "https://www.flatwaiver.com/blog/electronic-waivers-for-trampoline-parks",
+        "https://www.flatwaiver.com/blog/blog-flatwaiver-vs-waiverforever",
+        "https://www.flatwaiver.com/blog/flatwaiver-vs-smartwaiver",
+        "https://www.flatwaiver.com/blog/waiver-software-for-climbing-gyms",
+        "https://www.flatwaiver.com/blog/waiver-software-cost",
+        "https://www.flatwaiver.com/blog/smartwaiver-alternatives",
+        "https://www.flatwaiver.com/blog/are-digital-waivers-legally-binding"
+      ]
+    }
+  ]
+}

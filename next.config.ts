@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/index",
+        destination: "https://www.flatwaiver.com/",
+        permanent: true,
+      },
+      {
         source: "/:path*",
         has: [{ type: "host", value: "flatwaiver.com" }],
         destination: "https://www.flatwaiver.com/:path*",
