@@ -8,7 +8,7 @@ export const revalidate = 600;
 
 /**
  * Public, INDEXABLE pages only. Deliberately excludes /signup: it serves
- * `<meta robots="noindex">` and canonicalizes to /dashboard, so listing it
+ * `<meta robots="noindex">` so listing it
  * sends contradictory signals and wastes discovery crawl. /login and all
  * (app) routes are noindex too and likewise omitted. Always the canonical www
  * origin, with no trailing slash — matching Next's normalized page canonicals.
@@ -20,9 +20,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: { path: string; priority: number; lastModified?: string }[] = [
     { path: "/", priority: 1 },
     { path: "/industries", priority: 0.8, lastModified: "2026-10-07" },
-    ...industries.map(({ slug }) => ({ path: `/industries/${slug}`, priority: 0.8, lastModified: "2026-10-07" })),
+    { path: "/pricing", priority: 0.9, lastModified: "2026-11-16" },
+    { path: "/features/qr-code-waivers", priority: 0.8, lastModified: "2026-11-16" },
+    ...industries.map(({ slug }) => ({ path: `/industries/${slug}`, priority: 0.8, lastModified: ["fitness-studios", "trampoline-parks"].includes(slug) ? "2026-11-16" : "2026-10-07" })),
     { path: "/industries/martial-arts", priority: 0.8, lastModified: "2026-09-10" },
-    { path: "/industries/climbing-gyms", priority: 0.8, lastModified: "2026-10-02" },
+    { path: "/industries/climbing-gyms", priority: 0.8, lastModified: "2026-11-16" },
     { path: "/security", priority: 0.8 },
     { path: "/blog", priority: 0.7 },
     { path: "/support", priority: 0.4, lastModified: "2026-07-30" },

@@ -252,8 +252,8 @@ export const industries: Industry[] = [
     ],
     "faqs": [
       {
-        "question": "Does a party link sign every child in?",
-        "answer": "No. Sharing it gives families access to the form. Your team still checks that the required participant and guardian records exist and handles admission separately."
+        "question": "Can families and groups use one waiver?",
+        "answer": "Enable group signing to collect multiple participants on one signed document. Configure minors and test guardian requirements before use. Sharing a party link alone provides no consent; your team still verifies authority and admission separately."
       },
       {
         "question": "Can a parent sign before dropping a child off?",

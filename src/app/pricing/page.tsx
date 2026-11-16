@@ -1,0 +1,24 @@
+﻿import type { Metadata } from "next";
+import Link from "next/link";
+import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
+import { Button } from "@/components/ui/button";
+import { PricingReference } from "@/components/marketing/pricing-reference";
+import { APP } from "@/lib/config";
+const title = `Digital Waiver Software Pricing — $${APP.priceMonthlyUsd}/Month | ${APP.name}`;
+const description = `One $${APP.priceMonthlyUsd}/month plan for unlimited signed waivers, templates and storage. ${APP.trialDays}-day free trial, no card required. See inclusions, limits and cancellation access.`;
+export const metadata: Metadata = { title, description, alternates: { canonical: `${APP.siteUrl}/pricing` }, openGraph: { title, description, url: `${APP.siteUrl}/pricing`, type: "website" } };
+export default function PricingPage() {
+ const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: APP.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: `${APP.siteUrl}/pricing`, offers: { "@type": "Offer", price: APP.priceMonthlyUsd, priceCurrency: "USD", url: `${APP.siteUrl}/pricing`, description: "Monthly subscription; unlimited signed waivers, templates and storage" } };
+ return <><MarketingHeader /><main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
+ <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+ <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground"><Link href="/" className="underline">Home</Link> / <span aria-current="page">Pricing</span></nav>
+ <h1 className="mt-8 text-4xl font-extrabold tracking-tight sm:text-5xl">One monthly price. Unlimited waivers.</h1>
+ <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">Collect electronic waivers without choosing a signature allowance. Use your reviewed document, share a signing link and keep completed records searchable.</p>
+ <section className="mt-8 grid gap-8 rounded-3xl border bg-card p-6 sm:p-9 md:grid-cols-2" aria-labelledby="plan-heading">
+ <div><h2 id="plan-heading" className="text-xl font-semibold">The flat-rate plan</h2><p className="mt-4 text-5xl font-bold">${APP.priceMonthlyUsd}<span className="text-base font-normal text-muted-foreground"> USD / month</span></p><p className="mt-4 text-muted-foreground">{APP.trialDays} days free. No credit card required to start.</p><Button className="mt-6" size="lg" render={<Link href="/signup" />}>Start your free trial</Button></div>
+ <ul className="space-y-3 text-sm leading-6">{["Unlimited signed waivers, waiver templates and storage", "PDF-to-editable-draft conversion; you review before publishing", "Mobile signing links, QR codes and an online tablet kiosk", "Configured participant and guardian fields", "Immutable versions and stored signed PDFs", "Name/email search, date filters, PDF downloads and CSV export"].map(item => <li key={item} className="border-b border-border pb-2 last:border-0">{item}</li>)}</ul></section>
+ <section className="mt-12 grid gap-8 md:grid-cols-2"><div><h2 className="text-2xl font-bold">What happens after the trial?</h2><p className="mt-4 leading-7 text-muted-foreground">An active subscription is required to create or publish templates and accept new signatures. Viewing, searching, downloading and exporting existing signed records remain available when a subscription lapses. Manage billing through your account.</p></div><div><h2 className="text-2xl font-bold">What should you test first?</h2><p className="mt-4 leading-7 text-muted-foreground">Signing needs an internet connection. FlatWaiver does not replace bookings, membership payments, legal advice or staff checks of guardian authority. Test your own document and arrival process before sharing links. Unlimited usage is subject to the <Link href="/terms" className="text-primary underline">service terms</Link>.</p></div></section>
+ <section className="mt-12"><h2 className="text-2xl font-bold">Compare the billing model, not just the starting price</h2><PricingReference /><p className="leading-7 text-muted-foreground">Compare both quiet and busy months. Our <Link href="/blog/waiver-software-cost" className="text-primary underline">waiver software cost guide</Link> explains included allowances, usage charges and a worked example. Annual subscriptions, booking fees and negotiated offers need separate calculations.</p></section>
+ <nav aria-label="Explore workflows" className="mt-10 flex flex-wrap gap-5 text-sm text-primary underline"><Link href="/industries/fitness-studios">Gym waiver software</Link><Link href="/industries/climbing-gyms">Climbing gyms</Link><Link href="/industries/trampoline-parks">Trampoline parks</Link><Link href="/features/qr-code-waivers">QR code signing</Link><Link href="/#try-it">Try the signing demo</Link></nav>
+ </main><MarketingFooter /></>;
+}
