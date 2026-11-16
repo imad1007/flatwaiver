@@ -473,7 +473,7 @@ function Comparison() {
               </table>
               <div className="space-y-2 px-5 pb-4 pt-2 text-xs text-muted-foreground/70">
                 <p>
-                  Checked on {COMPETITOR_PRICING_CHECKED_ON}. {SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Smartwaiver figures in this table use current rates through October 7; Enterprise is unaffected.
+                  Checked on {COMPETITOR_PRICING_CHECKED_ON}. {SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Smartwaiver figures use the effective October rates; Enterprise is unaffected.
                   Plans and features differ; taxes, discounts, add-ons, and
                   overages are excluded.
                 </p>
