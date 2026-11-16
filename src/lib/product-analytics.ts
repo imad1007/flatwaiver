@@ -1,4 +1,5 @@
 "use client";
+import { acquisitionContext, analyticsPermitted, audienceForPath } from "@/lib/acquisition";
 
 declare global {
   interface Window {
@@ -7,6 +8,7 @@ declare global {
 }
 
 type ProductEvent =
+  | "sign_up"
   | "waiver_creation_method_selected"
   | "waiver_import_started"
   | "waiver_import_completed"
@@ -27,6 +29,6 @@ export function trackProductEvent(
   event: ProductEvent,
   parameters: Record<string, EventValue> = {}
 ) {
-  if (typeof window.gtag !== "function") return;
-  window.gtag("event", event, parameters);
+  if (!analyticsPermitted() || typeof window.gtag !== "function") return;
+  window.gtag("event", event, { ...parameters, ...acquisitionContext(), audience_type: audienceForPath(window.location.pathname) });
 }
