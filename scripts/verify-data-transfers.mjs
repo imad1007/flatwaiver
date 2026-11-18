@@ -147,6 +147,11 @@ try {
     "insert into waiver_templates(id,org_id,name,slug,status,draft_content,expiry_months,photo_mode)values($1,$2,'Training waiver','test','draft',$3,12,'optional')",
     [tpl, org, pkg.content],
   );
+  const phoneVersion = randomUUID();
+  await pg.query(
+    "insert into template_versions(id,template_id,version_number,fields) values($1,$2,1,$3)",
+    [phoneVersion, tpl, [{ key: "answer_7", type: "text", label: "Mobile phone (optional)" }]],
+  );
   const newJob = async (direction, format, options = {}) => {
     const result = await db
       .from("data_jobs")
@@ -295,14 +300,15 @@ try {
     objects.set("signed-pdfs/" + path, pdf);
     const date = i < 500 ? "2026-09-30T23:59:59.999Z" : "2026-10-01T00:00:00Z";
     await pg.query(
-      "insert into signed_waivers(id,org_id,template_id,signer_name,signer_email,field_values,pdf_path,pdf_sha256,signed_at,created_at,flagged) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false)",
+      "insert into signed_waivers(id,org_id,template_id,template_version_id,signer_name,signer_email,field_values,pdf_path,pdf_sha256,signed_at,created_at,flagged) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,false)",
       [
         id,
         org,
         tpl,
+        phoneVersion,
         `Signer ${i}`,
         "test@example.com",
-        { emergency: "=unsafe", membership: "123" },
+        { emergency: "=unsafe", membership: "123", ...(i % 2 === 0 ? { answer_7: `0412 000 ${String(i).padStart(3, "0")}` } : {}) },
         path,
         hash(pdf),
         date,
@@ -329,6 +335,10 @@ try {
     objects.get("uploads/" + csvResult.output_path).toString(),
   );
   assert.equal(exported.rows.length, 500);
+  const phoneIndex = exported.headers.indexOf("participant_phone");
+  assert.ok(phoneIndex >= 0);
+  assert.equal(exported.rows.filter((row) => row[phoneIndex].startsWith("'0412 000 ")).length, 250);
+  assert.equal(exported.rows.filter((row) => row[phoneIndex] === "").length, 250);
   assert(exported.headers.includes("custom:emergency"));
   assert(exported.rows[0].includes("'=unsafe"));
   const zipJob = await newJob("export", "pdfs", {

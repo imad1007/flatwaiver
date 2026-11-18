@@ -17,21 +17,24 @@ export function csvEscape(value: string): string {
 export function signerPhone(values: unknown, fields: unknown = []): string {
   if (!values || typeof values !== "object" || Array.isArray(values)) return "";
   const answers = values as Record<string, unknown>;
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const aliases = new Set(["phone", "mobile", "phonenumber", "mobilenumber", "telephone", "contactnumber", "cellphone", "cellphonenumber", "signerphone", "participantphone", "yourphone", "yourmobile"]);
-  const otherContact = /emergency|guardian|parent|secondary|alternate/i;
-  const definitions = Array.isArray(fields) ? fields as { key: string; label?: string; type?: string }[] : [];
-  const keys = new Set([
-    ...Object.keys(answers).filter((key) => aliases.has(normalize(key))),
-    ...definitions.filter((f) => typeof f.key === "string" &&
-      !otherContact.test(`${f.key} ${f.label ?? ""}`) &&
-      (f.type === "phone" || aliases.has(normalize(f.label ?? ""))))
-      .map((f) => f.key),
+  const words = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const otherContact = /\b(emergency|guardian|parent|secondary|alternate|alternative)\b|\bnext of kin\b/;
+  const phoneWords = /\b(phone|mobile|telephone|telefono|telemovel|cell|cellular|contact (?:number|no)|tel)\b/;
+  const compactAlias = /^(?:(?:your|signer|participant|contact|primary|customer|client))?(?:phone|mobile|telephone|telefono|telemovel|cell)(?:number|no|phone)?$/;
+  const isPhone = (s: string) => phoneWords.test(words(s)) || compactAlias.test(words(s).replace(/ /g, ""));
+  const definitions = Array.isArray(fields) ? fields.filter((f): f is { key: string; label?: string; type?: string } =>
+    !!f && typeof f === "object" && typeof f.key === "string") : [];
+  const byKey = new Map(definitions.map((f) => [f.key, f]));
+  const keys = new Set<string>([
+    ...Object.keys(answers).filter((key) => isPhone(key)),
+    ...definitions.filter((f) => f.type === "phone" || isPhone(f.label ?? "")).map((f) => f.key),
   ]);
   for (const key of keys) {
-    if (definitions.some((f) => f.key === key && otherContact.test(f.label ?? ""))) continue;
+    if (otherContact.test(words(`${key} ${byKey.get(key)?.label ?? ""}`))) continue;
     const value = answers[key];
     if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return "";
 }

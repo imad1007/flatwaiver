@@ -92,6 +92,7 @@ export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled"
 export type SigningChannel = "link" | "kiosk" | "qr";
 
 export interface OrgBranding {
+  kiosk?: import("./kiosk-settings").KioskSettings;
   /** Private storage path in the `uploads` bucket. */
   logo_path?: string;
   /** Hex brand color, e.g. "#4F46E5". */

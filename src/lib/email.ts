@@ -24,6 +24,9 @@ export async function sendBillingExpiryEmail(opts: {
 const FROM = transactionalEmailFrom();
 
 function resendClient(): Resend | null {
+  // Staging never sends application mail, even if a live key is copied in.
+  // Supabase Auth SMTP must be isolated separately in its project settings.
+  if (process.env.FLATWAIVER_ENV === "staging") return null;
   const key = process.env.RESEND_API_KEY;
   return key ? new Resend(key) : null;
 }

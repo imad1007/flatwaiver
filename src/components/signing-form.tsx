@@ -7,8 +7,11 @@ import {
   SignatureCanvas,
   type SignatureCanvasHandle,
 } from "@/components/signature-canvas";
-import { GroupParticipants, type GroupParticipantsHandle } from "@/components/group-participants";
+import { MemoizedGroupParticipants as GroupParticipants, type GroupParticipantsHandle } from "@/components/group-participants";
 import { TurnstileWidget } from "@/components/turnstile-widget";
+import { KioskDialog } from "@/components/kiosk-dialog";
+import { kioskIdleState } from "@/lib/kiosk-privacy";
+import { kioskFieldCanBeHidden } from "@/lib/kiosk-settings";
 import { BlockView, FieldInput, signerInputClass } from "@/components/waiver-render";
 import {
   medicalAnswerIsYes,
@@ -51,6 +54,9 @@ export interface SigningFormProps {
   channel: SigningChannel;
   /** Kiosk: on success show the done screen inline and auto-reset after 5 s. */
   kiosk?: boolean;
+  kioskWelcome?: { en: string; fr: string };
+  kioskInstructions?: { en: string; fr: string };
+  kioskHiddenFields?: string[];
   /** Auto-tag carried from ?tag= on the signing link. */
   tag?: string;
   /** Photo/ID capture policy for this waiver. */
@@ -78,6 +84,15 @@ export function SigningForm(props: SigningFormProps) {
   const [medicalDetailError, setMedicalDetailError] = useState(false);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [kioskStep, setKioskStep] = useState(0);
+  const [clearRequested, setClearRequested] = useState(false);
+  const [idleSeconds, setIdleSeconds] = useState<number | null>(null);
+  const [participantSummary, setParticipantSummary] = useState<{ name: string; dob: string; minor: boolean; guardian?: string; relationship?: string }[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const lastActivity = useRef(Date.now());
+  const submittingRef = useRef(false);
+  const idlePause = useRef(false);
+  const dirty = useRef(false);
 
   const photoMode = props.photoMode ?? "off";
 
@@ -90,8 +105,8 @@ export function SigningForm(props: SigningFormProps) {
   const kioskResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
+    if (error && (!props.kiosk || kioskStep === 2)) errorRef.current?.focus();
+  }, [error, props.kiosk, kioskStep]);
 
   useEffect(
     () => () => {
@@ -99,6 +114,26 @@ export function SigningForm(props: SigningFormProps) {
     },
     []
   );
+  useEffect(() => {
+    if (!props.kiosk) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      if (dirty.current) { event.preventDefault(); event.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [props.kiosk]);
+  useEffect(() => {
+    if (!props.kiosk || kioskDone) return;
+    const timer = setInterval(() => {
+      if (submittingRef.current || idlePause.current) return;
+      const state = kioskIdleState(lastActivity.current, Date.now());
+      if (state.expired) resetForm();
+      else setIdleSeconds(state.warning ? state.seconds : null);
+    }, 1000);
+    return () => clearInterval(timer);
+    // Reset remounts the form and starts a fresh privacy deadline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.kiosk, kioskDone, formKey]);
 
   // Medical-condition conditional: active only when this version defines both
   // the condition field and its detail field (see lib/types.ts).
@@ -127,6 +162,9 @@ export function SigningForm(props: SigningFormProps) {
     setMedicalDetailError(false);
     setKioskDone(false);
     setPhotoDataUrl(null);
+    setKioskStep(0); setClearRequested(false); setIdleSeconds(null); setParticipantSummary([]);
+    setTurnstileToken(""); lastActivity.current = Date.now();
+    dirty.current = false;
     submissionIdRef.current = null;
     setTurnstileReset((n) => n + 1);
     setFormKey((k) => k + 1);
@@ -135,6 +173,7 @@ export function SigningForm(props: SigningFormProps) {
 
   function armKioskPrivacyReset(delayMs = 3 * 60 * 1000) {
     if (!props.kiosk) return;
+    if (delayMs !== 5000) { lastActivity.current = Date.now(); setIdleSeconds(null); return; }
     if (kioskResetTimerRef.current) clearTimeout(kioskResetTimerRef.current);
     kioskResetTimerRef.current = setTimeout(resetForm, delayMs);
   }
@@ -143,18 +182,21 @@ export function SigningForm(props: SigningFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoBusy(true);
+    idlePause.current = true;
     try {
       setPhotoDataUrl(await fileToResizedDataUrl(file));
     } catch {
       setError(t("Couldn't read that photo. Try again or use a different image."));
     } finally {
       setPhotoBusy(false);
+      idlePause.current = false; armKioskPrivacyReset();
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
+    if (props.kiosk && kioskStep !== 2) { advanceKiosk(); return; }
     setError(null);
 
     // Medical-condition conditional: "yes" requires the detail box; when the
@@ -174,7 +216,7 @@ export function SigningForm(props: SigningFormProps) {
     }
 
     const group = props.groupSigningEnabled ? groupRef.current?.collect() : undefined;
-    if (group?.error) { setError(group.error); return; }
+    if (group?.error) { if (props.kiosk) setKioskStep(1); else setError(group.error); return; }
     const participants = group?.participants;
     const signatureDataUrl = participants?.[0]?.signatureDataUrl ?? signatureRef.current?.getDataUrl() ?? null;
     if (!signatureDataUrl) {
@@ -203,6 +245,7 @@ export function SigningForm(props: SigningFormProps) {
     }
 
     setSubmitting(true);
+    submittingRef.current = true;
     submissionIdRef.current ??= crypto.randomUUID();
     try {
       const res = await fetch(`/api/sign/${props.slug}`, {
@@ -236,6 +279,7 @@ export function SigningForm(props: SigningFormProps) {
       }
 
       if (props.kiosk) {
+        dirty.current = false;
         setKioskDone(true);
         armKioskPrivacyReset(5000);
       } else {
@@ -249,7 +293,31 @@ export function SigningForm(props: SigningFormProps) {
       setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false; lastActivity.current = Date.now();
     }
+  }
+
+  function advanceKiosk() {
+    setError(null);
+    const section = formRef.current?.querySelector<HTMLElement>(`[data-kiosk-step="${kioskStep}"]`);
+    const invalid = Array.from(section?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input:invalid, select:invalid, textarea:invalid") ?? []).find(input => !input.disabled && !input.closest("[hidden]"));
+    if (invalid) { invalid.reportValidity(); invalid.focus(); return; }
+    if (kioskStep === 0 && !consentGiven) { setError(t("You must agree to sign electronically.")); return; }
+    if (kioskStep === 1) {
+      if (medicalYes && !String(fieldValues[MEDICAL_CONDITION_DETAIL_KEY] ?? "").trim()) { setMedicalDetailError(true); medicalDetailRef.current?.focus(); return; }
+      if (props.groupSigningEnabled) {
+        const result = groupRef.current?.collect();
+        if (!result || result.error) return;
+        setParticipantSummary(result.participants!.map(participant => ({ name: participant.fullName, dob: participant.dateOfBirth, minor: participant.isMinor, guardian: participant.guardianName, relationship: participant.guardianRelationship })));
+      } else {
+        if (!signatureRef.current?.getDataUrl()) { setError(t("Please draw or type your signature.")); signatureRef.current?.focus(); return; }
+        if (isMinor && !guardianSignatureRef.current?.getDataUrl()) { setError(t("Guardian signature is required for minors.")); guardianSignatureRef.current?.focus(); return; }
+      }
+      if (photoMode === "required" && !photoDataUrl) { setError(t("A photo is required to sign this waiver.")); return; }
+    }
+    setKioskStep(previous => Math.min(2, previous + 1));
+    armKioskPrivacyReset(); window.scrollTo({ top: 0 });
+    requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>(`[data-kiosk-step="${kioskStep + 1}"]`)?.focus());
   }
 
   if (kioskDone) {
@@ -269,15 +337,20 @@ export function SigningForm(props: SigningFormProps) {
 
   return (
     <form
+      ref={formRef}
+      noValidate={props.kiosk}
       lang={language}
       dir={signerDirection(language)}
       key={formKey}
       onSubmit={handleSubmit}
-      onInput={() => armKioskPrivacyReset()}
-      onPointerDown={() => armKioskPrivacyReset()}
+      onInput={() => { if (props.kiosk) dirty.current = true; armKioskPrivacyReset(); }}
+      onPointerDown={() => { if (props.kiosk) dirty.current = true; armKioskPrivacyReset(); }}
+      onKeyDown={() => armKioskPrivacyReset()}
+      onWheel={() => armKioskPrivacyReset()}
       autoComplete={props.kiosk ? "off" : undefined}
-      className="space-y-8"
+      className={props.kiosk ? "space-y-5 [&_input:not([type=checkbox]):not([type=radio])]:min-h-12 [&_select]:min-h-12 [&_button]:touch-manipulation" : "space-y-8"}
     >
+      <fieldset disabled={props.kiosk && (submitting || photoBusy)} className={props.kiosk ? "min-w-0 space-y-5" : "min-w-0 space-y-8"}>
       <label className="flex flex-wrap items-center justify-end gap-3 text-sm">
         {t("Language")}
         <select aria-label={t("Language")} value={language} onChange={e => setLanguage(signerLanguage(e.target.value))} className="max-w-full rounded-md border border-input bg-card px-3 py-2">
@@ -285,7 +358,7 @@ export function SigningForm(props: SigningFormProps) {
         </select>
         <span className="w-full text-end text-xs text-muted-foreground">{t("Waiver text and custom fields remain in their original language.")}</span>
       </label>
-      <p className="text-sm text-muted-foreground">{t("Please read the waiver below, fill in your details, and sign.")}</p>
+      {!props.kiosk && <p className="text-sm text-muted-foreground">{t("Please read the waiver below, fill in your details, and sign.")}</p>}
       {props.kiosk && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
           <p className="text-muted-foreground">
@@ -293,14 +366,21 @@ export function SigningForm(props: SigningFormProps) {
           </p>
           <button
             type="button"
-            onClick={resetForm}
-            className="font-semibold text-foreground underline underline-offset-4"
+            disabled={submitting}
+            onClick={() => setClearRequested(true)}
+            className="min-h-12 font-semibold text-foreground underline underline-offset-4"
           >
             {t("Clear form")}
           </button>
         </div>
       )}
+      {props.kiosk && <nav aria-label={t("Signing progress")} className="grid grid-cols-3 gap-2">{["Read & agree", "People & details", "Review & sign"].map((label, index) => <div key={label} aria-current={index === kioskStep ? "step" : undefined} className={`rounded-xl border px-3 py-3 text-sm ${index === kioskStep ? "border-primary bg-primary/10 font-semibold" : "border-border text-muted-foreground"}`}><span className="block text-xs">{index + 1} / 3</span>{t(label)}</div>)}</nav>}
+      {props.kiosk && clearRequested && <KioskDialog title={t("Clear this form?")} onCancel={() => setClearRequested(false)}><p>{t("All entered details and signatures will be removed.")}</p><div className="flex gap-3"><button autoFocus type="button" className="min-h-12 rounded-lg border px-5" onClick={() => setClearRequested(false)}>{t("Keep signing")}</button><button type="button" className="min-h-12 rounded-lg bg-destructive px-5 text-destructive-foreground" onClick={resetForm}>{t("Clear form")}</button></div></KioskDialog>}
+      {props.kiosk && idleSeconds !== null && <KioskDialog title={t("Still signing?")} onCancel={() => armKioskPrivacyReset()}><p>{t("For your privacy, this form will clear shortly.")} <strong>{idleSeconds} {t("seconds")}</strong></p><button autoFocus type="button" className="min-h-12 w-full rounded-lg bg-primary px-5 font-semibold text-primary-foreground" onClick={() => armKioskPrivacyReset()}>{t("Continue signing")}</button></KioskDialog>}
+      <section data-kiosk-step="0" tabIndex={-1} hidden={props.kiosk && kioskStep !== 0} className="space-y-5 outline-none">
+      {props.kiosk && <div className="rounded-2xl bg-primary/5 p-6"><h2 className="text-2xl font-bold [overflow-wrap:anywhere]">{(language === "fr" ? props.kioskWelcome?.fr : props.kioskWelcome?.en) || t("Welcome! Let's get you ready.")}</h2><p className="mt-2 text-muted-foreground whitespace-pre-line [overflow-wrap:anywhere]">{(language === "fr" ? props.kioskInstructions?.fr : props.kioskInstructions?.en) || t("Read the waiver, add everyone taking part, and sign. Required details are marked with an asterisk.")}</p></div>}
       {/* Waiver text */}
+
       {props.documentDisplay === "collapsed" && (
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="font-semibold">{t("Waiver document")}</p>
@@ -317,12 +397,15 @@ export function SigningForm(props: SigningFormProps) {
           <BlockView key={i} block={block} />
         ))}
       </div>
-
+      {props.kiosk && <label className="flex min-h-16 items-start gap-3 rounded-xl border bg-card p-5"><input type="checkbox" required checked={consentGiven} onChange={event => setConsentGiven(event.target.checked)} className="mt-1 size-6 accent-primary" /><span dir="auto">{props.consentText}</span></label>}
+      </section>
+      <section data-kiosk-step="1" tabIndex={-1} hidden={props.kiosk && kioskStep !== 1} className="space-y-5 outline-none">
       {props.groupSigningEnabled && <p className="text-sm font-medium">{t("Custom fields and photo apply to the primary participant/contact (Participant 1).")}</p>}
       {/* Dynamic fields */}
       {props.fields.length > 0 && (
         <div className="space-y-4">
           {props.fields.map((field) => {
+            if (props.kiosk && props.kioskHiddenFields?.includes(field.key) && kioskFieldCanBeHidden(field)) return null;
             // Participant 1 supplies existing primary DOB fields in group mode.
             if (props.groupSigningEnabled && field.type === "date_of_birth") return null;
             // Medical-condition conditional: the detail box only exists when
@@ -424,6 +507,8 @@ export function SigningForm(props: SigningFormProps) {
                 />
               </label>
               <SignatureCanvas
+                kiosk={props.kiosk}
+                suggestedName={guardianName}
                 ref={guardianSignatureRef}
                 language={language}
                 label={t("Parent / guardian signature")}
@@ -476,7 +561,7 @@ export function SigningForm(props: SigningFormProps) {
       )}
 
       {/* Consent */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      {!props.kiosk && <div className="rounded-xl border border-border bg-card p-5">
         <label className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -487,7 +572,7 @@ export function SigningForm(props: SigningFormProps) {
           />
           <span dir="auto" className="text-sm leading-relaxed">{props.consentText}</span>
         </label>
-      </div>
+      </div>}
 
       {/* Name + signature */}
       {props.groupSigningEnabled ? <GroupParticipants key={formKey} ref={groupRef} language={language} minorMode={props.minorMode} kiosk={props.kiosk} /> : <div className="space-y-4">
@@ -504,10 +589,12 @@ export function SigningForm(props: SigningFormProps) {
             className={signerInputClass}
           />
         </label>
-        <SignatureCanvas ref={signatureRef} language={language} label={t("Your signature")} />
+        <SignatureCanvas kiosk={props.kiosk} suggestedName={signerName} ref={signatureRef} language={language} label={t("Your signature")} />
       </div>}
+      </section>
+      {props.kiosk && <section data-kiosk-step="2" tabIndex={-1} hidden={kioskStep !== 2} className="space-y-5 outline-none"><h2 className="text-2xl font-bold">{t("Review & sign")}</h2><p className="text-muted-foreground">{t("Check everyone's details before submitting. One signed waiver will include all participants.")}</p><ul className="divide-y rounded-xl border bg-card px-5">{(props.groupSigningEnabled ? participantSummary : [{ name: signerName, dob: String(fieldValues[props.fields.find(field => field.type === "date_of_birth")?.key ?? ""] ?? ""), minor: isMinor, guardian: guardianName, relationship: guardianRelationship }]).map((participant, index) => <li key={index} className="py-4"><p className="font-semibold break-words">{participant.name}</p><p className="text-sm text-muted-foreground">{participant.dob} {participant.minor ? t("Child") : t("Adult")}</p>{participant.minor && <p className="text-sm">{t("Parent / guardian full legal name")}: {participant.guardian} / {participant.relationship}</p>}</li>)}</ul><p className="text-sm">{t("Your electronic consent and all required signatures are included.")}</p></section>}
 
-      <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
+      <div hidden={props.kiosk && kioskStep !== 2}><TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} /></div>
 
       {error && (
         <div
@@ -523,14 +610,16 @@ export function SigningForm(props: SigningFormProps) {
         </div>
       )}
 
+      {props.kiosk && kioskStep > 0 && <button type="button" disabled={submitting} className="min-h-12 rounded-xl border px-6 font-semibold" onClick={() => { setKioskStep(previous => previous - 1); setError(null); window.scrollTo({ top: 0 }); }}>{t("Back")}</button>}
       <button
         type="submit"
         disabled={submitting || photoBusy}
         aria-describedby={error ? "signing-error" : undefined}
         className="w-full rounded-lg bg-primary px-6 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
-        {submitting ? t("Submitting…") : t("Sign waiver")}
+        {submitting ? t("Submitting…") : props.kiosk && kioskStep !== 2 ? t("Continue") : t("Sign waiver")}
       </button>
+      </fieldset>
     </form>
   );
 }

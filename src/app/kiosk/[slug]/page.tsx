@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import { kioskHiddenFields } from "@/lib/kiosk-settings";
 import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { SigningForm } from "@/components/signing-form";
 import { WakeLock } from "@/components/wake-lock";
+
+// Request-scoped only: metadata and page share one lookup; submission still
+// resolves current publication/billing state independently on the server.
+const loadKioskWaiver = cache(getPublishedWaiverBySlug);
 
 export async function generateMetadata({
   params,
@@ -9,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const waiver = await getPublishedWaiverBySlug(slug).catch(() => null);
+  const waiver = await loadKioskWaiver(slug).catch(() => null);
   return {
     title: waiver ? `${waiver.name} — Kiosk` : "Waiver not found",
     robots: { index: false },
@@ -24,7 +30,7 @@ export default async function KioskPage({
   const { slug } = await params;
   let waiver;
   try {
-    waiver = await getPublishedWaiverBySlug(slug);
+    waiver = await loadKioskWaiver(slug);
   } catch {
     return (
       <KioskUnavailable message="The waiver service is temporarily unavailable. Check your connection and try again." retry />
@@ -42,7 +48,7 @@ export default async function KioskPage({
     : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8" style={brandStyle}>
+    <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-8" style={brandStyle}>
       <WakeLock />
       <header className="mb-6 text-center">
         {waiver.branding.logoUrl && (
@@ -71,6 +77,9 @@ export default async function KioskPage({
         documentDisplay={waiver.documentDisplay}
         photoMode={waiver.photoMode}
         kiosk
+        kioskWelcome={waiver.kioskSettings.welcome}
+        kioskInstructions={waiver.kioskSettings.instructions}
+        kioskHiddenFields={kioskHiddenFields(waiver.kioskSettings, waiver.templateId, waiver.version.fields)}
       />
     </main>
   );

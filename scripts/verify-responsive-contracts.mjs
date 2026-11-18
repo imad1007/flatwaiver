@@ -34,7 +34,10 @@ assert.ok(
 
 assert.match(waiverRender, /\[overflow-wrap:anywhere\]/);
 assert.ok(waiverRender.match(/waiverTextWrapClass/g)?.length >= 5);
-assert.match(waiverEditor, /overflow-x-hidden overflow-y-auto/);
+// The editor now separates the scrolling dialog from its content preview.
+// Check containment on the actual preview, rather than adjacent class order.
+assert.match(waiverEditor, /<div lang=\{language\} dir=\{signerDirection\(language\)\} className="pointer-events-none min-w-0 space-y-4 overflow-x-hidden text-start"/);
+assert.match(waiverEditor, /min-h-0 flex-1 overflow-y-auto/);
 assert.match(signingForm, /min-w-0 space-y-4 overflow-x-hidden/);
 
 console.log("responsive contracts passed (tabs, 2 data tables, narrow header, imported waiver text containment)");

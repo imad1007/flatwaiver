@@ -10,7 +10,7 @@ import { APP } from "@/lib/config";
  * a bare link). CSS/JS and OG image routes are never blocked.
  */
 export default function robots(): MetadataRoute.Robots {
-  const isProduction = process.env.VERCEL_ENV === "production";
+  const isProduction = process.env.VERCEL_ENV === "production" && process.env.FLATWAIVER_ENV !== "staging";
 
   if (!isProduction) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };

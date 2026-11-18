@@ -15,6 +15,7 @@ export interface SignatureCanvasHandle {
   /** PNG data URL, or null if the signature is trivial/empty. */
   getDataUrl: () => string | null;
   clear: () => void;
+  focus: () => void;
 }
 
 /** Minimum recorded points across all strokes to accept a signature. */
@@ -22,13 +23,15 @@ const MIN_POINTS = 8;
 
 export const SignatureCanvas = forwardRef<
   SignatureCanvasHandle,
-  { label: string; language?: SignerLanguage }
->(function SignatureCanvas({ label, language = "en" }, ref) {
+  { label: string; language?: SignerLanguage; kiosk?: boolean; suggestedName?: string }
+>(function SignatureCanvas({ label, language = "en", kiosk = false, suggestedName }, ref) {
   const t = (text: string) => signerText(text, language);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const padRef = useRef<SignaturePad | null>(null);
   const [mode, setMode] = useState<"draw" | "type">("draw");
   const [typedSignature, setTypedSignature] = useState("");
+  const [quickSigned, setQuickSigned] = useState(false);
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
 
   function typedDataUrl(): string | null {
     if (!typedSignatureIsValid(typedSignature)) return null;
@@ -96,17 +99,28 @@ export const SignatureCanvas = forwardRef<
     clear() {
       padRef.current?.clear();
       setTypedSignature("");
+      setQuickSigned(false);
+    },
+    focus() {
+      const input = fieldsetRef.current?.querySelector<HTMLInputElement>('input[type="text"]');
+      if (input) input.focus(); else fieldsetRef.current?.focus();
     },
   }));
 
   return (
-    <fieldset>
-      <legend className="text-sm font-medium text-foreground/90">{label}</legend>
+    <fieldset ref={fieldsetRef} tabIndex={-1} className="outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <legend className="text-sm font-medium text-foreground/90">{label}{kiosk && <span aria-hidden="true"> *</span>}</legend>
+      {kiosk && suggestedName && typedSignatureIsValid(suggestedName) && !(mode === "type" && typedSignature.trim() === suggestedName.trim()) && <div className="mt-2 rounded-lg bg-primary/5 p-3">
+        <button type="button" className="min-h-12 rounded-lg border border-primary px-4 py-3 font-semibold text-primary" onClick={() => { setMode("type"); setTypedSignature(suggestedName.trim()); setQuickSigned(true); }}>{t("Sign with this name")}: {suggestedName.trim()}</button>
+        <p className="mt-1 text-xs text-muted-foreground">{t("Choosing this button creates your typed signature. You can edit it below.")}</p>
+      </div>}
+      {kiosk && quickSigned && <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2"><span className="min-w-0 flex-1 text-lg italic [overflow-wrap:anywhere]">{typedSignature}</span><button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => setQuickSigned(false)}>{t("Edit signature")}</button></div>}
+      <div hidden={kiosk && quickSigned}>
       <div className="mt-2 inline-flex rounded-lg border border-input bg-muted/40 p-1">
         {(["draw", "type"] as const).map((option) => (
           <label
             key={option}
-            className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-ring/50 ${
+            className={`cursor-pointer rounded-md px-3 ${kiosk ? "min-h-11 py-3" : "py-1.5"} text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-ring/50 ${
               mode === option ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
@@ -129,7 +143,7 @@ export const SignatureCanvas = forwardRef<
             <button
               type="button"
               onClick={() => padRef.current?.clear()}
-              className="text-xs text-muted-foreground underline"
+              className={kiosk ? "min-h-11 text-sm text-muted-foreground underline" : "text-xs text-muted-foreground underline"}
             >
               {t("Clear drawing")}
             </button>
@@ -153,7 +167,7 @@ export const SignatureCanvas = forwardRef<
             required
             minLength={1}
             maxLength={200}
-            autoComplete="name"
+            autoComplete={kiosk ? "off" : "name"}
             value={typedSignature}
             onChange={(event) => setTypedSignature(event.target.value)}
             className="w-full rounded-md border border-input bg-card px-3 py-3 text-lg italic focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
@@ -163,6 +177,7 @@ export const SignatureCanvas = forwardRef<
           </span>
         </label>
       )}
+      </div>
     </fieldset>
   );
 });

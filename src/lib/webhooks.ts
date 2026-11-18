@@ -32,6 +32,8 @@ export async function dispatchWebhooks(
   orgId: string,
   payload: SignatureCreatedPayload
 ): Promise<void> {
+  // No customer-configured outbound endpoints are exercised in staging.
+  if (process.env.FLATWAIVER_ENV === "staging") return;
   try {
     const admin = createAdminClient();
     const { data: endpoints } = await admin

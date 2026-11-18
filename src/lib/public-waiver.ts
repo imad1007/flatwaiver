@@ -1,4 +1,5 @@
 import "server-only";
+import { readKioskSettings, type KioskSettings } from "./kiosk-settings";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canAcceptPublicSignatures } from "@/lib/billing-lifecycle";
@@ -14,6 +15,7 @@ export interface PublicBranding {
 }
 
 export interface PublicWaiver {
+  kioskSettings: KioskSettings;
   templateId: string;
   orgId: string;
   orgName: string;
@@ -96,6 +98,7 @@ export async function getPublishedWaiverBySlug(
   }
 
   return {
+    kioskSettings: readKioskSettings(rawBranding.kiosk),
     templateId: template.id,
     orgId: template.org_id,
     orgName: org.name,

@@ -11,6 +11,9 @@ import Stripe from "stripe";
 let stripeClient: Stripe | null = null;
 
 export function getStripe(): Stripe {
+  if (process.env.FLATWAIVER_ENV === "staging" && !process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
+    throw new Error("Staging requires a Stripe test key.");
+  }
   if (!stripeClient) {
     stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!);
   }

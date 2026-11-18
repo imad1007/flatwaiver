@@ -53,7 +53,7 @@ export default async function SignaturesPage({
   if (q) query = query.ilike("participant_search", `%${q}%`);
   if (email) query = query.ilike("signer_email", `%${email}%`);
   if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
-  if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
+  if (to) query = query.lt("signed_at", new Date(Date.parse(`${to}T00:00:00Z`) + 86400000).toISOString());
   if (templateFilter) query = query.eq("template_id", templateFilter);
   if (flaggedOnly) query = query.eq("flagged", true);
 
@@ -144,7 +144,7 @@ export default async function SignaturesPage({
             inputMode="email"
             name="email"
             defaultValue={email}
-            placeholder="Search emailsâ€¦"
+            placeholder="Search emails..."
             autoComplete="off"
             className="rounded-md border border-input px-3 py-2 text-sm focus:border-ring focus:outline-none"
           />

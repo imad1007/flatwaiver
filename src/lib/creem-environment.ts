@@ -14,6 +14,9 @@ export function resolveCreemServer(value: string | undefined, apiKey: string): "
   if (!server) {
     throw new CreemConfigurationError("Set CREEM_SERVER explicitly to test or prod, matching the API key and product environment.");
   }
+  if (process.env.FLATWAIVER_ENV === "staging" && (server !== "test" || !apiKey.startsWith("creem_test_"))) {
+    throw new CreemConfigurationError("Staging requires a Creem test key and test server.");
+  }
   if (server === "prod" && apiKey.startsWith("creem_test_")) {
     throw new CreemConfigurationError("CREEM_SERVER is prod but CREEM_API_KEY is a test key.");
   }

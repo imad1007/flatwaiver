@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "verify:staging": "node scripts/check-staging-env.mjs --self-test && node scripts/verify-staging-safety.mjs",
+    "verify:kiosk": "node scripts/verify-kiosk.mjs",
+    "verify:kiosk:browser": "node scripts/verify-kiosk-browser.mjs",
     "verify:tiktok-pixel": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-tiktok-pixel.mjs && node scripts/verify-tiktok-sdk-setup.mjs",
     "verify:admin-analytics": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-admin-analytics.mjs",
     "verify:openai-pixel": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-openai-pixel.mjs && node scripts/verify-openai-sdk-setup.mjs",

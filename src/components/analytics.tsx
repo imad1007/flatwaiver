@@ -18,6 +18,8 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
  * changes via History events, so no manual page_view wiring is needed.
  */
 export function Analytics() {
+  // A separate staging Vercel project may use its production deployment target.
+  if (process.env.FLATWAIVER_ENV === "staging") return null;
   if (!GA_ID && !ADS_ID && !CLARITY_ID) return null;
   return (
     <AnalyticsScripts

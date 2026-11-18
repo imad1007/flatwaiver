@@ -36,6 +36,11 @@ const admin = {
   },
   storage: { from: forbidden },
 };
+const { z } = await import("zod");
+const kioskSettings = load("src/lib/kiosk-settings.ts", {
+  zod: { z },
+  "./types": load("src/lib/types.ts", {}),
+});
 const loader = load("src/lib/public-waiver.ts", {
   "server-only": {},
   "@/lib/supabase/admin": { createAdminClient(options) {
@@ -43,8 +48,8 @@ const loader = load("src/lib/public-waiver.ts", {
     return admin;
   } },
   "@/lib/billing-lifecycle": { canAcceptPublicSignatures },
+  "./kiosk-settings": kioskSettings,
 });
-const { z } = await import("zod");
 const route = load("src/app/api/sign/[slug]/route.ts", {
   "next/server": { NextResponse: { json: (body, init) => Response.json(body, init) } },
   zod: { z },

@@ -88,6 +88,9 @@ export async function GET(request: Request) {
   }
 
   const encoder = new TextEncoder();
+  // signed_waivers is append-only. Freeze the upper boundary so a new signing
+  // during a multi-batch export cannot shift later offset pages.
+  const exportStartedAt = new Date().toISOString();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -101,12 +104,14 @@ export async function GET(request: Request) {
             "id, signer_name, signer_email, signer_dob, is_minor, guardian_name, guardian_relationship, template_id, template_version_id, signed_at, ip, user_agent, signing_channel, consent_given, flagged, pdf_sha256, field_values, participants"
           )
           .order("signed_at", { ascending: false })
+          .order("id", { ascending: false })
           .range(offset, offset + BATCH_SIZE - 1);
 
         if (q) query = query.ilike("participant_search", `%${q}%`);
         if (email) query = query.ilike("signer_email", `%${email}%`);
         if (from) query = query.gte("signed_at", `${from}T00:00:00Z`);
-        if (to) query = query.lte("signed_at", `${to}T23:59:59Z`);
+        query = query.lte("signed_at", exportStartedAt);
+        if (to) query = query.lt("signed_at", new Date(Date.parse(`${to}T00:00:00Z`) + 86400000).toISOString());
         if (template) query = query.eq("template_id", template);
         if (flaggedOnly) query = query.eq("flagged", true);
 

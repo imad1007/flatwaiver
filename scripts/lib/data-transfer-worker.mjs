@@ -619,7 +619,7 @@ async function commitImport(db, job, directory) {
     lease_token: null,
   });
 }
-export function normalizeNative({ template_versions, ...r }, template) {
+export function normalizeNative(r, template, fields = []) {
   return {
     id: r.id,
     record_origin: "native",
@@ -630,7 +630,7 @@ export function normalizeNative({ template_versions, ...r }, template) {
     participant_name: r.signer_name,
     participants: r.participants ?? null,
     participant_email: r.signer_email,
-    participant_phone: signerPhone(r.field_values, template_versions?.fields) || null,
+    participant_phone: signerPhone(r.field_values, fields) || null,
     date_of_birth: r.signer_dob,
     original_signed_at: r.signed_at,
     created_at: r.created_at,
@@ -645,6 +645,7 @@ async function exportJob(db, job, directory) {
   const options = optionsSchema.parse(job.options);
   const filters = options.filters;
   const templates = new Map();
+  const versionFields = new Map();
   for await (const t of pages(
     db,
     "waiver_templates",
@@ -765,7 +766,7 @@ async function exportJob(db, job, directory) {
               filters,
               native,
             ),
-          native ? "*, template_versions(fields)" : "*",
+          "*",
         )) {
           const t = templates.get(raw.template_id);
           if (
@@ -773,8 +774,16 @@ async function exportJob(db, job, directory) {
             t?.status !== filters.templateStatus
           )
             continue;
+          if (native && !versionFields.has(raw.template_version_id)) {
+            const version = checked(await db.from("template_versions")
+              .select("fields")
+              .eq("id", raw.template_version_id)
+              .eq("template_id", raw.template_id)
+              .maybeSingle());
+            versionFields.set(raw.template_version_id, version?.fields ?? []);
+          }
           const r = native
-            ? normalizeNative(raw, t)
+            ? normalizeNative(raw, t, versionFields.get(raw.template_version_id))
             : {
                 ...raw,
                 record_origin: "imported",

@@ -36,6 +36,10 @@ const nextConfig: NextConfig = {
   // noindex so Search Console stops flagging them.
   async headers() {
     return [
+      ...(process.env.FLATWAIVER_ENV === "staging" ? [{
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      }] : []),
       {
         source: "/opengraph-image",
         headers: [{ key: "X-Robots-Tag", value: "noindex" }],

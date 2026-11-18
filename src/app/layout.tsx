@@ -26,7 +26,7 @@ const SITE_DESCRIPTION =
 const SITE_TITLE = `Digital Waiver Software — Unlimited Waivers for $${APP.priceMonthlyUsd}/mo | ${APP.name}`;
 
 /** Only the real production deploy is indexable; every preview is noindex. */
-const IS_PRODUCTION = process.env.VERCEL_ENV === "production";
+const IS_PRODUCTION = process.env.VERCEL_ENV === "production" && process.env.FLATWAIVER_ENV !== "staging";
 
 export const metadata: Metadata = {
   // Hardcoded www so all canonical/OG URLs resolve to the one true host,
