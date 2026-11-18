@@ -40,5 +40,5 @@ await demo.getByText(/Demo receipt/).waitFor({state:'visible'});
 await demo.getByRole('button',{name:'Try again',exact:true}).click();
 assert.ok(await demo.locator('form').count()>0,'demo resets');
 for(const path of ['/signup','/login']){const r=await page.goto(base+path,{waitUntil:'networkidle'});assert.equal(r.status(),200);assert.ok(await page.locator('h1').isVisible());}
-await writeFile('docs/seo/browser-verification.json',JSON.stringify({checkedOn:'2026-11-16',views:report,deferredDemo:'PASS',authNavigation:'PASS',accountCreation:'NOT ATTEMPTED'},null,2));
+await writeFile('docs/seo/browser-verification.json',JSON.stringify({checkedOn:new Date().toISOString().slice(0,10),views:report,deferredDemo:'PASS',authNavigation:'PASS',accountCreation:'NOT ATTEMPTED'},null,2));
 await browser.close();console.log('PASS: 36 responsive/theme views, deferred demo load and signup/login navigation; no accounts created');

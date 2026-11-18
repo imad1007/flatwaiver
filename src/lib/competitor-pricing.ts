@@ -1,4 +1,4 @@
-export const COMPETITOR_PRICING_CHECKED_ON = "November 16, 2026";
+export const COMPETITOR_PRICING_CHECKED_ON = "November 18, 2026";
 export const SMARTWAIVER_PRICING_NOTICE = "Smartwaiver rates shown are effective from October 8, 2026; confirm the applicable billing date with the vendor.";
 export const SMARTWAIVER_ANNOUNCEMENT_URL = "https://support.smartwaiver.com/hc/en-us/articles/48619421464845-Smartwaiver-Subscription-Pricing-Update-Overview-FAQs";
 
@@ -21,7 +21,7 @@ export const SMARTWAIVER_PRICING = {
     premierMonthlyUsd: 270,
   },
   current: {
-    checkedOn: "2026-09-10",
+    checkedOn: "2026-11-18",
     announcedOn: "2026-09-08",
     effectiveFrom: "2026-10-08",
     plans: verifiedSmartwaiverPlans.map((plan, index) => ({
@@ -48,7 +48,7 @@ export const PUBLISHED_COMPETITOR_PRICING = [
   {
     name: "Smartwaiver",
     sourceUrl: SMARTWAIVER_ANNOUNCEMENT_URL,
-    priceSummary: "$22?$205 verified monthly volume tiers",
+    priceSummary: "$22–$205 verified monthly volume tiers",
     thousandSummary: "$160/mo",
     plans: SMARTWAIVER_PRICING.current.plans,
   },

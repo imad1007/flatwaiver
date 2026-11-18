@@ -1,5 +1,7 @@
 ﻿# Review status and release order
 
+> Historical November 16 stack. The November 18 replacement QA release branch removes the analytics dependency. See [release-review.md](release-review.md) for current PR state and the release decision.
+
 Prepared 2026-11-16. All PRs are drafts. No merge, production deployment, CMS publication, outreach or production analytics setting change is authorized by this packet.
 
 | Order | Concern | Branch | Commit | Draft PR | Base |

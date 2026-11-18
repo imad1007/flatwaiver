@@ -1,5 +1,7 @@
 ﻿# SEO recovery implementation and review packet
 
+**November 18 release update:** use [release-review.md](release-review.md) for the current release architecture, test outcomes and GO/NO-GO conditions. The sections below describe the original November 16 implementation. The production candidate is `seo/release-without-analytics-2026-11-18`, based directly on the commercial branch and final QA commits; PR #5 is excluded. Generated evidence is archived as documented in [evidence-archive.md](evidence-archive.md).
+
 Prepared 2026-11-16. **Not merged, not deployed, no CMS publication or production settings changes.**
 
 ## Production/source reconciliation

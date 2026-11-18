@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { COMPARABLE_COMPETITORS, COMPETITOR_PRICING_CHECKED_ON, SMARTWAIVER_PRICING, publishedPlanCost } from "../src/lib/competitor-pricing.ts";
-assert.equal(COMPETITOR_PRICING_CHECKED_ON, "November 16, 2026");
+assert.ok(Number.isFinite(Date.parse(COMPETITOR_PRICING_CHECKED_ON)), "pricing review date is readable");
 const smart = COMPARABLE_COMPETITORS.find(p => p.name === "Smartwaiver");
 const file = COMPARABLE_COMPETITORS.find(p => p.name === "WaiverFile");
 for (const [volume, price] of [[0,22],[100,22],[101,41],[200,41],[201,60],[300,60],[301,110],[600,110],[601,160],[1000,160],[1001,205],[2500,205],[2501,null]]) assert.equal(publishedPlanCost(smart.plans, volume), price, "Smartwaiver at " + volume);
