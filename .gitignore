@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated SEO QA artifacts (summaries and evidence manifest remain tracked)
+/docs/seo/screenshots/
+/docs/seo/lighthouse-*.json
+/docs/seo/pagespeed-baseline.json
+/docs/seo/browser-verification.json
+/docs/seo/local-verification.json
