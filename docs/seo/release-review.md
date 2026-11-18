@@ -36,7 +36,7 @@ An analytics-inclusive alternative remains in the preserved original recovery br
 
 ## Verification commands and classification
 
-Final outcomes and the exact tested source revision will be appended after this candidate completes build/browser checks. The source was frozen before the production build; later edits are tests/documentation only.
+Final outcomes and the exact tested source revision are recorded below. The application source was frozen before the final production build; later edits are tests/documentation only.
 
 - Build helper invokes installed Next 16.2.10 `next build --webpack`, sets `VERCEL_ENV=production`, and uses existing build-time public blog reads. Explicit GA/Ads/Clarity environment identifiers are omitted in the local test build; the baseline GA fallback still exists. UI checks deny consent and block third-party traffic. Analytics delivery is not verified.
 - Full `npm.cmd run lint`: FAIL, pre-existing 11 `no-require-imports` errors in `output/check-admin-preview.cjs` and `output/delete-requested-accounts.cjs`; zero new source warnings reported. These utilities are unchanged.
@@ -65,3 +65,50 @@ node scripts/verify-seo.mjs
 ```
 
 This plan is preparation, not authorization to run a merge, production deploy, configuration change or transactional production test.
+## GitHub state after cleanup
+
+| PR | State / intended action | Base | Head SHA | Checks / dependency |
+|---|---|---|---|---|
+| [#2](https://github.com/imad1007/flatwaiver/pull/2) | Open draft, concern-level reference | main | `4d821873772ee43e36f9492a59d5b878c58b3231` | Vercel success; included by #7; do not merge independently |
+| [#3](https://github.com/imad1007/flatwaiver/pull/3) | Open draft, concern-level reference | seo/technical-canonical-2026-11-16 | `b469a55c2e833730f7251e6f78b143ea3f85a2dd` | Vercel success; depends on #2; included by #7 |
+| [#4](https://github.com/imad1007/flatwaiver/pull/4) | Open draft, concern-level reference | seo/pricing-2026-11-16 | `7960c86d652a6a2ece76a98ebd162660d44d32d0` | Vercel success; depends on #3; included by #7 |
+| [#5](https://github.com/imad1007/flatwaiver/pull/5) | Open draft, separate analytics release, NO-GO | seo/commercial-2026-11-16 | `9837637d7825ff8b8bcf3cf2a0ce2fe0b5bffbd8` | Vercel success; measurement rollout unresolved |
+| [#6](https://github.com/imad1007/flatwaiver/pull/6) | Closed without merge; superseded | seo/measurement-2026-11-16 | `975e87aa35a31e8d79d2b9cd6975ad8f41ac0ea3` | Preserved full-stack branch; current diff reduced to 21 files / 566 additions / 32 deletions |
+| [#7](https://github.com/imad1007/flatwaiver/pull/7) | Combined SEO-only release, owner review required | main | Tested source `209d8789ab6f09fc2f140a9422ed9262e088dc86`; subsequent report-only commits may advance head | Vercel success at tested source; zero merge conflict reported; 38 files / 1,015 additions / 495 deletions before this report update |
+
+Original bases remain intact because no dependency PR was merged. #7 targets main directly, avoiding partial production merges and excluding #5 in both ancestry and final source. There is intentional overlap between #7 and the concern-reference PRs; it is not duplicated implementation in the release tree. Close #2–#4 as included only after the approved combined release lands. #5 must then be retargeted and its diff checked before any separate approval. No force updates, automatic merge or approval review was requested.
+
+Vercel preview at tested source: [Ready deployment](https://vercel.com/imadhamdouch0-8763s-projects/flatwaiver/6XeTZ124vYecUFEFyi4ie2xPygWi). GitHub reports #7 mergeable; this describes conflict detection, not owner approval or a guarantee that all branch-protection conditions are fulfilled.
+
+The final read-only production check still returned 200 for both `/` and `/index`, with `/index` canonical; robots allows crawling. Remote main remained `6a37ffb`. This confirms the candidate was not released; it is not evidence that the live canonical issue is fixed.
+
+## Final verification outcome and recommendation
+
+Tested application source: **`209d8789ab6f09fc2f140a9422ed9262e088dc86`**. The final production build ran after the signup metadata and gym-preview copy corrections. Subsequent changes are report/evidence documentation and a separately executed navigation-verification script; no application/configuration/content changes followed. The application tree remains identical to this source SHA.
+
+| Command / context | Final result |
+|---|---|
+| `node ../../tmp/seo-release-build.cjs` (helper runs installed `next build --webpack`, `VERCEL_ENV=production`) | PASS, TypeScript, optimization/tracing and all 81 routes |
+| `npx.cmd eslint src/app src/components src/lib next.config.ts scripts/verify-marketing-pricing.mjs scripts/verify-seo.mjs scripts/verify-seo-browser.mjs scripts/verify-seo-navigation.mjs` | PASS, final application/script tree including signup metadata and the navigation script |
+| `npm.cmd run lint` | FAIL, 11 pre-existing errors in two unchanged output utilities; no claim of full repository lint success |
+| `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-marketing-pricing.mjs` | PASS, effective/historical rates, tier boundaries, invalid/unknown coverage, annualized arithmetic |
+| Same Node flags, `scripts/verify-billing-offer.mjs` | PASS, 3 scenarios; no provider calls or payments |
+| Same Node flags, `scripts/verify-public-signing-billing.mjs` | PASS, mocked actual loader/POST denied stale trial state without signing side effects; active access restored |
+| Same Node flags, `scripts/verify-signing-validation.mjs` | PASS, 9 signing-date cases |
+| Same Node flags, `scripts/verify-csv-safety.mjs` | PASS, 6 CSV escaping cases |
+| Same Node flags, `scripts/verify-acquisition.mjs` in the separate `tmp/seo-recovery` analytics worktree | PASS, consent, TTL, source minimization, audience exclusions, paid-click classification and spoof rejection. This verifies #5's helper only; #5 is not in the release |
+| `SEO_BASE_URL=http://localhost:3012`, `SEO_EXPECT_INDEXABLE=true`, `node scripts/verify-seo.mjs` | PASS, 13 pages, 33 internal destinations, metadata/H1/JSON-LD parse, root/index/query/apex/slash handling, unique 33-URL sitemap, production robots Allow /, signup/login noindex |
+| Same local base, `PLAYWRIGHT_MODULE` set to installed Playwright, `node scripts/verify-seo-browser.mjs` | PASS, 36 views across six pages, 390/768/1440px and light/dark, no horizontal overflow, demo deferred load/typed signature/consent/receipt/reset and signup/login navigation |
+| Same browser environment, `node scripts/verify-seo-navigation.mjs` | PASS, 390px header login/signup clicks, footer pricing, logo home navigation, keyboard calculator endpoints and visible prices |
+| `git diff --check` | PASS; Windows line-ending notices only |
+| Protected-file diff and analytics ancestry/source checks | PASS, only signup metadata differs among operational/auth files; no measurement commit or telemetry source changes in release |
+
+Supplemental navigation initially selected a link role for a control rendered by the shared Button component. The harness now targets its actual anchor href and verifies navigation; the application was unchanged. The interrupted browser run during rebuild and the earlier missing-noindex failure are not represented as passes. Final runs above completed against the corrected server.
+
+Representative final light mobile pricing and dark mobile gym screenshots were inspected; no clipping or unreadable text found in those views. New run evidence is separately preserved and hash-listed in `evidence-final-run.md`. No full accessibility certification, field INP result, successful production signup/payment, indexing change or growth claim is made.
+
+**Technical recommendation: GO for owner review and a controlled SEO-only release of PR #7.** No known new release-blocking code regression remains in the tested scope. Conflicts are absent and the tested source has a Ready Vercel preview. Known global lint failures are pre-existing and isolated; if repository policy requires that entire command to pass, the owner must resolve them or explicitly accept that known limitation before merge.
+
+**Merge/deploy execution: pending explicit owner authorization.** Confirm protected Vercel production branch/auto-assignment/deployment checks and retained rollback target before approving the combined action. These settings were not independently accessible; treat main merge as immediate production deployment. Do not interpret a technical GO or a ready preview as permission to merge. Transactional acceptance remains limited to static non-regression evidence and isolated mocks; use owner-approved staging accounts if additional auth/payment/signing/export acceptance is required.
+
+**Analytics: NO-GO for this release.** PR #5 stays draft and separate until `measurement.md` conditions are met. No experimental analytics behavior, GA4 settings, CMS content or customer records are changed with PR #7.

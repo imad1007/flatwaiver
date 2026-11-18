@@ -116,3 +116,5 @@ Changed files are available in each PR's Files changed tab. The implementation/f
 - src/lib/industries.ts
 
 Final validation completed on November 16. This documentation-only follow-up records the PR link on November 18; the validated source SHA above identifies the tested implementation. All five creation responses confirmed open drafts with the intended bases and no merge.
+
+November 18: [PR #7](https://github.com/imad1007/flatwaiver/pull/7) is the combined SEO-only release, targeting main and excluding analytics. PR #6 is closed without merge. Original #2-#4 remain concern-review references; #5 remains separately gated. Tested application SHA: `209d8789ab6f09fc2f140a9422ed9262e088dc86`. See `release-review.md` for current state and exact approval/rollback conditions.

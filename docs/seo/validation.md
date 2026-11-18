@@ -29,3 +29,7 @@ The typed-signature control uses a visually hidden native radio inside a visible
 ## Final browser result
 
 PASS: 36 views (six marketing pages, light/dark, 390/768/1440px), no horizontal overflow, one H1, signup destinations present; deferred demo loaded, typed signature and consent produced a sample receipt, reset restored the form; signup/login returned 200 with visible headings. No accounts or real signatures created. `browser-verification.json` and 24 screenshots retained. Representative light mobile pricing/climbing and light/dark desktop QR screenshots inspected visually; no clipping or unreadable text found in those views. Third-party calls are blocked in this UI-only smoke harness, so it does not verify analytics delivery.
+
+## November 18 release review
+
+The original preview checks masked a pre-existing missing signup noindex directive. The analytics-free production-mode candidate corrects that metadata and reruns verification after the latest application changes. Use `release-review.md` for final SHA, commands, failure classifications and GO/NO-GO conditions. The historical November 16 results above are not substituted for the new production-mode runs. New generated evidence is preserved as described in `evidence-final-run.md` and excluded from Git's current diff.
