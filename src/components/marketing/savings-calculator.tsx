@@ -5,7 +5,6 @@ import {
   COMPARABLE_COMPETITORS,
   COMPETITOR_PRICING_CHECKED_ON,
   publishedPlanCost,
-  SMARTWAIVER_PRICING,
   SMARTWAIVER_PRICING_NOTICE,
 } from "@/lib/competitor-pricing";
 import { APP } from "@/lib/config";
@@ -16,11 +15,10 @@ const MAX_VOLUME = 1_000;
 const CHART_MAX = 160;
 
 export function SavingsCalculator() {
-  const [schedule, setSchedule] = useState<"current" | "announced">("current");
   const [volume, setVolume] = useState(1_000);
   const estimates = COMPARABLE_COMPETITORS.map((competitor) => ({
     name: competitor.name,
-    cost: publishedPlanCost(competitor.name === "Smartwaiver" ? SMARTWAIVER_PRICING[schedule].plans : competitor.plans, volume),
+    cost: publishedPlanCost(competitor.plans, volume),
   }));
   const yearlyDifferences = estimates.filter((estimate): estimate is typeof estimate & { cost: number } => estimate.cost !== null).map((estimate) =>
     Math.max(0, Math.round((estimate.cost - OUR_PRICE) * 12)),
@@ -34,7 +32,6 @@ export function SavingsCalculator() {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card sm:p-8">
-      <label className="mb-4 block text-xs">Smartwaiver pricing period <select aria-label="Smartwaiver pricing period" value={schedule} onChange={(event) => setSchedule(event.target.value as "current" | "announced")} className="ml-2 max-w-full rounded border bg-background p-1"><option value="current">Current — through October 7, 2026</option><option value="announced">Announced — from October 8, 2026</option></select></label>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <label htmlFor="volume-slider" className="text-sm font-medium">
           Waivers you collect per month
@@ -116,7 +113,7 @@ export function SavingsCalculator() {
         )}
       </div>
 
-      <p className="mt-3 text-center text-xs">{SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Enterprise is unaffected.</p>
+      <p className="mt-3 text-center text-xs">{SMARTWAIVER_PRICING_NOTICE} Enterprise is excluded. WaiverSign and WaiverForever are excluded from this chart because base fees and usage charges need separate calculation.</p>
       <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
         Uses the lowest published monthly plan that covers this volume; no
         interpolation. Excludes annual discounts, taxes, add-ons, overages, and

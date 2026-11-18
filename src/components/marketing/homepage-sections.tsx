@@ -92,7 +92,7 @@ export function MobileSigningSection() {
         </div>
         <div className="row-start-3 flex flex-wrap items-center gap-x-6 gap-y-4 lg:mt-7">
           <Button size="lg" render={<Link href="/signup" />} className="min-h-12 px-5">Start your free trial <ArrowRight className="size-4" aria-hidden /></Button>
-          <Link href="/blog/gym-waiver-software" className={`inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-primary underline underline-offset-4 ${focus}`}>Explore gym waiver software</Link>
+          <Link href="/industries/fitness-studios" className={`inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-primary underline underline-offset-4 ${focus}`}>Explore gym waiver software</Link>
           <p className="w-full text-xs text-muted-foreground">14 days free. No credit card required.</p>
         </div>
         </div>
@@ -103,7 +103,7 @@ export function MobileSigningSection() {
 }
 
 /** Static, synthetic example based on SigningForm and SignatureCanvas. No live form controls. */
-function SigningPreview() {
+export function SigningPreview() {
   return (
     <figure className="row-start-2 min-w-0 rounded-3xl border border-border bg-card px-4 pb-5 pt-5 sm:px-8 lg:col-start-2 lg:row-start-1">
       <div className="mb-5 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span className="font-medium text-foreground">The guest experience</span><span className="rounded-full border border-border bg-card px-2.5 py-1">Sample preview</span></div>

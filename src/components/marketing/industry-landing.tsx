@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, FileSearch, FileUp, QrCode } from "lucide-react";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing-chrome";
 import { Button } from "@/components/ui/button";
+import { SigningPreview } from "@/components/marketing/homepage-sections";
 import { APP } from "@/lib/config";
 import { industryDirectory, type Industry } from "@/lib/industries";
 
@@ -75,6 +76,7 @@ export function IndustryLanding({ industry }: { industry: Industry }) {
         ].map(({ Icon, title, text }, index) => <li key={title} className="rounded-2xl border bg-card p-6"><Icon className="size-6 text-primary" aria-hidden="true" /><h3 className="mt-5 font-semibold">{index + 1}. {title}</h3><p className={copy}>{text}</p></li>)}</ol>
       </section>
       {industry.sections.map(item => <section className={section} key={item.title}><div className="grid gap-6 md:grid-cols-[1fr_1.2fr]"><h2 className={heading}>{item.title}</h2><div>{item.paragraphs.map(text => <p key={text} className="mb-4 leading-7 text-muted-foreground">{text}</p>)}</div></div></section>)}
+      {["fitness-studios", "trampoline-parks"].includes(industry.slug) && <section className={section}><div className="grid items-center gap-8 lg:grid-cols-2"><div><h2 className={heading}>{industry.slug === "fitness-studios" ? "Digital gym waivers on your guest’s phone" : "Test the family signing handoff"}</h2><p className={copy}>This static preview uses synthetic sample details. Your published waiver controls its title, wording, fields and consent. Test an adult and a minor flow before sending the link to guests.</p><p className={copy}>Group signing can collect several participants on one signed document when enabled. It does not verify guardian authority, match a party roster or replace staff admission checks. Signing requires an internet connection.</p><Link href="/#try-it" className="mt-5 inline-block text-primary underline">Try the interactive signing form</Link><p className={copy}><Link href="/features/qr-code-waivers" className="underline">Plan your reception QR code</Link> and <Link href="/pricing" className="underline">review plan inclusions</Link>.</p></div><SigningPreview /></div></section>}
       <section id="choose-software" className={`${section} scroll-mt-24`}>
         <h2 className={heading}>{industry.criteriaTitle}</h2>
         <div className="mt-7 grid gap-5 md:grid-cols-3">{industry.criteria.map(item => <article key={item.need} className="rounded-2xl border bg-card p-6"><h3 className="font-semibold">{item.need}</h3><p className={copy}>{item.detail}</p></article>)}</div>
@@ -91,7 +93,7 @@ export function IndustryLanding({ industry }: { industry: Industry }) {
         </div>
       </section>
       <section id="pricing" className="my-6 scroll-mt-24 rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-10">
-        <div className="grid items-center gap-8 md:grid-cols-[1.2fr_1fr]"><div><h2 className={heading}>One monthly price through busy and quiet periods</h2><p className={copy}>${APP.priceMonthlyUsd}/month includes unlimited signed waivers, waiver templates and storage. Prepare separate reviewed documents where your activities need them, without selecting a signature-volume allowance.</p><Link href="/#pricing" className="mt-5 inline-block underline underline-offset-4">View pricing details</Link></div><div><TrialButton /><p className="mt-3 text-sm text-muted-foreground">{APP.trialDays}-day free trial. No credit card required.</p></div></div>
+        <div className="grid items-center gap-8 md:grid-cols-[1.2fr_1fr]"><div><h2 className={heading}>One monthly price through busy and quiet periods</h2><p className={copy}>${APP.priceMonthlyUsd}/month includes unlimited signed waivers, waiver templates and storage. Prepare separate reviewed documents where your activities need them, without selecting a signature-volume allowance.</p><Link href="/pricing" className="mt-5 inline-block underline underline-offset-4">View pricing details</Link></div><div><TrialButton /><p className="mt-3 text-sm text-muted-foreground">{APP.trialDays}-day free trial. No credit card required.</p></div></div>
       </section>
       <section id="questions" className={`${section} scroll-mt-24`}>
         <h2 className={heading}>{industry.label} waiver questions</h2>

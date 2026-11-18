@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Image from "next/image";
 import styles from "./homepage.module.css";
 import {
@@ -29,7 +30,7 @@ import {
 } from "@/components/marketing/mockups";
 import { IndustriesSection, MobileSigningSection } from "@/components/marketing/homepage-sections";
 import { HeroDemo } from "@/components/marketing/hero-demo";
-import { DemoSandbox } from "@/components/marketing/demo-sandbox";
+import { LazySigningDemo } from "@/components/marketing/lazy-signing-demo";
 import { Button } from "@/components/ui/button";
 import { formatPostDate } from "@/lib/blog";
 import { getAllBlogListItems, type BlogListItem } from "@/lib/blog-merge";
@@ -43,6 +44,19 @@ import {
 // ISR so newly published posts flow into the homepage "Guides" section (and
 // their homepage backlink) without a redeploy.
 export const revalidate = 600;
+
+// Use an absolute homepage URL: Next's internal /index route must never leak
+// into the canonical or Open Graph URL when this page is prerendered.
+export const metadata: Metadata = {
+  alternates: { canonical: `${APP.siteUrl}/` },
+  openGraph: {
+    type: "website",
+    siteName: APP.name,
+    title: `Digital Waiver Software — Unlimited Waivers for $${APP.priceMonthlyUsd}/mo | ${APP.name}`,
+    description: `Electronic waiver software for activity businesses. Collect signatures by link, QR code or kiosk and retrieve signed PDFs. $${APP.priceMonthlyUsd}/month, unlimited waivers.`,
+    url: `${APP.siteUrl}/`,
+  },
+};
 
 // ─── Content ────────────────────────────────────────────────────────────────
 
@@ -331,7 +345,7 @@ function Hero() {
               See how it works
             </Button>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground/80">No credit card required</p>
+          <p className="mt-3 text-sm text-muted-foreground">No credit card required</p>
 
           {/* Trust bar */}
           <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
@@ -435,9 +449,9 @@ function Comparison() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="px-5 py-3.5 font-medium"></th>
-                    <th className="px-5 py-3.5 font-medium">Monthly price</th>
-                    <th className="px-5 py-3.5 font-medium">1,000 waivers/month costs</th>
+                    <th scope="col" className="px-5 py-3.5 font-medium">Provider</th>
+                    <th scope="col" className="px-5 py-3.5 font-medium">Monthly price</th>
+                    <th scope="col" className="px-5 py-3.5 font-medium">1,000 waivers/month costs</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,7 +464,7 @@ function Comparison() {
                           : "border-b border-border/60"
                       }
                     >
-                      <td className="px-5 py-3.5">{row.name}</td>
+                      <th scope="row" className="px-5 py-3.5 font-medium">{row.name}</th>
                       <td className="px-5 py-3.5">{row.price}</td>
                       <td className="px-5 py-3.5">{row.display}</td>
                     </tr>
@@ -459,7 +473,7 @@ function Comparison() {
               </table>
               <div className="space-y-2 px-5 pb-4 pt-2 text-xs text-muted-foreground/70">
                 <p>
-                  Checked on {COMPETITOR_PRICING_CHECKED_ON}. {SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Smartwaiver figures in this table use current rates through October 7; Enterprise is unaffected.
+                  Checked on {COMPETITOR_PRICING_CHECKED_ON}. {SMARTWAIVER_PRICING_NOTICE} Announced on September 8, 2026. Effective from October 8, 2026 at the applicable billing date. Smartwaiver figures use the effective October rates; Enterprise is unaffected.
                   Plans and features differ; taxes, discounts, add-ons, and
                   overages are excluded.
                 </p>
@@ -477,6 +491,7 @@ function Comparison() {
                   ))}
                 </p>
                 <p className="flex flex-wrap gap-x-3 gap-y-1">
+                  <Link href="/blog/waiver-software-cost" className="underline underline-offset-2">Waiver software pricing guide</Link>
                   <Link href="/blog/smartwaiver-pricing" className="underline underline-offset-2">Smartwaiver pricing explained</Link>
                   <Link href="/blog/smartwaiver-alternatives" className="underline underline-offset-2">Compare Smartwaiver alternatives</Link>
                   <Link href="/blog/flatwaiver-vs-smartwaiver" className="underline underline-offset-2">FlatWaiver vs Smartwaiver</Link>
@@ -655,7 +670,7 @@ function TryIt() {
           sub="Sign the demo waiver below — right here, no signup. It's exactly the flow your customers get on their phone."
         />
         <Reveal className="mt-10">
-          <DemoSandbox />
+          <LazySigningDemo />
         </Reveal>
       </div>
     </section>
@@ -883,7 +898,7 @@ function FinalCta() {
           </Button>
           <p className="mt-3 text-sm text-brand-200/70">No credit card required</p>
         </div>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-brand-200/60">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-brand-100">
           <span className="inline-flex items-center gap-1.5">
             <ScanLine className="size-3.5" /> Live in under 5 minutes
           </span>

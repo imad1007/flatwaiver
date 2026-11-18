@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Check, FileSearch, FileUp, Mountain, QrCode, Users } from "lucide-react";
 import { MarketingHeader, MarketingFooter } from "@/components/marketing-chrome";
 import { Button } from "@/components/ui/button";
+import { SigningPreview } from "@/components/marketing/homepage-sections";
 import { APP } from "@/lib/config";
 
 const title = "Climbing Gym Waiver Software — Unlimited Waivers | FlatWaiver";
@@ -22,7 +23,7 @@ const faqs = [
   ["Can we use QR codes at the front desk?", "Yes. Print the QR code for your published waiver so visitors can open it on their phones. You can also open kiosk mode on a reception tablet for visitors who need a device."],
   ["Can we use our existing climbing waiver?", "Yes. Upload your existing PDF to create a draft. Review the converted wording and fields against the original, correct any issues, then publish. You can also start with your own text in the editor."],
   ["Can staff find an old signed waiver?", "Yes. Search signed records by name or email and filter by date or waiver. Open the record to download its stored signed PDF. Later edits to your template do not replace the version attached to an earlier signature."],
-  ["Is FlatWaiver suitable for busy climbing gyms?", "FlatWaiver supports signing links, QR codes and kiosk mode, with unlimited signed waivers. Each participant completes their own signing flow; share the link ahead of group visits to spread out the paperwork."],
+  ["Is FlatWaiver suitable for busy climbing gyms?", "FlatWaiver supports signing links, QR codes and kiosk mode, with unlimited signed waivers. Enable group signing to collect multiple participants on one signed document, or use individual forms. Test minors and guardian fields before a group visit."],
   ["How much does climbing gym waiver software cost?", `FlatWaiver is $${APP.priceMonthlyUsd}/month for unlimited signed waivers, waiver templates and storage. Start with a ${APP.trialDays}-day free trial, with no credit card required.`],
 ];
 const heading = "text-2xl font-bold tracking-tight sm:text-3xl";
@@ -37,7 +38,8 @@ export default function ClimbingGymsPage() {
     "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: APP.siteUrl },
-      { "@type": "ListItem", position: 2, name: "Climbing gyms", item: url },
+      { "@type": "ListItem", position: 2, name: "Industries", item: `${APP.siteUrl}/industries` },
+      { "@type": "ListItem", position: 3, name: "Climbing gyms", item: url },
     ],
   };
   return <>
@@ -45,7 +47,7 @@ export default function ClimbingGymsPage() {
     <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb).replace(/</g, "\\u003c") }} />
       <section className="py-10 sm:py-16">
-        <nav aria-label="Breadcrumb" className="mb-8 text-sm text-muted-foreground"><Link href="/" className="hover:underline">Home</Link> / <span aria-current="page">Climbing gyms</span></nav>
+        <nav aria-label="Breadcrumb" className="mb-8 text-sm text-muted-foreground"><Link href="/" className="hover:underline">Home</Link> / <Link href="/industries" className="hover:underline">Industries</Link> / <span aria-current="page">Climbing gyms</span></nav>
         <div className="grid items-center gap-10 lg:grid-cols-[1.3fr_1fr]">
           <div>
             <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Mountain className="size-5" aria-hidden="true" /> For climbing gyms &amp; bouldering facilities</p>
@@ -106,6 +108,7 @@ export default function ClimbingGymsPage() {
         <div className="grid gap-8 md:grid-cols-[1.2fr_1fr]"><div><h2 className={heading}>Bring the climbing waiver you already use</h2><p className={copy}>Start with your existing climbing gym liability waiver, including wording you have had reviewed by your legal adviser or insurer. Upload the PDF and FlatWaiver converts it into an editable draft.</p><p className={copy}>Compare the draft against the original file, correct conversion issues, check the fields and consent text, then publish. You control the document that visitors sign.</p></div><aside className="rounded-2xl border bg-muted/40 p-6"><h3 className="font-semibold">Review before you publish</h3><p className={copy}>Conversion helps prepare the form; it does not provide legal review or guarantee enforceability. Keep the original document handy while checking the draft.</p><Link href="/blog/online-waivers" className="mt-5 inline-block font-medium text-primary underline underline-offset-4">Read the online waiver guide</Link></aside></div>
       </section>
 
+      <section className={section}><div className="grid items-center gap-8 lg:grid-cols-2"><div><h2 className={heading}>See the online climbing waiver handoff</h2><p className={copy}>The sample uses synthetic details. Your published climbing gym liability waiver controls the actual wording and fields. Test a first-time climber, a youth participant with a guardian and a returning guest who needs record retrieval.</p><p className={copy}>FlatWaiver is browser-based and needs internet access. It does not determine belay eligibility, verify guardian authority or synchronize bookings. Staff keep those checks in their existing process.</p><Link href="/#try-it" className="mt-5 inline-block text-primary underline">Try the signing demo</Link><p className={copy}><Link href="/features/qr-code-waivers" className="underline">Set up QR code waivers</Link> for reception.</p></div><SigningPreview /></div></section>
       <section className={section}>
         <h2 className={heading}>Keep the record, even when your waiver changes</h2>
         <p className={`${copy} max-w-3xl`}>Search by participant name or email, then filter by date or waiver. Download the stored signed PDF rather than reconstructing a document from today’s template. Each signature is tied to the published version that the participant signed, with signing details and timestamps.</p>
@@ -114,7 +117,7 @@ export default function ClimbingGymsPage() {
       </section>
 
       <section className="my-6 rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-10">
-        <div className="grid items-center gap-8 md:grid-cols-[1.2fr_1fr]"><div><p className="text-sm font-semibold text-primary">Room for your busiest months</p><h2 className={`mt-3 ${heading}`}>300 waivers or 3,000. The same monthly price.</h2><p className={copy}>Day passes, new members and group visits do not need separate signature allowances. FlatWaiver is ${APP.priceMonthlyUsd}/month for unlimited signed waivers, templates and storage.</p><ul className="mt-5 space-y-2">{["Unlimited signed waivers", "Unlimited waiver templates", "Unlimited storage"].map(item => <li key={item} className="flex gap-2 text-sm"><Check className="size-5 shrink-0 text-primary" aria-hidden="true" />{item}</li>)}</ul></div><div><p className="mb-5 text-4xl font-bold">${APP.priceMonthlyUsd}<span className="text-base font-normal text-muted-foreground"> / month</span></p><TrialButton /><p className="mt-3 text-sm text-muted-foreground">{APP.trialDays}-day free trial. No credit card required.</p><Link href="/#pricing" className="mt-4 inline-block text-sm underline underline-offset-4">View pricing details</Link></div></div>
+        <div className="grid items-center gap-8 md:grid-cols-[1.2fr_1fr]"><div><p className="text-sm font-semibold text-primary">Room for your busiest months</p><h2 className={`mt-3 ${heading}`}>300 waivers or 3,000. The same monthly price.</h2><p className={copy}>Day passes, new members and group visits do not need separate signature allowances. FlatWaiver is ${APP.priceMonthlyUsd}/month for unlimited signed waivers, templates and storage.</p><ul className="mt-5 space-y-2">{["Unlimited signed waivers", "Unlimited waiver templates", "Unlimited storage"].map(item => <li key={item} className="flex gap-2 text-sm"><Check className="size-5 shrink-0 text-primary" aria-hidden="true" />{item}</li>)}</ul></div><div><p className="mb-5 text-4xl font-bold">${APP.priceMonthlyUsd}<span className="text-base font-normal text-muted-foreground"> / month</span></p><TrialButton /><p className="mt-3 text-sm text-muted-foreground">{APP.trialDays}-day free trial. No credit card required.</p><Link href="/pricing" className="mt-4 inline-block text-sm underline underline-offset-4">View pricing details</Link></div></div>
       </section>
 
       <section className={section}>
