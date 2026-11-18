@@ -6,7 +6,7 @@ Prepared 2026-11-16. **Not merged, not deployed, no CMS publication or productio
 
 GitHub/Vercel reports the completed `main` deployment at `6a37ffba9a88183b209516f245217c7fc4509db8`. Live HTTP behavior is recorded in `production-baseline.json`. The parent workspace remains on `main` with substantial pre-existing application, auth, billing, signing, export, staging and analytics edits. Work is isolated in `tmp/seo-recovery`, branch `seo/recovery-2026-11-16`, based on the deployed commit; none of those uncommitted changes were brought into these PRs. Do not deploy the parent working tree as a shortcut.
 
-Installed Next.js: 16.2.10, React 19.2.4, Tailwind 4. Relevant installed Next metadata/CSS documentation was consulted. Local builds use `next build --webpack` because this nested worktree shares the existing dependency installation through a junction. Next reports multiple lockfiles; no dependencies or lockfiles were changed.
+Installed Next.js: 16.2.10, React 19.2.4, Tailwind 4. Relevant installed Next metadata/CSS documentation was consulted. Local builds use `next build --webpack` because this nested worktree shares the existing dependency installation through a junction. Next reports multiple lockfiles; no dependencies or lockfiles were cahanged.
 
 ## Route and content boundaries
 
