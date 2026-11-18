@@ -8,7 +8,7 @@ Prepared 2026-11-16. All PRs are drafts. No merge, production deployment, CMS pu
 | 2 | Effective prices and evaluation content | `seo/pricing-2026-11-16` | `b469a55c2e833730f7251e6f78b143ea3f85a2dd` | [#3](https://github.com/imad1007/flatwaiver/pull/3) | canonical branch |
 | 3 | Commercial pages and workflows | `seo/commercial-2026-11-16` | `7960c86d652a6a2ece76a98ebd162660d44d32d0` | [#4](https://github.com/imad1007/flatwaiver/pull/4) | pricing branch |
 | 4 | Measurement safeguards | `seo/measurement-2026-11-16` | `9837637d7825ff8b8bcf3cf2a0ce2fe0b5bffbd8` | [#5](https://github.com/imad1007/flatwaiver/pull/5) | commercial branch |
-| 5 | Final QA, performance and review packet | `seo/recovery-2026-11-16` | See final commit in PR | Pending final validation | measurement branch |
+| 5 | Final QA, performance and review packet | `seo/recovery-2026-11-16` | Validated source: 829d1bcca42b88db78da13b2aeb55463cfdbc925 | [#6](https://github.com/imad1007/flatwaiver/pull/6) | measurement branch |
 
 Each PR isolates one concern relative to its base. This is a stacked review: after an approved merge, retarget the next PR appropriately and review the complete final tree. Do not release an intermediate commercial tree without the final QA corrections. Analytics remains separately gated by `measurement.md`; preparing a PR does not approve activating it.
 
@@ -61,3 +61,56 @@ Changed files are available in each PR's Files changed tab. The implementation/f
 - src/lib/consent.ts
 - src/lib/product-analytics.ts
 
+
+### Final QA and review packet
+
+- .env.example
+- content/blog/flatwaiver-vs-smartwaiver.mdx
+- docs/seo/README.md
+- docs/seo/authority-plan.md
+- docs/seo/browser-verification.json
+- docs/seo/cms-drafts.md
+- docs/seo/keyword-page-map.csv
+- docs/seo/lighthouse-gym-mobile.json
+- docs/seo/lighthouse-home-mobile.json
+- docs/seo/local-verification.json
+- docs/seo/pagespeed-baseline.json
+- docs/seo/performance.md
+- docs/seo/review-status.md
+- docs/seo/scorecard.md
+- docs/seo/screenshots/dark-blog-waiver-software-cost-1440.png
+- docs/seo/screenshots/dark-blog-waiver-software-cost-390.png
+- docs/seo/screenshots/dark-features-qr-code-waivers-1440.png
+- docs/seo/screenshots/dark-features-qr-code-waivers-390.png
+- docs/seo/screenshots/dark-industries-climbing-gyms-1440.png
+- docs/seo/screenshots/dark-industries-climbing-gyms-390.png
+- docs/seo/screenshots/dark-industries-fitness-studios-1440.png
+- docs/seo/screenshots/dark-industries-fitness-studios-390.png
+- docs/seo/screenshots/dark-industries-trampoline-parks-1440.png
+- docs/seo/screenshots/dark-industries-trampoline-parks-390.png
+- docs/seo/screenshots/dark-pricing-1440.png
+- docs/seo/screenshots/dark-pricing-390.png
+- docs/seo/screenshots/light-blog-waiver-software-cost-1440.png
+- docs/seo/screenshots/light-blog-waiver-software-cost-390.png
+- docs/seo/screenshots/light-features-qr-code-waivers-1440.png
+- docs/seo/screenshots/light-features-qr-code-waivers-390.png
+- docs/seo/screenshots/light-industries-climbing-gyms-1440.png
+- docs/seo/screenshots/light-industries-climbing-gyms-390.png
+- docs/seo/screenshots/light-industries-fitness-studios-1440.png
+- docs/seo/screenshots/light-industries-fitness-studios-390.png
+- docs/seo/screenshots/light-industries-trampoline-parks-1440.png
+- docs/seo/screenshots/light-industries-trampoline-parks-390.png
+- docs/seo/screenshots/light-pricing-1440.png
+- docs/seo/screenshots/light-pricing-390.png
+- docs/seo/validation.md
+- scripts/verify-seo-browser.mjs
+- scripts/verify-seo.mjs
+- src/app/features/qr-code-waivers/page.tsx
+- src/app/industries/climbing-gyms/page.tsx
+- src/app/page.tsx
+- src/app/pricing/page.tsx
+- src/components/marketing/lazy-signing-demo.tsx
+- src/components/marketing/savings-calculator.tsx
+- src/lib/industries.ts
+
+Final validation completed on November 16. This documentation-only follow-up records the PR link on November 18; the validated source SHA above identifies the tested implementation. All five creation responses confirmed open drafts with the intended bases and no merge.
