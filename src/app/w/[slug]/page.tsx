@@ -5,6 +5,7 @@ import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { SigningForm } from "@/components/signing-form";
 import { APP } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
+import { qrPassesEnabled } from "@/lib/qr-pass";
 
 export async function generateMetadata({
   params,
@@ -65,6 +66,7 @@ export default async function PublicSigningPage({
       </header>
 
       <SigningForm
+        qrPassesEnabled={qrPassesEnabled()}
         defaultLanguage={waiver.version.signer_language}
         slug={waiver.slug}
         waiverName={waiver.name}

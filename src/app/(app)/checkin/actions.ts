@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { qrPassesEnabled } from "@/lib/qr-pass";
 import { z } from "zod";
 import { requireOrgRole } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,6 +13,12 @@ export async function checkIn(rawSignedWaiverId: string) {
   const signedWaiverId = idSchema.parse(rawSignedWaiverId);
   const caller = await requireOrgRole("staff");
   const admin = createAdminClient();
+  if (qrPassesEnabled()) {
+    const { data, error } = await admin.rpc("record_waiver_checkin", { p_signature: signedWaiverId, p_actor: caller.userId, p_index: null, p_visit: null });
+    if (error || !data || !["verified", "checked_in"].includes(data.status)) throw new Error("Check-in requires review. Scan the pass or open the signed record.");
+    revalidatePath("/checkin");
+    return { ok: true, duplicate: data.duplicate === true };
+  }
 
   const { data: signature, error: signatureError } = await admin
     .from("signed_waivers")
@@ -53,6 +60,12 @@ export async function checkIn(rawSignedWaiverId: string) {
 export async function undoCheckIn(rawCheckinId: string) {
   const checkinId = idSchema.parse(rawCheckinId);
   const caller = await requireOrgRole("staff");
+  if (qrPassesEnabled()) {
+    const { error } = await createAdminClient().rpc("undo_waiver_checkin", { p_checkin: checkinId, p_actor: caller.userId });
+    if (error) throw new Error("Could not undo the check-in.");
+    revalidatePath("/checkin");
+    return { ok: true };
+  }
   const { data: deleted, error } = await createAdminClient()
     .from("checkins")
     .delete()

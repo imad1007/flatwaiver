@@ -3,6 +3,7 @@ import { cache } from "react";
 import { kioskHiddenFields } from "@/lib/kiosk-settings";
 import { getPublishedWaiverBySlug } from "@/lib/public-waiver";
 import { SigningForm } from "@/components/signing-form";
+import { qrPassesEnabled } from "@/lib/qr-pass";
 import { WakeLock } from "@/components/wake-lock";
 
 // Request-scoped only: metadata and page share one lookup; submission still
@@ -64,6 +65,7 @@ export default async function KioskPage({
       </header>
 
       <SigningForm
+        qrPassesEnabled={qrPassesEnabled()}
         defaultLanguage={waiver.version.signer_language}
         slug={waiver.slug}
         waiverName={waiver.name}

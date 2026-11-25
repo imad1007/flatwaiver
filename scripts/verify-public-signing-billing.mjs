@@ -5,6 +5,8 @@ import ts from "typescript";
 import { canAcceptPublicSignatures } from "../src/lib/billing-lifecycle.ts";
 
 function load(file, dependencies) {
+  dependencies["@/lib/qr-pass"] ??= { qrPassesEnabled: () => false };
+  dependencies["@/components/waiver-passes"] ??= { SignerPasses: () => null };
   const source = ts.transpileModule(fs.readFileSync(file, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
@@ -51,6 +53,8 @@ const loader = load("src/lib/public-waiver.ts", {
   "./kiosk-settings": kioskSettings,
 });
 const route = load("src/app/api/sign/[slug]/route.ts", {
+  "@/lib/qr-pass": { qrPassesEnabled: () => false, receiptPattern: /^[A-Za-z0-9_-]{43}$/ },
+  "@/lib/qr-pass-mail": { deliverPassEmail: async () => {} },
   "next/server": { NextResponse: { json: (body, init) => Response.json(body, init) } },
   zod: { z },
   "@/lib/supabase/admin": { createAdminClient: forbidden },

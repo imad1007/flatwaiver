@@ -23,6 +23,21 @@ export async function sendBillingExpiryEmail(opts: {
 
 const FROM = transactionalEmailFrom();
 
+/** Uses the same transactional-mail and staging policy as signed copies. */
+export async function sendWaiverPassEmail(opts: { to: string; recordId: string; images: Buffer[] }) {
+  const resend = resendClient();
+  if (!resend) throw new Error("Pass email is not configured.");
+  const result = await resend.emails.send({
+    from: FROM, to: opts.to, replyTo: APP.supportEmail,
+    subject: "Your waiver check-in passes",
+    text: "Your waiver is signed. Save the attached individual QR passes and present the correct participant's pass to venue staff. A pass is not a ticket or admission guarantee. Keep these passes private.",
+    attachments: opts.images.map((content, i) => ({ filename: `participant-${i + 1}-pass.png`, content, contentType: "image/png" })),
+  }, { idempotencyKey: `waiver-passes/${opts.recordId}/v1` });
+  assertEmailAccepted(result);
+  if (!result.data?.id) throw new Error("Pass email was not accepted.");
+  return result.data.id;
+}
+
 function resendClient(): Resend | null {
   // Staging never sends application mail, even if a live key is copied in.
   // Supabase Auth SMTP must be isolated separately in its project settings.

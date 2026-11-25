@@ -40,7 +40,10 @@
     "verify:management-load-states": "node scripts/verify-management-load-states.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "verify:sign-flow": "node scripts/verify-sign-flow.mjs",
-    "verify:group-waivers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-waivers.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-sign-route.mjs && node scripts/verify-group-participants-ui.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-record-view.mjs"
+    "verify:group-waivers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-waivers.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-sign-route.mjs && node scripts/verify-group-participants-ui.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-group-record-view.mjs",
+    "verify:qr": "node scripts/verify-qr-email.mjs",
+    "verify:qr:database": "node scripts/verify-qr-database.mjs",
+    "verify:qr:browser": "node scripts/verify-qr-browser.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -57,6 +60,7 @@
     "creem": "^1.5.4",
     "flag-icons": "7.6.0",
     "gray-matter": "^4.0.3",
+    "jsqr": "1.4.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.23.0",
     "mammoth": "^1.12.0",

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://supabase.com/schemas/config/v1.json",
+  "project_id": "qr-checkin",
+  "api": {
+    "enabled": true,
+    "port": 55321,
+    "schemas": [
+      "public",
+      "graphql_public"
+    ],
+    "extra_search_path": [
+      "public",
+      "extensions"
+    ],
+    "max_rows": 1000
+  },
+  "db": {
+    "port": 55322,
+    "shadow_port": 55320,
+    "major_version": 17,
+    "seed": {
+      "enabled": false
+    }
+  },
+  "auth": {
+    "enabled": true,
+    "site_url": "http://127.0.0.1:3020",
+    "additional_redirect_urls": [
+      "http://localhost:3020",
+      "http://127.0.0.1:3020"
+    ],
+    "enable_signup": true
+  },
+  "storage": {
+    "enabled": true
+  },
+  "local_smtp": {
+    "enabled": true,
+    "port": 55324
+  },
+  "studio": {
+    "enabled": false,
+    "port": 55323
+  },
+  "realtime": {
+    "enabled": false
+  },
+  "edge_runtime": {
+    "enabled": false
+  },
+  "analytics": {
+    "enabled": false
+  }
+}
