@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Image from "next/image";
 import styles from "./homepage.module.css";
 import {
@@ -43,6 +44,19 @@ import {
 // ISR so newly published posts flow into the homepage "Guides" section (and
 // their homepage backlink) without a redeploy.
 export const revalidate = 600;
+
+// Do not resolve homepage metadata against Next's internal /index pathname.
+// Keep other routes' inherited and explicit canonicals unchanged.
+export const metadata: Metadata = {
+  alternates: { canonical: `${APP.siteUrl}/` },
+  openGraph: {
+    type: "website",
+    siteName: APP.name,
+    title: `Digital Waiver Software — Unlimited Waivers for $${APP.priceMonthlyUsd}/mo | ${APP.name}`,
+    description: `Digital waiver software for gyms, climbing facilities, trampoline parks, tours and activity businesses. Unlimited signed waivers for $${APP.priceMonthlyUsd}/month.`,
+    url: `${APP.siteUrl}/`,
+  },
+};
 
 // ─── Content ────────────────────────────────────────────────────────────────
 
@@ -140,7 +154,7 @@ const STRUCTURED_DATA = {
       "@id": `${SITE_URL}/#organization`,
       name: APP.name,
       url: SITE_URL,
-      logo: `${SITE_URL}/icon.svg`,
+      logo: `${SITE_URL}/icon.png`,
     },
     {
       "@type": "WebSite",
