@@ -16,3 +16,8 @@ await worker.deliverPassEmail('fixture');assert.equal(state,'pending');assert(up
 fail=false;await worker.deliverPassEmail('fixture');assert.equal(state,'sent');assert.equal(updates.at(-1).provider_id,'accepted');
 lease=true;await worker.deliverPassEmail('fixture');assert.equal(calls,2,'another lease holder cannot send');
 console.log('PASS: transactional pass email attachments, stable provider idempotency key, provider rejection, durable failure retry, sent state and lease exclusion.');
+
+const cronConfig=JSON.parse(readFileSync('vercel.json','utf8'));
+for (const job of cronConfig.crons) assert.match(job.schedule,/^\d{1,2} \d{1,2} \* \* \*$/, 'Vercel Hobby requires daily cron schedules');
+assert.equal(cronConfig.crons.find(job=>job.path==='/api/cron/waiver-passes').schedule,'30 9 * * *');
+console.log('PASS: all deployed cron schedules are compatible with Vercel Hobby.');

@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/waiver-passes",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 9 * * *"
     }
   ]
 }

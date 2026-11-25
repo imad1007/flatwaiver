@@ -41,4 +41,6 @@ Verified locally on 2026-11-25. No hosted database, production deployment, custo
 - [Scanner, dark desktop](screenshots/scanner-dark-desktop.png)
 - [Scanner, dark mobile](screenshots/scanner-dark-mobile.png)
 
-Images contain only synthetic local test identities and passes. Physical cameras on the customer's actual devices and accepted delivery through live Resend remain release smoke tests. Read-only Vercel plan inspection returned 403, so hosting-plan support is unverified. The five-minute retry schedule must be supported by the existing hosting plan or an existing authenticated scheduler. See README.md for migration-first rollout, stable key handling, pending/attention monitoring and rollback.
+Images contain only synthetic local test identities and passes. Physical cameras on the customer's actual devices and accepted delivery through live Resend remain release smoke tests. The user confirmed Vercel Hobby through the deployment error. The QR cron was corrected to once daily (09:30 UTC); a configuration regression test verifies all deployed crons are daily. Initial emails remain immediate, but failed-send recovery is daily and ambiguous jobs older than 23 hours require operator review. See README.md for these recovery limits and rollout.
+
+Hobby deployment correction: `npm run verify:qr` passes with a regression assertion rejecting non-daily cron expressions. No application code or database migration changed in this follow-up.
