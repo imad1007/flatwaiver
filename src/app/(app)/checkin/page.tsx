@@ -1,3 +1,6 @@
+import { qrPassesEnabled } from "@/lib/qr-pass";
+import { QrCheckinScanner } from "@/components/qr-checkin-scanner";
+import { StaffPasses } from "@/components/waiver-passes";
 import { WaiverParticipantList, WaiverCustomNameMatches } from "@/components/waiver-participant-list";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,6 +22,8 @@ interface CheckinRow {
   id: string;
   signed_waiver_id: string;
   checked_in_at: string;
+  participant_index?: number | null;
+  visit_key?: string | null;
 }
 
 export default async function CheckinPage({
@@ -31,6 +36,8 @@ export default async function CheckinPage({
   const q = rawQ?.trim().slice(0, 100) ?? "";
   const caller = await getOrgCaller();
   if (!caller) redirect("/login");
+  const qrEnabled = qrPassesEnabled();
+  const checkinColumns = qrEnabled ? "id, signed_waiver_id, checked_in_at, participant_index, visit_key" : "id, signed_waiver_id, checked_in_at";
   const canCheckIn = roleAtLeast(caller.role, "staff");
 
   const supabase = await createClient();
@@ -53,7 +60,7 @@ export default async function CheckinPage({
     sigQuery,
     supabase
       .from("checkins")
-      .select("id, signed_waiver_id, checked_in_at")
+      .select(checkinColumns)
       .gte("checked_in_at", todayStart.toISOString())
       .order("checked_in_at", { ascending: false })
       .order("id", { ascending: false })
@@ -87,24 +94,32 @@ export default async function CheckinPage({
 
   const signatures = signaturesResult.data;
   const templates = templatesResult.data;
-  const checkins = (checkinsResult.data ?? []) as CheckinRow[];
+  const checkins = (checkinsResult.data ?? []) as unknown as CheckinRow[];
   // PostgREST caps each response. Read every batch so a busy day's older
   // check-ins and the distinct-waiver total do not silently disappear.
   let batchSize = checkins.length;
   while (batchSize === 1000) {
     const { data, error } = await supabase.from("checkins")
-      .select("id, signed_waiver_id, checked_in_at")
+      .select(checkinColumns)
       .gte("checked_in_at", todayStart.toISOString())
       .order("checked_in_at", { ascending: false })
       .order("id", { ascending: false })
       .range(checkins.length, checkins.length + 999);
     if (error) return <DataLoadError retryHref={q ? `/checkin?q=${encodeURIComponent(q)}` : "/checkin"} />;
     batchSize = data?.length ?? 0;
-    checkins.push(...(data ?? []));
+    checkins.push(...((data ?? []) as unknown as CheckinRow[]));
   }
   const latestCheckin = new Map<string, CheckinRow>();
+  const participantCoverage = new Map<string, Set<number>>();
+  const legacyCoverage = new Set<string>();
   for (const c of checkins) {
+    if (qrEnabled && c.visit_key && c.visit_key !== `day:${todayStart.toISOString().slice(0,10)}`) continue;
     if (!latestCheckin.has(c.signed_waiver_id)) latestCheckin.set(c.signed_waiver_id, c);
+    if (c.participant_index == null) legacyCoverage.add(c.signed_waiver_id);
+    else {
+      const covered = participantCoverage.get(c.signed_waiver_id) ?? new Set<number>();
+      covered.add(c.participant_index); participantCoverage.set(c.signed_waiver_id, covered);
+    }
   }
   const templateNames = new Map((templates ?? []).map((t) => [t.id, t.name]));
   const rows = (signatures ?? []) as FrontDeskSignature[];
@@ -116,7 +131,7 @@ export default async function CheckinPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Front desk</h1>
         <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{latestCheckin.size}</span> checked
+          <span className="font-semibold text-foreground">{new Set(checkins.map(c => c.signed_waiver_id)).size}</span> checked
           in today
         </p>
       </div>
@@ -124,6 +139,8 @@ export default async function CheckinPage({
         Today&apos;s signers appear automatically. Search to find anyone with a
         signature on file — flagged answers show before you admit them.
       </p>
+
+      {qrEnabled && canCheckIn && <QrCheckinScanner />}
 
       {/* Search */}
       <form method="get" className="mt-5 flex flex-wrap gap-2">
@@ -180,7 +197,8 @@ export default async function CheckinPage({
             </thead>
             <tbody>
               {rows.map((s) => {
-                const checkin = latestCheckin.get(s.id);
+                const full = !qrEnabled || legacyCoverage.has(s.id) || (participantCoverage.get(s.id)?.size ?? 0) >= Math.max(1, s.participants?.length ?? 0);
+                const checkin = full ? latestCheckin.get(s.id) : undefined;
                 return (
                   <tr
                     key={s.id}
@@ -226,6 +244,7 @@ export default async function CheckinPage({
                         checkedInAt={checkin?.checked_in_at}
                         canCheckIn={canCheckIn}
                       />
+                      {qrEnabled && canCheckIn && <StaffPasses signatureId={s.id} />}
                     </td>
                   </tr>
                 );

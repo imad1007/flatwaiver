@@ -18,6 +18,8 @@ const admin = { from(table) {
   return query;
 }, storage: { from(bucket) { return { upload: async (path, bytes) => { uploads.push({ bucket, path, bytes }); return { error: null }; }, remove: async () => ({ error: null }) }; } } };
 const dependencies = {
+  '@/lib/qr-pass': { qrPassesEnabled: () => false, receiptPattern: /^[A-Za-z0-9_-]{43}$/ },
+  '@/lib/qr-pass-mail': { deliverPassEmail: async () => {} },
   'next/server': { NextResponse: { json: (body, init) => Response.json(body, init) } },
   'zod': require('zod'),
   '@/lib/supabase/admin': { createAdminClient: () => admin },

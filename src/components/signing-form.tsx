@@ -10,6 +10,7 @@ import {
 import { MemoizedGroupParticipants as GroupParticipants, type GroupParticipantsHandle } from "@/components/group-participants";
 import { TurnstileWidget } from "@/components/turnstile-widget";
 import { KioskDialog } from "@/components/kiosk-dialog";
+import { SignerPasses, receiptStorageKey } from "@/components/waiver-passes";
 import { kioskIdleState } from "@/lib/kiosk-privacy";
 import { kioskFieldCanBeHidden } from "@/lib/kiosk-settings";
 import { BlockView, FieldInput, signerInputClass } from "@/components/waiver-render";
@@ -41,6 +42,7 @@ async function fileToResizedDataUrl(file: File, maxDim = 1200, quality = 0.8): P
 }
 
 export interface SigningFormProps {
+  qrPassesEnabled?: boolean;
   documentDisplay?: DocumentDisplay;
   groupSigningEnabled?: boolean;
   defaultLanguage?: SignerLanguage;
@@ -102,6 +104,8 @@ export function SigningForm(props: SigningFormProps) {
   const medicalDetailRef = useRef<HTMLTextAreaElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const submissionIdRef = useRef<string | null>(null);
+  const receiptRef = useRef<string | null>(null);
+  const [completedReceipt, setCompletedReceipt] = useState<string | null>(null);
   const kioskResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -166,6 +170,7 @@ export function SigningForm(props: SigningFormProps) {
     setTurnstileToken(""); lastActivity.current = Date.now();
     dirty.current = false;
     submissionIdRef.current = null;
+    receiptRef.current = null; setCompletedReceipt(null);
     setTurnstileReset((n) => n + 1);
     setFormKey((k) => k + 1);
     window.scrollTo({ top: 0 });
@@ -173,7 +178,7 @@ export function SigningForm(props: SigningFormProps) {
 
   function armKioskPrivacyReset(delayMs = 3 * 60 * 1000) {
     if (!props.kiosk) return;
-    if (delayMs !== 5000) { lastActivity.current = Date.now(); setIdleSeconds(null); return; }
+    if (delayMs !== 5000 && delayMs !== 60000) { lastActivity.current = Date.now(); setIdleSeconds(null); return; }
     if (kioskResetTimerRef.current) clearTimeout(kioskResetTimerRef.current);
     kioskResetTimerRef.current = setTimeout(resetForm, delayMs);
   }
@@ -247,12 +252,24 @@ export function SigningForm(props: SigningFormProps) {
     setSubmitting(true);
     submittingRef.current = true;
     submissionIdRef.current ??= crypto.randomUUID();
+    if (props.qrPassesEnabled && !receiptRef.current) {
+      let pending: { id?: string; receipt?: string } | null = null;
+      if (!props.kiosk) { try { pending = JSON.parse(sessionStorage.getItem(`fw-pass-pending:${props.slug}`) ?? "null"); } catch { /* Memory fallback. */ } }
+      if (pending?.id && /^[0-9a-f-]{36}$/.test(pending.id) && pending.receipt && /^[A-Za-z0-9_-]{43}$/.test(pending.receipt)) {
+        submissionIdRef.current = pending.id; receiptRef.current = pending.receipt;
+      } else {
+        const bytes = crypto.getRandomValues(new Uint8Array(32));
+        receiptRef.current = btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+      }
+      if (!props.kiosk) { try { sessionStorage.setItem(`fw-pass-pending:${props.slug}`, JSON.stringify({ id: submissionIdRef.current, receipt: receiptRef.current })); } catch { /* Memory fallback. */ } }
+    }
     try {
       const res = await fetch(`/api/sign/${props.slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           submissionId: submissionIdRef.current,
+          ...(receiptRef.current ? { receiptSecret: receiptRef.current } : {}),
           turnstileToken,
           signerName: participants?.[0]?.fullName ?? signerName.trim(),
           participantCount: participants?.length,
@@ -270,18 +287,23 @@ export function SigningForm(props: SigningFormProps) {
         }),
       });
 
+      const body = await res.json().catch(() => null);
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
         setError(language !== "en" ? t("Something went wrong. Please try again.") : body?.error ?? t("Something went wrong. Please try again."));
         setTurnstileToken("");
         setTurnstileReset((n) => n + 1);
         return;
       }
 
-      if (props.kiosk) {
+      let receiptStored = false;
+      if (body?.qrPasses && receiptRef.current) {
+        setCompletedReceipt(receiptRef.current);
+        if (!props.kiosk) { try { sessionStorage.setItem(receiptStorageKey(props.slug), receiptRef.current); sessionStorage.removeItem(`fw-pass-pending:${props.slug}`); receiptStored = true; } catch { /* Show passes inline if browser storage is unavailable. */ } }
+      }
+      if (props.kiosk || (body?.qrPasses && !receiptStored)) {
         dirty.current = false;
         setKioskDone(true);
-        armKioskPrivacyReset(5000);
+        armKioskPrivacyReset(body?.qrPasses ? 60000 : 5000);
       } else {
         router.push(`/w/${props.slug}/done?lang=${language}`);
       }
@@ -328,8 +350,10 @@ export function SigningForm(props: SigningFormProps) {
         <p className="mt-2 text-lg text-muted-foreground">
           {t("Your waiver has been signed and recorded.")}
         </p>
+        {completedReceipt && <SignerPasses slug={props.slug} receipt={completedReceipt} />}
+        {completedReceipt && props.kiosk && <button type="button" onClick={resetForm} className="mt-5 min-h-12 rounded-lg border px-5 font-semibold">Finished — next guest</button>}
         <p className="mt-6 text-sm text-muted-foreground/70">
-          {t("Ready for the next person in a few seconds…")}
+          {completedReceipt ? props.kiosk ? "Save your pass now. This screen clears automatically after one minute." : "Save your pass before closing this screen." : t("Ready for the next person in a few seconds…")}
         </p>
       </div>
     );

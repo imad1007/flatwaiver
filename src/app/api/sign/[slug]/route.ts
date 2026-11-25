@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { deliverPassEmail } from "@/lib/qr-pass-mail";
+import { qrPassesEnabled, hashSecret, receiptPattern, ensurePasses } from "@/lib/qr-pass";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPublishedWaiverBySlug, PublicWaiverLoadError } from "@/lib/public-waiver";
@@ -34,6 +36,7 @@ const basePayloadSchema = z.object({
   participants: z.unknown().optional(),
   participantCount: z.unknown().optional(),
   submissionId: z.string().uuid().optional(),
+  receiptSecret: z.string().regex(receiptPattern).optional(),
   turnstileToken: z.string().min(1),
   signerName: z.string().trim().min(1).max(200),
   isMinor: z.boolean(),
@@ -160,7 +163,7 @@ export async function POST(
         return jsonError("Couldn't verify submission status. Please try again.", 503);
       }
       if (existingTemplate?.slug === slug) {
-        return NextResponse.json({ ok: true, duplicate: true });
+        return NextResponse.json({ ok: true, duplicate: true, qrPasses: qrPassesEnabled() && Boolean(payload.receiptSecret) });
       }
       return jsonError("Submission identifier conflict. Refresh and try again.", 409);
     }
@@ -373,7 +376,7 @@ export async function POST(
 
   const flagged = evaluateFlags(version.fields, payload.fieldValues);
 
-  const { error: insertError } = await admin.from("signed_waivers").insert({
+  const record = {
     id: recordId,
     participants: storedParticipants.length ? storedParticipants : null,
     org_id: waiver.orgId,
@@ -399,7 +402,11 @@ export async function POST(
     ip: clientIp,
     user_agent: userAgent,
     signing_channel: payload.channel,
-  });
+  };
+  const qrReceipt = qrPassesEnabled() && payload.receiptSecret ? hashSecret(payload.receiptSecret) : null;
+  const { error: insertError } = qrReceipt
+    ? await admin.rpc("commit_waiver_with_receipt", { p_record: record, p_receipt_hash: qrReceipt })
+    : await admin.from("signed_waivers").insert(record);
   if (insertError) {
     console.error("signed_waivers insert failed", insertError);
 
@@ -464,7 +471,10 @@ export async function POST(
     flagged,
   });
 
-  return NextResponse.json({ ok: true });
+  if (qrReceipt) after(async () => {
+    try { await ensurePasses(recordId, { receipt: qrReceipt }); await deliverPassEmail(recordId); } catch { /* Receipt screen offers an independent retry. */ }
+  });
+  return NextResponse.json({ ok: true, qrPasses: Boolean(qrReceipt) });
 }
 
 function jsonError(error: string, status: number) {
