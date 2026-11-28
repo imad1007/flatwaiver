@@ -32,7 +32,9 @@ export async function generateMetadata({
   const post = await getRenderablePost(slug);
   if (!post) return {};
   return {
-    title: `${post.title} | ${APP.name}`,
+    // No " | FlatWaiver" suffix: post titles are written to fit ~60 chars on
+    // their own, and the suffix pushed them into SERP truncation.
+    title: { absolute: post.title },
     description: post.description,
     keywords: post.keywords,
     alternates: { canonical: post.canonical ?? `/blog/${post.slug}` },
