@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local scratch: one-off scripts, snapshots and nested builds.
+    "tmp/**",
+    "output/**",
   ]),
 ]);
 
